@@ -1,0 +1,44 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+VS_11.0/Win32/Debug/RDMFieldDictionary
+VS_11.0/Win32/Debug/
+VS_11.0/Win32/Release/
+VS_11.0/x64/Debug/
+VS_11.0/x64/Release/
+mamaClient/Debug/mamaproxyc.unsuccessfulbuild
+*.opensdf
+*.sdf
+doit
+build/
+VS_11.0/Win32_Enhanced/Debug/
+VS_11.0/Win32_Enhanced/Release/
+VS_11.0/x64_Enhanced/Debug/
+VS_11.0/x64_Enhanced/Release/
+
+*.unsuccessfulbuild
+tick42rmds/RCa05828
+tick42rmdsmsg/VS_11.0/Win32/Release/RCa03232
+*.ipch
+*.exp

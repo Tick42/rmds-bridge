@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(TICK42_UPA)\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    
+	<!-- Debug|Win32 -->
+    <Link Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_32_VS100\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_32_VS110\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Lib Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_32_VS100\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_32_VS110\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+	
+    <!-- Release|Win32 -->
+    <Link Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_32_VS100\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_32_VS110\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Lib Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_32_VS100\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_32_VS110\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+
+    <!-- Debug|x64 -->
+    <Link Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_64_VS100\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_64_VS110\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Lib Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_64_VS100\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_64_VS110\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+    <!-- Release|x64 -->
+    <Link Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_64_VS100\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_64_VS110\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Lib Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='10.0'">$(TICK42_UPA)\Libs\WIN_64_VS100\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(VisualStudioVersion)'=='11.0'">$(TICK42_UPA)\Libs\WIN_64_VS110\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      
+      <AdditionalDependencies>librssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
+
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

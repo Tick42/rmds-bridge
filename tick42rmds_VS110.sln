@@ -1,0 +1,102 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tick42rmds", "tick42rmds\tick42rmds_VS110.vcxproj", "{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{60BC4DA6-8573-44CE-A463-958C993C1831} = {60BC4DA6-8573-44CE-A463-958C993C1831}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tick42rmdsmsg", "tick42rmdsmsg\tick42rmdsmsg_VS110.vcxproj", "{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utils", "utils\utils_VS110.vcxproj", "{60BC4DA6-8573-44CE-A463-958C993C1831}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Property Sheets", "Property Sheets", "{13279803-C777-4360-8C85-8A20FD4992F1}"
+	ProjectSection(SolutionItems) = preProject
+		PropertySheets\Build_Targets.props = PropertySheets\Build_Targets.props
+		PropertySheets\Middleware_OpenMAMA_Defines.props = PropertySheets\Middleware_OpenMAMA_Defines.props
+		PropertySheets\MiddlewareRelease.props = PropertySheets\MiddlewareRelease.props
+		PropertySheets\Tick42_Boost.props = PropertySheets\Tick42_Boost.props
+		PropertySheets\Tick42_ForceStdAfx.props = PropertySheets\Tick42_ForceStdAfx.props
+		PropertySheets\Tick42_ForceStdIntFix.props = PropertySheets\Tick42_ForceStdIntFix.props
+		PropertySheets\Tick42_OpenMAMA.props = PropertySheets\Tick42_OpenMAMA.props
+		PropertySheets\Tick42_Upa.props = PropertySheets\Tick42_Upa.props
+		PropertySheets\Tick42_UpaShared.props = PropertySheets\Tick42_UpaShared.props
+		PropertySheets\Winsock.props = PropertySheets\Winsock.props
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MAMA Client", "MAMA Client", "{8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamalistenc", "mamaClient\openmamalistenc_VS110.vcxproj", "{77CDA662-CA86-4713-A549-4F1422BD44DA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CMake", "CMake", "{205B01CF-D465-48D9-AFB2-9B3C3EC65897}"
+	ProjectSection(SolutionItems) = preProject
+		CMakeLists.txt = CMakeLists.txt
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CMake Packages", "CMake Packages", "{157B7EBE-3775-4DA7-B49A-A42CF07A72EE}"
+	ProjectSection(SolutionItems) = preProject
+		cmake\FindOpenMAMA.cmake = cmake\FindOpenMAMA.cmake
+		cmake\FindUpaAPI.cmake = cmake\FindUpaAPI.cmake
+		cmake\FindUuid.cmake = cmake\FindUuid.cmake
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamalistencpp", "mamaClient\openmamalistencpp_VS110.vcxproj", "{E5C9631A-E289-442E-8081-9E7F08F0BD53}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Debug|Win32.ActiveCfg = Debug|Win32
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Debug|Win32.Build.0 = Debug|Win32
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Debug|x64.ActiveCfg = Debug|x64
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Debug|x64.Build.0 = Debug|x64
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Release|Win32.ActiveCfg = Release|Win32
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Release|Win32.Build.0 = Release|Win32
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Release|x64.ActiveCfg = Release|x64
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}.Release|x64.Build.0 = Release|x64
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Debug|Win32.Build.0 = Debug|Win32
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Debug|x64.ActiveCfg = Debug|x64
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Debug|x64.Build.0 = Debug|x64
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Release|Win32.ActiveCfg = Release|Win32
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Release|Win32.Build.0 = Release|Win32
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Release|x64.ActiveCfg = Release|x64
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}.Release|x64.Build.0 = Release|x64
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Debug|Win32.ActiveCfg = Debug|Win32
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Debug|Win32.Build.0 = Debug|Win32
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Debug|x64.ActiveCfg = Debug|x64
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Debug|x64.Build.0 = Debug|x64
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Release|Win32.ActiveCfg = Release|Win32
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Release|Win32.Build.0 = Release|Win32
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Release|x64.ActiveCfg = Release|x64
+		{60BC4DA6-8573-44CE-A463-958C993C1831}.Release|x64.Build.0 = Release|x64
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Debug|Win32.ActiveCfg = Debug|Win32
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Debug|Win32.Build.0 = Debug|Win32
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Debug|x64.ActiveCfg = Debug|x64
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Debug|x64.Build.0 = Debug|x64
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Release|Win32.ActiveCfg = Release|Win32
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Release|Win32.Build.0 = Release|Win32
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Release|x64.ActiveCfg = Release|x64
+		{77CDA662-CA86-4713-A549-4F1422BD44DA}.Release|x64.Build.0 = Release|x64
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Debug|Win32.ActiveCfg = Debug|Win32
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Debug|Win32.Build.0 = Debug|Win32
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Debug|x64.ActiveCfg = Debug|x64
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Debug|x64.Build.0 = Debug|x64
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|Win32.ActiveCfg = Release|Win32
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|Win32.Build.0 = Release|Win32
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|x64.ActiveCfg = Release|x64
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{77CDA662-CA86-4713-A549-4F1422BD44DA} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
+		{157B7EBE-3775-4DA7-B49A-A42CF07A72EE} = {205B01CF-D465-48D9-AFB2-9B3C3EC65897}
+	EndGlobalSection
+EndGlobal

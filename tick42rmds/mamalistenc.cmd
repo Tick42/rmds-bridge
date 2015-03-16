@@ -1,0 +1,1 @@
+mamalistenc.exe -B -S %1   -s %2  -tport rmds_sub -m tick42rmds -threads 1 

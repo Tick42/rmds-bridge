@@ -1,0 +1,135 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\thread">
+      <UniqueIdentifier>{688401a4-8856-418c-a42a-7c4d37884874}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Property Sheets">
+      <UniqueIdentifier>{99a03305-74b8-459d-a8a7-839f6b6398d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\mama">
+      <UniqueIdentifier>{360ef1dc-bddf-4140-98e6-4bc2f0e9e608}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\mama">
+      <UniqueIdentifier>{2b0d0784-56ed-48d6-b16e-abde2a373a1f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CMake">
+      <UniqueIdentifier>{a8d3a4e2-8725-4f33-831e-377c69ac536d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+    <None Include="PropertySheets\utils.props">
+      <Filter>Property Sheets</Filter>
+    </None>
+    <None Include="CMakeLists.txt">
+      <Filter>CMake</Filter>
+    </None>
+    <None Include="config.h.in">
+      <Filter>CMake</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="utils\environment.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\filesystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\properties.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\thread.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\thread\interlockedInt.h">
+      <Filter>Header Files\thread</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\thread\lock.h">
+      <Filter>Header Files\thread</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\thread\semaphore.h">
+      <Filter>Header Files\thread</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\t42log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\mama\mamaDictionaryWrapper.h">
+      <Filter>Header Files\mama</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\mama\types.h">
+      <Filter>Header Files\mama</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\mama.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\mama\mamaFieldDescriptorWrapper.h">
+      <Filter>Header Files\mama</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\stdlib_port.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\stdio_port.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\os.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\time.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\parse.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\threadMonitor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils\stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="utils\environment.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\filesystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\properties.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\t42log.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\mama\mamaDictionaryWrapper.cpp">
+      <Filter>Source Files\mama</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\mama\mamaFieldDescriptorWrapper.cpp">
+      <Filter>Source Files\mama</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\os.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\parse.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\threadMonitor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils\stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

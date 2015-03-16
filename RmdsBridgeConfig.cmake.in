@@ -1,0 +1,16 @@
+# - Config file for the RmdsBridge package
+# It defines the following variables
+#  RMDSBRIDGE_INCLUDE_DIRS - include directories for RMDSBRIDGE
+#  RMDSBRIDGE_LIBRARIES    - libraries to link against
+#  RMDSBRIDGE_EXECUTABLE   - the executable
+
+# Compute paths
+get_filename_component(RMDSBRIDGE_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(RMDSBRIDGE_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+
+# Our library dependencies (contains definitions for IMPORTED targets)
+include("${RMDSBRIDGE_CMAKE_DIR}/RmdsBridgeTargets.cmake")
+
+# These are IMPORTED targets created by RmdsBridgeTargets.cmake
+set(RMDSBRIDGE_LIBRARIES utils tick42rmds tick42rmdsmsg)
+#set(RMDSBRIDGE_EXECUTABLE rmds)
