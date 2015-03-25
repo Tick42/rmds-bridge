@@ -436,6 +436,16 @@ bool UPABridgePoster::EncodeMessageData(RsslChannel * chnl, RsslBuffer* rsslMess
       // if we re-use this code for Interactive provider then will need to add solicited flag
       rsslRefreshMsg.flags = RSSL_RFMF_HAS_MSG_KEY | RSSL_RFMF_REFRESH_COMPLETE | RSSL_RFMF_HAS_QOS | RSSL_RFMF_CLEAR_CACHE;
 
+	  // we need to always include a msg key for a refresh because sources like the TR ATS require it to create new cache items
+	  rsslMsgBase->msgKey.flags = RSSL_MKF_HAS_SERVICE_ID | RSSL_MKF_HAS_NAME | RSSL_MKF_HAS_NAME_TYPE;
+	  // // ServiceId
+	  rsslMsgBase->msgKey.serviceId = serviceId_;
+	  //// Itemname
+	  rsslMsgBase->msgKey.name.data = const_cast<char *>(symbol_.c_str());
+	  rsslMsgBase->msgKey.name.length = (RsslUInt32)symbol_.size();
+	  rsslMsgBase->msgKey.nameType = RDM_INSTRUMENT_NAME_TYPE_RIC;
+
+
       // 
       // Qos 
       rsslRefreshMsg.qos.dynamic = RSSL_FALSE;
