@@ -174,23 +174,27 @@ void UPALogin::ConfigureEntitlements(TransportConfig_t *pConfig)
         }
     }
 
-    appID_ = pConfig->getString("appid", Default_Appid);
-    if(appID_.empty())
+
+    // Give priority to an appid set by the mama layer
+    const char* mamaAppid = 0;
+    mama_status stat = mama_getApplicationName(&mamaAppid);
+    // sanity check its a number - first digit is good enough
+    if(stat == MAMA_STATUS_OK && mamaAppid != 0 &&  isdigit(mamaAppid[0]))
     {
-        // there is no override from the bridge config
-        const char* mamaAppid = 0;
-        mama_status stat = mama_getApplicationName(&mamaAppid);
-        // sanity check its a number - first digit is good enough
-        if(stat == MAMA_STATUS_OK && mamaAppid != 0 &&  isdigit(mamaAppid[0]))
-        {
-            appID_ = mamaAppid;
-        }
-        else
-        {
-            //the usual TR default
-            appID_ = "255";
-        }
+        appID_ = mamaAppid;
     }
+    else
+    {
+		// if thats not present then user appid from the config file
+		appID_ = pConfig->getString("appid", Default_Appid);
+		if(appID_.empty())
+		{
+			// and failing that...
+			//the usual TR default
+			appID_ = "255";
+		}
+    }
+    
 }
 
 void UPALogin::AddListener( LoginResponseListener * pListener )
