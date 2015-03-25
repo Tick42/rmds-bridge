@@ -339,8 +339,13 @@ void UPAConsumer::Run()
 		 }
 		 else
 		 {
-			 // no connection, just sleep for 100 millis
-			 sleep(100);
+			 // no connection, just sleep for 1s
+
+#ifdef _WIN32
+			 Sleep(1000);
+#else
+			 sleep(1);
+#endif
 			 continue;
 		 }
 
