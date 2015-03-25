@@ -75,6 +75,26 @@ mama_status
    // make sure it  prints this unless the logging is very restricted
    mama_log(MAMA_LOG_LEVEL_WARN, buff);
 
+
+   // some logic here to validate the transport name
+   //
+   // this is not as easy as it might appear because all the properties have valid defaults so in principal one could define a transpoprt with no properties
+   //
+   // but we can rely on the fact that if the hosts property is missing or empty this only makes sense for an interactive publisher 
+   // so the transport.<tport_name>.source property must be set
+   TransportConfig_t config(name);
+
+   string hosts = config.getString("hosts");
+   string source = config.getString("source");
+
+   if(hosts.empty() && source.empty())
+   {
+	   t42log_error("ERROR - Transport name %s is invalid\n", name);
+	   return MAMA_STATUS_INVALID_ARG;
+   }
+
+
+
    // get hold of the bridge implementation
    mamaBridgeImpl* bridgeImpl = mamaTransportImpl_getBridgeImpl(mamaTport);
    if (!bridgeImpl) {
