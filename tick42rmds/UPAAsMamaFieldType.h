@@ -32,15 +32,15 @@ bool UpaToMamaFieldType(RsslUInt8 rwfType, RsslUInt8 mfType, UpaAsMamaFieldType 
 
 /*
  *  MamaField_t encapsulate one OpenMAMA field information (name, FID & type)
- *	It reflects the columns "mama_field_name","mama_fid","mama_field_type" in the fieldmap.csv
+ *    It reflects the columns "mama_field_name","mama_fid","mama_field_type" in the fieldmap.csv
  */
 
 struct MamaField_t
 {
-	mama_fid_t 			mama_fid;
-	UpaAsMamaFieldType 	mama_field_type;
-	std::string			mama_field_name; 
-	bool				has_no_mama_fid;
+    mama_fid_t             mama_fid;
+    UpaAsMamaFieldType     mama_field_type;
+    std::string            mama_field_name; 
+    bool                has_no_mama_fid;
 };
 
 #endif //__UPAASMAMAFIELDTYPE_H__

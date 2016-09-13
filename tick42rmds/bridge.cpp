@@ -34,71 +34,63 @@ static mamaQueue gPublisher_MamaQueue= NULL;
 timerHeap gTimerHeap = NULL;
 
 
-
 static const char* PAYLOAD_NAMES[] = {"tick42rmdsmsg", NULL};
 static char PAYLOAD_IDS[] = {MAMA_PAYLOAD_TICK42RMDS, NULL};
 /*=========================================================================
 =                         Mandatory Functions                            =
 =========================================================================*/
 
-
-
-// this function *must* have the same name as is enumnerated for the middleware in the mama middleware.c because there is
-//     snprintf (initFuncName, 256, "%sBridge_createImpl",  middlewareName); in mama_loadBridgeWithPathInternal  in mama.c
-void tick42rmdsBridge_createImpl (mamaBridge* result)
+mama_status tick42rmdsBridge_init(mamaBridge bridgeImpl)
 {
-   mamaBridgeImpl* impl = NULL;
-   if (!result)
-   {
-      mama_log (MAMA_LOG_LEVEL_SEVERE, "tick42rmdsBridge_createImpl(): "
-         "mamaBridge input argument is NULL.");
-      return;
-   }
-   *result = NULL;
+    mama_status status = MAMA_STATUS_OK;
 
-   impl = (mamaBridgeImpl*)calloc (1, sizeof (mamaBridgeImpl));
-   if (!impl)
-   {
-      mama_log (MAMA_LOG_LEVEL_SEVERE, "tick42rmdsBridge_createImpl(): "
-         "Could not allocate memory for impl.");
-      return;
-   }
+    /* Will set the bridge's compile time MAMA version */
+    MAMA_SET_BRIDGE_COMPILE_TIME_VERSION(BRIDGE_NAME_STRING);
 
+    /* Ensure that the bridge is defined as not deferring entitlements */
+    status = mamaBridgeImpl_setReadOnlyProperty(bridgeImpl,
+                                                MAMA_PROP_BARE_ENT_DEFERRED,
+                                                "false");
 
-   /*Populate the bridge impl structure with the function pointers*/
-   INITIALIZE_BRIDGE (impl, tick42rmds);
+    // If we need to we can put some object heRE
+    RMDSBridgeImpl* upaBridge = new RMDSBridgeImpl();
+    mamaBridgeImpl_setClosure(bridgeImpl, upaBridge);
 
-
-   // If we need to we can put some object heRE 
-   RMDSBridgeImpl* upaBridge = new RMDSBridgeImpl();
-   mamaBridgeImpl_setClosure((mamaBridge) impl, upaBridge);
-
-   *result = (mamaBridge)impl;
-
-
+    return status;
 }
 
-
 const char*
-   tick42rmdsBridge_getVersion (void)
+tick42rmdsBridge_getVersion (void)
 {
    return BRIDGE_VERSION_STRING;
 }
 
-
 const char*
-   tick42rmdsBridge_getName (void)
+tick42rmdsBridge_getName (void)
 {
    return BRIDGE_NAME_STRING;
 }
 
+mama_bool_t
+tick42rmdsBridge_areEntitlementsDeferred(mamaBridge bridgeImpl)
+{
+    return true;
+}
 
 mama_status
-   tick42rmdsBridge_getDefaultPayloadId (char***name, char** id)
+tick42rmdsBridge_getDefaultPayloadId (char*** name, char** id)
 {
    // const cast the static constant string to remove warnings on some compilers.
    // A better solution could be for openMAMA to define two signatures  the current signature should be change to
    // XXX_getDefaultPayloadId (const char***name, char** id)
+
+   const char* payload = mama_getProperty ("mama.tick42rmds.payload.name");
+   mama_log(MAMA_LOG_LEVEL_NORMAL, "tick42rmdsBridge_getDefaultPayloadId: payload=%s", payload);
+   if (payload)
+   {
+       PAYLOAD_NAMES[0] = payload;
+   }
+
    *name = const_cast<char **>(PAYLOAD_NAMES);
    *id = PAYLOAD_IDS;
    return MAMA_STATUS_OK;
@@ -106,7 +98,7 @@ mama_status
 
 
 mama_status
-   tick42rmdsBridge_open (mamaBridge bridgeImpl)
+tick42rmdsBridge_open (mamaBridge bridgeImpl)
 {
 
    mama_status status = MAMA_STATUS_OK;
@@ -154,6 +146,14 @@ mama_status tick42rmdsBridge_close(mamaBridge bridgeImpl)
    mama_status status = MAMA_STATUS_OK;
    wthread_t timerThread = INVALID_THREAD;
 
+   mamaBridgeImpl* impl =  (mamaBridgeImpl*)bridgeImpl;
+   RMDSBridgeImpl* upaBridge = NULL;
+   mamaBridgeImpl_getClosure((mamaBridge) mamaQueueImpl_getBridgeImpl(impl->mDefaultEventQueue), (void**) &upaBridge);
+   for (size_t index = 0; index < upaBridge->NumTransports(); index++)
+   {
+      upaBridge->getTransportBridge(index)->Stop();
+   }
+
    /* Remove the timer heap */
    if (NULL != gTimerHeap)
    {
@@ -183,12 +183,7 @@ mama_status
    tick42rmdsBridge_start(mamaQueue defaultEventQueue)
 {
    mama_status status = MAMA_STATUS_NOT_INITIALISED;
-
-
    RMDSBridgeImpl* upaBridge = NULL;
-
-   t42log_debug ("tick42rmdsBridge_start(): Start dispatching on default event queue.");
-
 
    if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) mamaQueueImpl_getBridgeImpl(defaultEventQueue), (void**) &upaBridge)))
    {
@@ -196,18 +191,19 @@ mama_status
       return status;
    }
 
-
    if (!upaBridge->hasTransportBridge())
    {
       // just dispatch on the default queue and return.
       // the transport bridge create will start the transports
+      t42log_info("tick42rmdsBridge_start: start dispatch default queue");
       return mamaQueue_dispatch(defaultEventQueue);
    }
 
-   // start up all the transports 
+   // start up all the transports
    for (size_t index = 0; index < upaBridge->NumTransports(); index++)
    {
       // Calling Resume() will call Start(), if the bridge has never been started
+      t42log_info("tick42rmdsBridge_start: start dispatch transport #%d", index+1);
       mama_status result = upaBridge->getTransportBridge(index)->Resume();
       if ( result != MAMA_STATUS_OK)
       {

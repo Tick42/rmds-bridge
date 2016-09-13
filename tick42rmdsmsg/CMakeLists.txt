@@ -21,6 +21,7 @@ add_library(mamatick42rmdsmsgimpl SHARED
 	MamaDateTimeWrapper.cpp
 	MamaMsgWrapper.cpp
 	MamaPriceWrapper.cpp
+	MamaOpaqueWrapper.cpp
 	upamsgimpl.cpp
 	upamsgutils.cpp
 	upapayloadimpl.cpp
@@ -28,6 +29,7 @@ add_library(mamatick42rmdsmsgimpl SHARED
 	MamaDateTimeWrapper.h
 	MamaMsgWrapper.h
 	MamaPriceWrapper.h
+	MamaOpaqueWrapper.h
 	upafieldpayload.h
 	upamsgimpl.h
 	upamsgutils.h

@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2012
+# Visual Studio 14
+VisualStudioVersion = 14.0.25123.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tick42rmds", "tick42rmds\tick42rmds_VS110.vcxproj", "{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{60BC4DA6-8573-44CE-A463-958C993C1831} = {60BC4DA6-8573-44CE-A463-958C993C1831}
@@ -41,6 +43,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CMake Packages", "CMake Pac
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamalistencpp", "mamaClient\openmamalistencpp_VS110.vcxproj", "{E5C9631A-E289-442E-8081-9E7F08F0BD53}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamachurnc", "mamaClient\mamachurnc.vcxproj", "{1995DE97-F582-4706-8E60-400E6CD9215D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -90,13 +94,22 @@ Global
 		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|Win32.Build.0 = Release|Win32
 		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|x64.ActiveCfg = Release|x64
 		{E5C9631A-E289-442E-8081-9E7F08F0BD53}.Release|x64.Build.0 = Release|x64
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Debug|Win32.Build.0 = Debug|Win32
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Debug|x64.ActiveCfg = Debug|x64
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Debug|x64.Build.0 = Debug|x64
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|Win32.ActiveCfg = Release|Win32
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|Win32.Build.0 = Release|Win32
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|x64.ActiveCfg = Release|x64
+		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{77CDA662-CA86-4713-A549-4F1422BD44DA} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
-		{E5C9631A-E289-442E-8081-9E7F08F0BD53} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
 		{157B7EBE-3775-4DA7-B49A-A42CF07A72EE} = {205B01CF-D465-48D9-AFB2-9B3C3EC65897}
+		{E5C9631A-E289-442E-8081-9E7F08F0BD53} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
+		{1995DE97-F582-4706-8E60-400E6CD9215D} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
 	EndGlobalSection
 EndGlobal

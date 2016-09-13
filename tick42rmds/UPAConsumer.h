@@ -46,7 +46,7 @@
 
 extern "C"
 {
-	static RsslBool isInLoginSuspectState;
+    static RsslBool isInLoginSuspectState;
 }
 
 class RMDSSubscriber;
@@ -66,69 +66,69 @@ class PublishMessageRequest;
 class UPAConsumer
 {
 public:
-	UPAConsumer(RMDSSubscriber * pOwner);
-	~UPAConsumer(void);
+    UPAConsumer(RMDSSubscriber * pOwner);
+    ~UPAConsumer(void);
 
-	void Run();
+    void Run();
 
-	bool IsConnectionConfigValid();
-
-
-	// The request and callback methods marshall requests from the mama client thread onto the consumer thread through the request queue
-	mamaQueue RequestQueue() const { return requestQueue_; }
-	// dictionary request and notification
-	static void MAMACALLTYPE DictionaryRequestCb(mamaQueue, void * closure);
-	bool RequestDictionary( mamaQueue requestQueue);
-
-	// dispatch client request for dictionary subscription
-	bool ClientRequestDictionary(mamaQueue requestQueue);
-	static void MAMACALLTYPE ClientDictionaryRequestCb(mamaQueue queue, void * closure);
-
-	const UPADictionary *UpaDictionary() const { return upaDictionary_.get(); }
-	UPADictionary *UpaDictionary() { return upaDictionary_.get(); }
-	// login request and completion notification
-	static void MAMACALLTYPE LoginRequestCb(mamaQueue queue,void *closure);
-	bool RequestLogin(mamaQueue requestQueue);
-
-	// source directory request and notification
-	static void MAMACALLTYPE SourceDirectoryRequestCb(mamaQueue, void * closure);
-	bool RequestSourceDirectory(mamaQueue requestQueue);
-
-	RsslUInt32 LoginStreamId() const;
-
-	// connection notifications
-	void AddListener( ConnectionListener * pListener );
+    bool IsConnectionConfigValid();
 
 
-	// Accessors
-	UPAStreamManager & StreamManager()  { return streamManager_; }
-	UPAPostManager & PostManager()  { return postManager_; }
-	RsslChannel * RsslConsumerChannel() const { return rsslConsumerChannel_; }
-	UPASourceDirectory *SourceDirectory() { return sourceDirectory_; }
-	UPADictionaryWrapper_ptr_t RsslDictionary()	{return upaDictionary_->RsslDictionary();}
-	RMDSSubscriber * GetOwner() { return owner_; }
-	bool RequiresConnection() const	{return requiresConnection_;}
+    // The request and callback methods marshall requests from the mama client thread onto the consumer thread through the request queue
+    mamaQueue RequestQueue() const { return requestQueue_; }
+    // dictionary request and notification
+    static void MAMACALLTYPE DictionaryRequestCb(mamaQueue, void * closure);
+    bool RequestDictionary( mamaQueue requestQueue);
+
+    // dispatch client request for dictionary subscription
+    bool ClientRequestDictionary(mamaQueue requestQueue);
+    static void MAMACALLTYPE ClientDictionaryRequestCb(mamaQueue queue, void * closure);
+
+    const UPADictionary *UpaDictionary() const { return upaDictionary_.get(); }
+    UPADictionary *UpaDictionary() { return upaDictionary_.get(); }
+    // login request and completion notification
+    static void MAMACALLTYPE LoginRequestCb(mamaQueue queue,void *closure);
+    bool RequestLogin(mamaQueue requestQueue);
+
+    // source directory request and notification
+    static void MAMACALLTYPE SourceDirectoryRequestCb(mamaQueue, void * closure);
+    bool RequestSourceDirectory(mamaQueue requestQueue);
+
+    RsslUInt32 LoginStreamId() const;
+
+    // connection notifications
+    void AddListener( ConnectionListener * pListener );
+
+
+    // Accessors
+    UPAStreamManager & StreamManager()  { return streamManager_; }
+    UPAPostManager & PostManager()  { return postManager_; }
+    RsslChannel * RsslConsumerChannel() const { return rsslConsumerChannel_; }
+    UPASourceDirectory *SourceDirectory() { return sourceDirectory_; }
+    UPADictionaryWrapper_ptr_t RsslDictionary()    {return upaDictionary_->RsslDictionary();}
+    RMDSSubscriber * GetOwner() { return owner_; }
+    bool RequiresConnection() const    {return requiresConnection_;}
 
    std::string getTransportName();
 
-	// Stats functions
+    // Stats functions
 
-	void StatsSubscribed()
-	{
-		statsLogger_->IncSubscribed();
-	}
+    void StatsSubscribed()
+    {
+        statsLogger_->IncSubscribed();
+    }
 
-	void StatsSubscriptionsSucceeded()
-	{
-		statsLogger_->IncSubscriptionsSucceeded();
-	}
+    void StatsSubscriptionsSucceeded()
+    {
+        statsLogger_->IncSubscriptionsSucceeded();
+    }
 
-	void StatsSubscriptionsFailed()
-	{
-		statsLogger_->IncSubscriptionsFailed();
-	}
+    void StatsSubscriptionsFailed()
+    {
+        statsLogger_->IncSubscriptionsFailed();
+    }
 
-	void WarnMissingFid(RsslFieldId fid);
+    void WarnMissingFid(RsslFieldId fid);
 
    void JoinThread(wthread_t thread);
 
@@ -136,98 +136,98 @@ public:
 
 
 private:
-	// rssl connection
-	fd_set	readfds_;
-	fd_set	exceptfds_;
-	fd_set	wrtfds_;
+    // rssl connection
+    fd_set    readfds_;
+    fd_set    exceptfds_;
+    fd_set    wrtfds_;
 
 
-	RsslChannel* ConnectToRsslServer(const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error);
+    RsslChannel* ConnectToRsslServer(const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error);
 
-	void RecoverConnection();
-	void RemoveChannel(RsslChannel* chnl);
-	void InitPingHandler(RsslChannel* chnl);
-
-
-	RsslChannel *rsslConsumerChannel_;
-
-	RsslRet ReadFromChannel(RsslChannel* chnl);
-	void ProcessPings(RsslChannel* chnl);
-
-	RsslBool shouldRecoverConnection_;
-	bool requiresConnection_;
-
-	RsslUInt32 pingTimeoutServer_;
-	RsslUInt32 pingTimeoutClient_;
-	time_t nextReceivePingTime_;
-	time_t nextSendPingTime_;
+    void RecoverConnection();
+    void RemoveChannel(RsslChannel* chnl);
+    void InitPingHandler(RsslChannel* chnl);
 
 
-	RsslRet ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer);
+    RsslChannel *rsslConsumerChannel_;
 
-	RsslRet ProcessOffStreamResponse(RsslMsg* msg, RsslDecodeIterator* dIter);
+    RsslRet ReadFromChannel(RsslChannel* chnl);
+    void ProcessPings(RsslChannel* chnl);
 
-	RsslBool receivedServerMsg_;
+    RsslBool shouldRecoverConnection_;
+    bool requiresConnection_;
 
-	RMDSConnectionConfig connectionConfig_;
-	char* interfaceName_;
-	RsslConnectionTypes connType_;
-
-
-	RMDSSubscriber * owner_;
-
-	mamaQueue requestQueue_;
-
-	UPALogin * login_;
-
-	UPASourceDirectory * sourceDirectory_;
-
-	boost::shared_ptr<UPADictionary> upaDictionary_;
+    RsslUInt32 pingTimeoutServer_;
+    RsslUInt32 pingTimeoutClient_;
+    time_t nextReceivePingTime_;
+    time_t nextSendPingTime_;
 
 
-	RsslBool isInLoginSuspectState_;
+    RsslRet ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer);
 
-	// some basic stats
-	RsslUInt64 incomingMessageCount_;
-	RsslUInt64 lastMessageCount_;
-	RsslUInt32 lastSampleTime_;
-	RsslUInt64 totalSubscriptions_;
-	RsslUInt64 lastSubscriptions_;
-	RsslUInt64 totalSubscriptionsSucceeded_;
-	RsslUInt64 lastSubscriptionsSucceeded_;
-	RsslUInt64 totalSubscriptionsFailed_;
-	RsslUInt64 lastSubscriptionsFailed_;
+    RsslRet ProcessOffStreamResponse(RsslMsg* msg, RsslDecodeIterator* dIter);
 
-	StatisticsLogger_ptr_t statsLogger_;
+    RsslBool receivedServerMsg_;
 
-	// Handle connection
-	//
-	std::vector<ConnectionListener*> listeners_;
-
-	void NotifyListeners(bool connected, std::string extraInfo);
-
-	UPAStreamManager streamManager_;
-
-	UPAPostManager postManager_;
-
-	volatile bool runThread_;
-
-	// manage reconnection
-	void WaitReconnectionDelay();
-	void LogReconnection();
-
-	// pump incoming events from mama queue
-	bool PumpQueueEvents();
-
-	// request throttling
-	size_t maxDispatchesPerCycle_;
-	size_t maxPendingOpens_;
+    RMDSConnectionConfig connectionConfig_;
+    char* interfaceName_;
+    RsslConnectionTypes connType_;
 
 
-	// Re-usable message object
-	// this is used by all the subscriptions on this thread. We can share this because currently
-	// the message is send up to the client synchronously
-	mamaMsg msg_;
+    RMDSSubscriber * owner_;
+
+    mamaQueue requestQueue_;
+
+    UPALogin * login_;
+
+    UPASourceDirectory * sourceDirectory_;
+
+    boost::shared_ptr<UPADictionary> upaDictionary_;
+
+
+    RsslBool isInLoginSuspectState_;
+
+    // some basic stats
+    RsslUInt64 incomingMessageCount_;
+    RsslUInt64 lastMessageCount_;
+    RsslUInt32 lastSampleTime_;
+    RsslUInt64 totalSubscriptions_;
+    RsslUInt64 lastSubscriptions_;
+    RsslUInt64 totalSubscriptionsSucceeded_;
+    RsslUInt64 lastSubscriptionsSucceeded_;
+    RsslUInt64 totalSubscriptionsFailed_;
+    RsslUInt64 lastSubscriptionsFailed_;
+
+    StatisticsLogger_ptr_t statsLogger_;
+
+    // Handle connection
+    //
+    std::vector<ConnectionListener*> listeners_;
+
+    void NotifyListeners(bool connected, const char* extraInfo);
+
+    UPAStreamManager streamManager_;
+
+    UPAPostManager postManager_;
+
+    volatile bool runThread_;
+
+    // manage reconnection
+    void WaitReconnectionDelay();
+    void LogReconnection();
+
+    // pump incoming events from mama queue
+    bool PumpQueueEvents();
+
+    // request throttling
+    size_t maxDispatchesPerCycle_;
+    size_t maxPendingOpens_;
+
+
+    // Re-usable message object
+    // this is used by all the subscriptions on this thread. We can share this because currently
+    // the message is send up to the client synchronously
+    mamaMsg msg_;
 
 
 };

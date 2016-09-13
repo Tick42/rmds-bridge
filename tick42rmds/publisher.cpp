@@ -83,7 +83,6 @@ mama_status
     const char*       topic,
     const char*       source,
     const char*       root,
-    void*             nativeQueueHandle,
     mamaPublisher     parent)
 {
     string strTopic;
@@ -165,13 +164,13 @@ mama_status
             if (::strcasecmp(MAMA_CM_TOPIC, topic) == 0)
             {
                 // it's the client management topic
-                pub  = new UPABridgePublisher("", "", topic, tport, nativeQueueHandle,  parent);
+                pub  = new UPABridgePublisher("", "", topic, tport, parent);
             }
             else if (::strcasecmp("post", pubType.c_str()) == 0)
             {
                 // create a "poster"
                 RMDSSubscriber_ptr_t sub = bridge->Subscriber();
-                UPABridgePublisher_ptr_t p = UPABridgePoster::CreatePoster("", srcName, topic, tport, nativeQueueHandle, parent, sub, config);
+                UPABridgePublisher_ptr_t p = UPABridgePoster::CreatePoster("", srcName, topic, tport, parent, sub, config);
                 pub = p.get();
             }
             else if (::strcasecmp("ni", pubType.c_str()) == 0)
@@ -187,7 +186,7 @@ mama_status
                     return MAMA_STATUS_PLATFORM;
                 }
 
-                UPABridgePublisherItem_ptr_t item = UPABridgePublisherItem::CreatePublisherItem("",  srcName, topicName, tport, nativeQueueHandle,  parent, RMDSNIPub, config, false);
+                UPABridgePublisherItem_ptr_t item = UPABridgePublisherItem::CreatePublisherItem("",  srcName, topicName, tport, parent, RMDSNIPub, config, false);
                 pub  = item.get();
             }
             else
@@ -202,14 +201,14 @@ mama_status
                     return MAMA_STATUS_PLATFORM;
 
                 }
-                UPABridgePublisherItem_ptr_t item = UPABridgePublisherItem::CreatePublisherItem("", srcName, topicName, tport, nativeQueueHandle, parent, RMDSPub, config, true);
+                UPABridgePublisherItem_ptr_t item = UPABridgePublisherItem::CreatePublisherItem("", srcName, topicName, tport, parent, RMDSPub, config, true);
                 pub  = item.get();
             }
         }
         else
         {
             // this publisher is used for internal publishing (dictionary and image requests)
-            pub = new UPABridgePublisher(root, srcName, strTopic, tport, nativeQueueHandle, parent);
+            pub = new UPABridgePublisher(root, srcName, strTopic, tport, parent);
         }
 
         pub->BuildSendSubject();
@@ -219,28 +218,6 @@ mama_status
 
     return MAMA_STATUS_OK;
 }
-
-
-mama_status
-    tick42rmdsBridgeMamaPublisher_create (publisherBridge*  result,
-    mamaTransport     tport,
-    const char*       topic,
-    const char*       source,
-    const char*       root,
-    void*             nativeQueueHandle,
-    mamaPublisher     parent)
-{
-    return tick42rmdsBridgeMamaPublisher_createByIndex (result,
-        tport,
-        0,
-        topic,
-        source,
-        root,
-        nativeQueueHandle,
-        parent);
-}
-
-
 
 mama_status
     tick42rmdsBridgeMamaPublisher_send (publisherBridge publisher, mamaMsg msg)
@@ -404,8 +381,11 @@ mama_status
 mama_status
     tick42rmdsBridgeMamaPublisher_destroy (publisherBridge publisher)
 {
-    UPABridgePublisherItem * pubItem = (UPABridgePublisherItem *)publisher;
-    pubItem->Shutdown(); // just force it to drop its own shared ptr reference
+
+    UPABridgePublisher * pub = (UPABridgePublisher *)publisher;
+    pub->Shutdown(); // just force it to drop its own shared ptr reference
+
+    pub->raiseOnDestroy();
 
     return MAMA_STATUS_OK;
 }
@@ -487,7 +467,7 @@ public:
 
     virtual mama_status Send()
     {
-        mamaMsg		reply=NULL;
+        mamaMsg        reply=NULL;
         mama_status status;
 
         if (MAMA_STATUS_OK == (status = tick42rmdsBridgeMamaPublisher_getDictionaryMessage(RMDSPublisher_->Transport(), &reply)))
@@ -564,7 +544,7 @@ mama_status
     {
         // no root so it's not an image request or a dictionary request - it's
         // something real to publish build a reply structure so we can send the reply to the inbox
-        PublisherPostMessageReply * reply = new PublisherPostMessageReply(replyAddr, inbox);
+        PublisherPostMessageReply_ptr_t reply(new PublisherPostMessageReply(replyAddr, inbox));
         return upaPublisherBridge->PublishMessage(msg, reply);
     }
 
@@ -644,6 +624,24 @@ mama_status
         publisher, 0, inbox, msg);
 }
 
+mama_status
+tick42rmdsBridgeMamaPublisher_setUserCallbacks(publisherBridge publisher,
+    mamaQueue               queue,
+    mamaPublisherCallbacks* cb,
+    void*                   closure)
+{
+    if (UPABridgePub(publisher) == 0)
+    {
+        return MAMA_STATUS_NULL_ARG;
+    }
+
+    UPABridgePublisher* upaPublisherBridge = (UPABridgePublisher*)(publisher);
+
+    upaPublisherBridge->setUserCallbacks(*cb, closure);
+
+    return MAMA_STATUS_OK;
+}
+
 //=========================================================================
 //=                        Recommended Functions                          =
 //=========================================================================
@@ -655,6 +653,8 @@ mama_status
 {
     return MAMA_STATUS_NOT_IMPLEMENTED;
 }
+
+
 
 
 

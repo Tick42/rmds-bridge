@@ -107,4 +107,8 @@ typedef boost::shared_ptr<RMDSBridgeSnapshot> RMDSBridgeSnapshot_ptr_t;
 class UpaMamaFieldMapHandler_t;
 typedef boost::shared_ptr<UpaMamaFieldMapHandler_t> UPAMamaFieldMapHandler_ptr_t;
 
+class MamaOpaqueWrapper;
+typedef boost::shared_ptr<MamaOpaqueWrapper> MamaOpaqueWrapper_ptr_t;
+
+
 #endif //__RMDS_BRIDGETYPES_H__

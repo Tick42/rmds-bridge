@@ -25,10 +25,11 @@
 #include "stdafx.h"
 #include <utils/t42log.h>
 #include "UPAFieldEncoder.h"
+#include <utils/namespacedefines.h>
 
 using namespace std;
 
-unordered_set<int> UPAFieldEncoder::suppressBadEnumWarnings_;
+utils::collection::unordered_set<int> UPAFieldEncoder::suppressBadEnumWarnings_;
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -140,7 +141,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
         {
 
         case RSSL_DT_INT:
-            //			RsslInt64 intVal;
+            //            RsslInt64 intVal;
             mama_i64_t intVal;  // gcc seems happier with this
             status = mamaMsgField_getI64(field, &intVal);
             if (status != MAMA_STATUS_OK)
@@ -184,7 +185,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
             }
             break;
 
-        case RSSL_DT_FLOAT:	
+        case RSSL_DT_FLOAT:    
             RsslFloat fltVal;
             status = mamaMsgField_getF32(field, &fltVal);
             if (status != MAMA_STATUS_OK)
@@ -243,13 +244,22 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
                     mamaPricePrecision precision;
                     mamaPrice_getPrecision(p, &precision);
-                    RsslRealHints rsslHint = MamaPrecisionToRsslHint(precision, fid);	
+                    RsslRealHints rsslHint = MamaPrecisionToRsslHint(precision, fid);    
+
+                    mama_bool_t b = false;
+                    mamaPrice_getIsValidPrice(p, &b);
 
                     // set up an rssl real for the price value
                     RsslReal r;
-                    rsslClearReal(&r);
-                    rsslDoubleToReal(&r, &d, rsslHint);
-
+                    if (b == false)
+                    {
+                         rsslBlankReal(&r);
+                    }
+                    else
+                    {
+                        rsslClearReal(&r);
+                        rsslDoubleToReal(&r, &d, rsslHint);
+                    }
 
                     RsslRet ret;
                     // and encode into the message
@@ -273,7 +283,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 // otherwise, if its an int type then encode with 0 exponent
                 {
 
-                    //	RsslInt64 intVal;
+                    //    RsslInt64 intVal;
                     mama_i64_t intVal;  // gcc seems happier with this
                     mamaMsgField_getI64(field, &intVal);
 
@@ -359,7 +369,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 {
                     // build an rssl date from the mama datetime
                     RsslDate dt;
-                    rsslClearDate(&dt);	// do we need to do this?
+                    rsslClearDate(&dt);    // do we need to do this?
                     uint32_t  yr;
                     uint32_t mnth;
                     uint32_t day;
@@ -367,7 +377,10 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                     mamaDateTime_getMonth(d, &mnth);
                     mamaDateTime_getDay(d, &day);
 
-                    if (yr != 1970)
+                    mama_bool_t hasDate = false;
+                    mamaDateTime_hasDate(d, &hasDate);
+
+                    if (hasDate == true && yr != 1970)
                     {
                         // If year is 1970 send blank RSSL date, which is converted to empty Marketfeed string
                         dt.year = yr;
@@ -405,7 +418,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 {
                     // build an rssl date from the mama datetime
                     RsslTime t;
-                    rsslClearTime(&t);	// do we need to do this?
+                    rsslClearTime(&t);    // do we need to do this?
                     uint32_t  h;
                     uint32_t m;
                     uint32_t s;
@@ -415,10 +428,19 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                     mamaDateTime_getSecond(d, &s);
                     mamaDateTime_getMicrosecond(d, &us);
 
-                    t.hour = h;
-                    t.minute = m;
-                    t.second = s;
-                    t.millisecond = us/1000;
+                    mama_bool_t hasTime = false;
+                    mamaDateTime_hasTime(d, &hasTime);
+                    if (hasTime)
+                    {
+                        t.hour = h;
+                        t.minute = m;
+                        t.second = s;
+                        t.millisecond = us/1000;
+                    }
+                    else
+                    {
+                        rsslBlankTime(&t);
+                    }
 
                     RsslRet ret;
                     // and encode into the message
@@ -446,10 +468,10 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 {
                     // build an rssl date from the mama datetime
                     RsslDateTime dt;
-                    rsslClearDateTime(&dt);	// do we need to do this?
+                    rsslClearDateTime(&dt);    // do we need to do this?
                     uint32_t  yr;
                     uint32_t mnth;
-                    uint32_t day;	
+                    uint32_t day;    
                     uint32_t  h;
                     uint32_t m;
                     uint32_t s;
@@ -465,7 +487,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
                     dt.date.year = yr;
                     dt.date.month = mnth;
-                    dt.date.day = day;					
+                    dt.date.day = day;                    
                     dt.time.hour = h;
                     dt.time.minute = m;
                     dt.time.second = s;
@@ -697,6 +719,31 @@ RsslRealHints UPAFieldEncoder::MamaPrecisionToRsslHint(mamaPricePrecision p, uin
 
     case MAMA_PRICE_PREC_INT:
         return RSSL_RH_EXPONENT0;
+
+    // These are the fractional prices
+    case MAMA_PRICE_PREC_DIV_2:
+        return RSSL_RH_FRACTION_2;
+
+    case MAMA_PRICE_PREC_DIV_4:
+        return RSSL_RH_FRACTION_4;
+
+    case MAMA_PRICE_PREC_DIV_8:
+        return RSSL_RH_FRACTION_8;
+
+    case MAMA_PRICE_PREC_DIV_16:
+        return RSSL_RH_FRACTION_16;
+
+    case MAMA_PRICE_PREC_DIV_32:
+        return RSSL_RH_FRACTION_32;
+
+    case MAMA_PRICE_PREC_DIV_64:
+        return RSSL_RH_FRACTION_64;
+
+    case MAMA_PRICE_PREC_DIV_128:
+        return RSSL_RH_FRACTION_128;
+
+    case MAMA_PRICE_PREC_DIV_256:
+        return RSSL_RH_FRACTION_256;
 
     default:
         t42log_info("Unhandled mamaPricePrecisionValue %d converting fid %d\n", p, fid );

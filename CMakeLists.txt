@@ -93,24 +93,31 @@ find_package (Boost 1.54 REQUIRED date_time filesystem system)
 
 add_definitions (-DBOOST_FILESYSTEM_VERSION=3 -DBOOST_FILESYSTEM_NO_DEPRECATED)
 
-#include_directories (${Boost_INCLUDE_DIRS})
-#link_directories (${Boost_LIBRARY_DIRS})
-
 #--------------------------------------------------------------------------------------------------
 # Compiler C++11/0x support
 #--------------------------------------------------------------------------------------------------
 
-if (CMAKE_COMPILER_IS_GNUCXX)
-   SET(ENABLE_CXX11 "-std=c++11")
+option(BOOST_NAMESPACES "Use of BOOST namespaces for c++0x support" FALSE)
 
-   EXECUTE_PROCESS(COMMAND "${CMAKE_CXX_COMPILER} -dumpversion" OUTPUT_VARIABLE GCC_VERSION)
-   if (GCC_VERSION VERSION_LESS 4.7)
-      SET(ENABLE_CXX11 "-std=c++0x")
+if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.3)
+   set (ENABLE_CXX11 "-std=c++0x")
+
+   if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.7)
+       set (ENABLE_CXX11 "-std=c++11")
    endif ()
 
-   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ENABLE_CXX11}")
-   SET(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
+   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ENABLE_CXX11}")
+else ()
+    set (BOOST_NAMESPACES TRUE)
 endif ()
+
+if(${BOOST_NAMESPACES})
+    add_definitions(-DBOOST_NAMESPACES)
+else()
+    add_definitions(-DSTD_NAMESPACES)
+endif()
+
+set (CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -fPIC")
 
 #--------------------------------------------------------------------------------------------------
 # Compiler
@@ -136,15 +143,15 @@ if (CMAKE_COMPILER_IS_GNUCXX)
 	add_compiler_flag_if_supported(-Wcomment wcomment)
 	add_compiler_flag_if_supported(-Wtype-limits type_limits)
 	add_compiler_flag_if_supported(-Wempty-body empty_body)
-	add_compiler_flag_if_supported(-Waddress  waddress)
-	add_compiler_flag_if_supported(-fPIC  fPIC)
+    add_compiler_flag_if_supported(-Waddress waddress)
+    add_compiler_flag_if_supported(-fPIC fPIC)
 
 	if (PEDANTIC)
-	  add_compiler_flag_if_supported(-Wall wall)
-	  #add_compiler_flag_if_supported(-Wextra wextra)
-	  add_compiler_flag_if_supported(-Wuninitialized wuninitialized)
-	  add_compiler_flag_if_supported(-Wsign-compare  wsign_compare)
-	  add_compiler_flag_if_supported(-Wchar-subscripts char_subscipts)
+        add_compiler_flag_if_supported(-Wall wall)
+        add_compiler_flag_if_supported(-Wextra wextra)
+        add_compiler_flag_if_supported(-Wuninitialized wuninitialized)
+        add_compiler_flag_if_supported(-Wsign-compare wsign_compare)
+        add_compiler_flag_if_supported(-Wchar-subscripts char_subscipts)
 	endif (PEDANTIC)
 endif (CMAKE_COMPILER_IS_GNUCXX)
 
@@ -163,17 +170,15 @@ endif ()
 # Sub projects
 #--------------------------------------------------------------------------------------------------
 
-#include_directories (${Boost_INCLUDE_DIRS} ${PROJECT_SOURCE_DIR}/utils)
-#link_directories (${Boost_LIBRARY_DIRS})
-
 #add_subdirectory(utils)
 add_subdirectory(tick42rmds)
+add_subdirectory("UPA Samples/Examples/rsslProvider")
 add_subdirectory(tick42rmdsmsg)
 add_subdirectory(mamaClient)
 
 # Add all targets to the build-tree export set
 export(TARGETS mamatick42rmdsimpl mamatick42rmdsmsgimpl mamalistenc #utils
-  FILE "${PROJECT_BINARY_DIR}/RmdsBridgeTargets.cmake")
+       FILE "${PROJECT_BINARY_DIR}/RmdsBridgeTargets.cmake")
 
 #--------------------------------------------------------------------------------------------------
 # Project settings

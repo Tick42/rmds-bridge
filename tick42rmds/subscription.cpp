@@ -31,9 +31,9 @@
 #define RMDSBridgeSub(subscriber) ((RMDSBridgeSubscription*)(subscriber))
 
 #define CHECK_SUBSCRIBER(subscriber) \
-	do {  \
-	if (RMDSBridgeSub(subscriber) == 0) return MAMA_STATUS_NULL_ARG; \
-	} while(0)
+    do {  \
+    if (RMDSBridgeSub(subscriber) == 0) return MAMA_STATUS_NULL_ARG; \
+    } while(0)
  
   //=========================================================================
   //=                         Mandatory Functions                           =
@@ -49,26 +49,26 @@
                                    mamaSubscription     subscription,
                                    void*                closure)
  {
-	 CHECK_SUBSCRIBER(subscriber);
-	 mama_status status;
+     CHECK_SUBSCRIBER(subscriber);
+     mama_status status;
 
-	 // get hold of the bridge implementation
-	 mamaBridgeImpl* bridgeImpl = mamaTransportImpl_getBridgeImpl(transport);
-	 if (!bridgeImpl) {
-		 mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_create(): Could not get bridge");
-		 return MAMA_STATUS_PLATFORM;
-	 }
+     // get hold of the bridge implementation
+     mamaBridgeImpl* bridgeImpl = mamaTransportImpl_getBridgeImpl(transport);
+     if (!bridgeImpl) {
+         mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_create(): Could not get bridge");
+         return MAMA_STATUS_PLATFORM;
+     }
 
-	 RMDSBridgeImpl*  upaBridge = NULL;
-	 if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &upaBridge))) 
-	 {
-		 mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_create(): Could not get UPA bridge object");
-		 return status;
-	 }
+     RMDSBridgeImpl*  upaBridge = NULL;
+     if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &upaBridge))) 
+     {
+         mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_create(): Could not get UPA bridge object");
+         return status;
+     }
 
-	 // actually lookup on the transport itself
-	 RMDSSubscriber_ptr_t sub = upaBridge->getTransportBridge(transport)->Subscriber();
-	 sub->AddSubscription(subscriber, source, symbol, transport, queue, callback, subscription, closure);
+     // actually lookup on the transport itself
+     RMDSSubscriber_ptr_t sub = upaBridge->getTransportBridge(transport)->Subscriber();
+     sub->AddSubscription(subscriber, source, symbol, transport, queue, callback, subscription, closure);
 
 
      return MAMA_STATUS_OK;
@@ -79,41 +79,64 @@
  mama_status
  tick42rmdsBridgeMamaSubscription_destroy (subscriptionBridge subscriber)
  {
-	 CHECK_SUBSCRIBER(subscriber);
+     CHECK_SUBSCRIBER(subscriber);
 
-	 // Get the Bridge subscription object 
-	 RMDSBridgeSubscription* pSubscription = RMDSBridgeSub(subscriber);
+     // Get the Bridge subscription object 
+     RMDSBridgeSubscription* pSubscription = RMDSBridgeSub(subscriber);
 
-	 mama_status status;
+     mama_status status;
 
-	 // get hold of the bridge implementation
-	 mamaBridgeImpl* bridgeImpl = mamaTransportImpl_getBridgeImpl(pSubscription->Transport());
-	 if (!bridgeImpl) {
-		 mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_destroy(): Could not get bridge");
-		 return MAMA_STATUS_PLATFORM;
-	 }
+     // get hold of the bridge implementation
+     mamaBridgeImpl* bridgeImpl = mamaTransportImpl_getBridgeImpl(pSubscription->Transport());
+     if (!bridgeImpl) {
+         mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_destroy(): Could not get bridge");
+         return MAMA_STATUS_PLATFORM;
+     }
 
-	 RMDSBridgeImpl*  upaBridge = NULL;
-	 if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &upaBridge))) 
-	 {
-		 mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_destroy(): Could not get UPA bridge object");
-		 return status;
-	 }
+     RMDSBridgeImpl*  upaBridge = NULL;
+     if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &upaBridge))) 
+     {
+         mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaSubscription_destroy(): Could not get UPA bridge object");
+         return status;
+     }
 
-	 RMDSSubscriber_ptr_t sub = upaBridge->getTransportBridge(pSubscription->Transport())->Subscriber();
+     RMDSSubscriber_ptr_t sub = upaBridge->getTransportBridge(pSubscription->Transport())->Subscriber();
 
-	 // grab stuff for onDestroyCB from our object before we kill it
-	 void * closure = pSubscription->Closure();
-	  wombat_subscriptionDestroyCB destroyCb = pSubscription->Callback().onDestroy;
-	  mamaSubscription parent = pSubscription->Subscription();
+     // find the RmdsBridgeSubscription_ptr for this
 
-	 sub->RemoveSubscription(pSubscription);
+     UPASubscription_ptr_t upaSub;
+     
+     bool foundUpaSub = sub->FindSubscription(pSubscription->SourceName(), pSubscription->Symbol(), upaSub );
 
-	     
-     //Invoke the subscription callback to inform that the bridge has been
-     //destroyed.
-    if (NULL != destroyCb)
-        (*(wombat_subscriptionDestroyCB)destroyCb)(parent, closure);
+     if(foundUpaSub)
+     {
+         RMDSBridgeSubscription_ptr_t subPtr;
+         bool foundListener = upaSub->FindListener(pSubscription, subPtr);
+
+         if(foundListener)
+         {
+             upaSub->QueueSubscriptionDestroy(subPtr);
+         }
+     }
+     else
+     {
+         // can call the CB right now
+
+
+         // grab stuff for onDestroyCB from our object before we kill it
+         void * closure = pSubscription->Closure();
+          wombat_subscriptionDestroyCB destroyCb = pSubscription->Callback().onDestroy;
+          mamaSubscription parent = pSubscription->Subscription();
+
+
+         
+         //Invoke the subscription callback to inform that the bridge has been
+         //destroyed.
+        if (NULL != destroyCb)
+            (*(wombat_subscriptionDestroyCB)destroyCb)(parent, closure);
+     }
+
+     sub->RemoveSubscription(pSubscription);
 
      return MAMA_STATUS_OK;
  }
@@ -122,13 +145,13 @@
  mama_status
  tick42rmdsBridgeMamaSubscription_mute (subscriptionBridge subscriber)
  {
-	 CHECK_SUBSCRIBER(subscriber);
-	 // Get the Bridge subscription object 
-	 RMDSBridgeSubscription* pSubscription = RMDSBridgeSub(subscriber);
+     CHECK_SUBSCRIBER(subscriber);
+     // Get the Bridge subscription object 
+     RMDSBridgeSubscription* pSubscription = RMDSBridgeSub(subscriber);
 
-	 // set the shutdown flag on the subscription;
-	 // this will block if in a callback and also will signal that no further callbacks should be made
-	 pSubscription->Shutdown();
+     // set the shutdown flag on the subscription;
+     // this will block if in a callback and also will signal that no further callbacks should be made
+     pSubscription->Shutdown();
 
      return MAMA_STATUS_OK;
  }

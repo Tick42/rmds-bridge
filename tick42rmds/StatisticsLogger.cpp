@@ -42,22 +42,23 @@ static StatisticsLogger_ptr_t gLogger;
 
 StatisticsLogger::StatisticsLogger()
 {
-	lastMessageCount_ = 0;
-	incomingMessageCount_ = 0;
-	lastSubscriptions_ = 0;
-	lastSubscriptionsSucceeded_ = 0;
-	lastSubscriptionsFailed_ = 0;
-	totalSubscriptions_ = 0;
-	totalSubscriptionsFailed_ = 0;
-	totalSubscriptionsSucceeded_ = 0;
-	maxAgeDays_ = 5;
-	maxAgeDays_ = 5;
-	requestQueueLength_ = 0;
-	pendingOpens_ = 0;
-	openItems_ = 0;
-	pendingCloses_ = 0;
-	loggerThread_ = 0;
-	runThread_ = false;
+    lastMessageCount_ = 0;
+    incomingMessageCount_ = 0;
+    lastSubscriptions_ = 0;
+    lastSubscriptionsSucceeded_ = 0;
+    lastSubscriptionsFailed_ = 0;
+    totalSubscriptions_ = 0;
+    totalSubscriptionsFailed_ = 0;
+    totalSubscriptionsSucceeded_ = 0;
+    maxAgeDays_ = 5;
+    maxAgeDays_ = 5;
+    requestQueueLength_ = 0;
+    pendingOpens_ = 0;
+    openItems_ = 0;
+    pendingCloses_ = 0;
+    loggerThread_ = 0;
+    runThread_ = false;
+    lastSampleTime_ = 0;
 }
 
 StatisticsLogger::~StatisticsLogger()
@@ -66,52 +67,52 @@ StatisticsLogger::~StatisticsLogger()
 
 StatisticsLogger_ptr_t StatisticsLogger::GetStatisticsLogger()
 {
-	// create one on first call
-	if (gLogger.get() == 0)
-	{
-		gLogger = StatisticsLogger_ptr_t(new StatisticsLogger());
-		gLogger->Initialise();
-		gLogger->Start();
-	}
+    // create one on first call
+    if (gLogger.get() == 0)
+    {
+        gLogger = StatisticsLogger_ptr_t(new StatisticsLogger());
+        gLogger->Initialise();
+        gLogger->Start();
+    }
 
-	return gLogger;
+    return gLogger;
 }
 
 void StatisticsLogger::Initialise()
 {
-	utils::properties config;
+    utils::properties config;
 
-	logFilename_ = config.get("mama.tick42rmds.statslogger.logfile", "stats.csv");
-	string logIntervalProp =  config.get("mama.tick42rmds.statslogger.interval", "10");
-	interval_ = atoi(logIntervalProp.c_str());
-	string logAgeProp =  config.get("mama.tick42rmds.statslogger.maxAgeDays", "5");
-	maxAgeDays_ = atoi(logAgeProp.c_str());   
+    logFilename_ = config.get("mama.tick42rmds.statslogger.logfile", "stats.csv");
+    string logIntervalProp =  config.get("mama.tick42rmds.statslogger.interval", "10");
+    interval_ = atoi(logIntervalProp.c_str());
+    string logAgeProp =  config.get("mama.tick42rmds.statslogger.maxAgeDays", "5");
+    maxAgeDays_ = atoi(logAgeProp.c_str());   
 
-	// work on the basis that an interval of 0 disables stats logging
-	enabled_ = interval_ != 0;
+    // work on the basis that an interval of 0 disables stats logging
+    enabled_ = interval_ != 0;
 }
 
 static void * threadFuncStatistics(void * p)
 {
-	// The thread monitor outputs debug when the thread starts and stops
-	utils::os::ThreadMonitor mon("RMDS-StatisticsLogger");
+    // The thread monitor outputs debug when the thread starts and stops
+    utils::os::ThreadMonitor mon("RMDS-StatisticsLogger");
 
-	StatisticsLogger * logger = (StatisticsLogger *) p;
-	logger->Run();
+    StatisticsLogger * logger = (StatisticsLogger *) p;
+    logger->Run();
 
-	return 0;
+    return 0;
 }
 
 bool StatisticsLogger::Start()
 {
-	if (!enabled_)
-	{
-		t42log_info("Statistics logging is not enabled");
-		return false;
-	}
+    if (!enabled_)
+    {
+        t42log_info("Statistics logging is not enabled");
+        return false;
+    }
 
-	runThread_ = true;
-	return (wthread_create( &loggerThread_, 0, threadFuncStatistics, this) == 0);
+    runThread_ = true;
+    return (wthread_create( &loggerThread_, 0, threadFuncStatistics, this) == 0);
 }
 
 bool StatisticsLogger::Stop()
@@ -273,7 +274,7 @@ void StatisticsLogger::Run()
    filesystem::path logPath;
 
    for (; runThread_; runThread_ = waitForInterval())
-	{
+    {
       // If the date has changed, then we build a new filename
       rsslDateTimeLocalTime(&now);
       if (last.date.day != now.date.day)
@@ -295,19 +296,19 @@ void StatisticsLogger::Run()
 
       // Try to open the log file, incorporating the date
       ofstream logFile;
-	  if (!failed_new_file)
-	     logFile.open(logPath.c_str(), ios_base::out | ios_base::app);
+      if (!failed_new_file)
+         logFile.open(logPath.c_str(), ios_base::out | ios_base::app);
 
       if (!logFile.is_open())
       {
 
 
-		  if (!failed_new_file)
-		  {
-			  if (newLogFile)
-				  failed_new_file =true;
-			  t42log_warn("Failed to open statistics log file %s", logPath.string().c_str());
-		  }
+          if (!failed_new_file)
+          {
+              if (newLogFile)
+                  failed_new_file =true;
+              t42log_warn("Failed to open statistics log file %s", logPath.string().c_str());
+          }
          // try again later
          continue;
       }
@@ -317,32 +318,32 @@ void StatisticsLogger::Run()
       {
          sprintf(buffer,"Time,Updates (Total),Updates (Last),Update Rate"
             ",Subscriptions (Total),Subscriptions (Successful)"
-            ",Subscriptions (Failed),Request Queue Length,Pending Opens");
+            ",Subscriptions (Failed),Request Queue Length,Pending Opens,Open Items");
          logFile << buffer << endl;
       }
 
-		b.data = buffer;
-		b.length = BUFFERSIZE;
-		rsslDateTimeToString(&b, RSSL_DT_DATETIME, &now);
-		string strDate(b.data, b.length);
+        b.data = buffer;
+        b.length = BUFFERSIZE;
+        rsslDateTimeToString(&b, RSSL_DT_DATETIME, &now);
+        string strDate(b.data, b.length);
 
-		// Now format the stats into a string and write to the file
-		RsslUInt64 ticks = utils::time::GetMilliCount();
-		RsslUInt64 interval = ticks - lastSampleTime_;
-		RsslUInt64 intervalMessages = incomingMessageCount_ - lastMessageCount_;
-		double updateRate = ((double)intervalMessages * 1000) / interval;
+        // Now format the stats into a string and write to the file
+        RsslUInt64 ticks = utils::time::GetMilliCount();
+        RsslUInt64 interval = ticks - lastSampleTime_;
+        RsslUInt64 intervalMessages = incomingMessageCount_ - lastMessageCount_;
+        double updateRate = ((double)intervalMessages * 1000) / interval;
 
-		snprintf(buffer, BUFFERSIZE, "%s,%d,%d,%d,%d,%d,%d,%d,%d", strDate.c_str()
+        snprintf(buffer, BUFFERSIZE, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d", strDate.c_str()
          , (int)incomingMessageCount_, (int)intervalMessages, int(updateRate + 1)
          , (int)totalSubscriptions_, (int)totalSubscriptionsSucceeded_
-         , (int)totalSubscriptionsFailed_, (int)requestQueueLength_, (int)pendingOpens_ );
-		
-		logFile << buffer << endl;
-		logFile.close();
+         , (int)totalSubscriptionsFailed_, (int)requestQueueLength_, (int)pendingOpens_, (int)openItems_ );
+        
+        logFile << buffer << endl;
+        logFile.close();
 
-		lastMessageCount_ = incomingMessageCount_;
-		lastSampleTime_ = ticks;
-	}
+        lastMessageCount_ = incomingMessageCount_;
+        lastSampleTime_ = ticks;
+    }
 
-	t42log_debug("Exit Statistics logger thread\n");
+    t42log_debug("Exit Statistics logger thread\n");
 }

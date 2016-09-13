@@ -38,68 +38,77 @@ class SubscriptionResponseListener;
 class RMDSBridgeSubscription : public SubscriptionResponseListener
 {
 public:
-	RMDSBridgeSubscription(void);
+    RMDSBridgeSubscription(void);
 
-	RMDSBridgeSubscription(const std::string&  sourceName, const std::string& symbol, mamaTransport transport, mamaQueue queue, mamaMsgCallbacks callback, 
-		mamaSubscription subscription, void* closure, bool logRmdsValues);
+    RMDSBridgeSubscription(const std::string&  sourceName, const std::string& symbol, mamaTransport transport, mamaQueue queue, mamaMsgCallbacks callback, 
+        mamaSubscription subscription, void* closure, bool logRmdsValues);
 
-	virtual ~RMDSBridgeSubscription(void);
+    virtual ~RMDSBridgeSubscription(void);
 
-	void Shutdown();
+    void Shutdown();
 
-	// accessors
-	std::string SourceName() const { return sourceName_; }
-	mamaMsgCallbacks Callback() const { return callback_; }
-	mamaSubscription Subscription() const { return subscription_; }
-	void* Closure() const { return closure_; }
-	std::string Symbol() const { return symbol_; }
-	bool LogRmdsValues() const { return logRmdsValues_; }
-	mamaTransport Transport() const { return transport_; }
+    // accessors
+    std::string SourceName() const { return sourceName_; }
+    mamaMsgCallbacks Callback() const { return callback_; }
+    mamaSubscription Subscription() const { return subscription_; }
+    void* Closure() const { return closure_; }
+    std::string Symbol() const { return symbol_; }
+    bool LogRmdsValues() const { return logRmdsValues_; }
+    mamaTransport Transport() const { return transport_; }
 
-	RMDSSource_ptr_t Source() const { return source_; }
-	void Source(RMDSSource_ptr_t val) { source_ = val; }
+    RMDSSource_ptr_t Source() const { return source_; }
+    void Source(RMDSSource_ptr_t val) { source_ = val; }
 
-	UPASubscription_ptr_t UpaSubscription() const { return UpaSubscription_; }
-	void UpaSubscription(UPASubscription_ptr_t val) { UpaSubscription_ = val; }
+    UPASubscription_ptr_t UpaSubscription() const { return UpaSubscription_; }
+    void UpaSubscription(UPASubscription_ptr_t val) { UpaSubscription_ = val; }
 
-	// mnethods
-	void SendStatusMessage(mamaMsgStatus status);
+    // mnethods
+    void SendStatusMessage(mamaMsgStatus status);
 
-	bool Open(UPAConsumer_ptr_t consumer);
+    bool Open(UPAConsumer_ptr_t consumer);
+    mamaQueue Queue() const { return queue_; }
 
-	//
-	// SubscriptionResponseListener implementation
-	//
-	// send a message on the mama subscription
-	virtual void OnMessage(mamaMsg msg, mamaMsgType msgType);
 
-	// raise an error on the mama subscription
-	virtual void OnError(mama_status statusCode);
 
-	// send a status message on the mama subcription
-	virtual void OnStatusMessage(mamaMsgStatus statusCode);
+    //
+    // SubscriptionResponseListener implementation
+    //
+    // send a message on the mama subscription
+    virtual void OnMessage(mamaMsg msg, mamaMsgType msgType);
+
+    // raise an error on the mama subscription
+    virtual void OnError(mama_status statusCode);
+
+    // send a status message on the mama subcription
+    virtual void OnStatusMessage(mamaMsgStatus statusCode);
+
+    // call OpenMAMA onQuality callback
+    virtual void OnQuality(mamaQuality quality, short cause);
+
+    static void MAMACALLTYPE SubscriptionDestroyCb(mamaQueue queue,void *closure);
+
 
 private:
-	mamaTransport	  transport_;
-	mamaQueue         queue_;
-	mamaMsgCallbacks  callback_;
-	mamaSubscription  subscription_;
-	void*			  closure_;
-	bool              logRmdsValues_;
+    mamaTransport      transport_;
+    mamaQueue         queue_;
+    mamaMsgCallbacks  callback_;
+    mamaSubscription  subscription_;
+    void*              closure_;
+    bool              logRmdsValues_;
 
-	std::string sourceName_;
-	RMDSSource_ptr_t source_;
+    std::string sourceName_;
+    RMDSSource_ptr_t source_;
 
-	std::string symbol_;
+    std::string symbol_;
 
-	// the underlying platform subscription
-	UPASubscription_ptr_t UpaSubscription_;
+    // the underlying platform subscription
+    UPASubscription_ptr_t UpaSubscription_;
 
-	// need to know to drop updates if no image
-	bool gotImage_;
+    // need to know to drop updates if no image
+    bool gotImage_;
 
-	// block updates when set
-	bool isShutdown_;
+    // block updates when set
+    bool isShutdown_;
 
 };
 
@@ -109,39 +118,40 @@ private:
 class RMDSBridgeSnapshot 
 {
 public:
-	RMDSBridgeSnapshot(SnapshotReply_ptr_t snap, bool logRMDSValues);
-	~RMDSBridgeSnapshot()
-	{
-	}
+    RMDSBridgeSnapshot(SnapshotReply_ptr_t snap, bool logRMDSValues);
+    ~RMDSBridgeSnapshot()
+    {
+    }
 
-	std::string SourceName() const;
-	std::string Symbol() const;
+    std::string SourceName() const;
+    std::string Symbol() const;
 
-	UPASubscription_ptr_t Subscription() const { return subscription_; }
-	void Subscription(UPASubscription_ptr_t val) { subscription_ = val; }
+    UPASubscription_ptr_t Subscription() const { return subscription_; }
+    void Subscription(UPASubscription_ptr_t val) { subscription_ = val; }
 
-	bool LogRMDSValues() const { return logRMDSValues_; }
+    bool LogRMDSValues() const { return logRMDSValues_; }
 
 public:
-	// send a message on the mama subscription
-	virtual void OnMessage(mamaMsg msg);
+    // send a message on the mama subscription
+    virtual void OnMessage(mamaMsg msg);
 
-	// raise an error on the mama subscription
-	virtual void OnError(mama_status statusCode);
+    // raise an error on the mama subscription
+    virtual void OnError(mama_status statusCode);
 
-	// send a status message on the mama subscription
-	virtual void OnStatusMessage(mamaMsgStatus statusCode);
+    // send a status message on the mama subscription
+    virtual void OnStatusMessage(mamaMsgStatus statusCode);
 
 private:
 
-	SnapshotReply_ptr_t reply_;
+    SnapshotReply_ptr_t reply_;
 
-	//enable logging of incoming data values
-	bool logRMDSValues_;
+    //enable logging of incoming data values
+    bool logRMDSValues_;
 
-	UPASubscription_ptr_t subscription_;
+    UPASubscription_ptr_t subscription_;
 };
 
 
 
 #endif //__RMDS_BRIDGESUBSCRIPTION_H__
+

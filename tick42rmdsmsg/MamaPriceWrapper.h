@@ -29,23 +29,23 @@
 class MamaPriceWrapper
 {
 public:
-	MamaPriceWrapper(mamaPrice p);
-	~MamaPriceWrapper(void);
+    MamaPriceWrapper(mamaPrice p);
+    ~MamaPriceWrapper(void);
 
-	void SetValue(double value);
+    void SetValue(double value);
 
-	/*
-	 * Returns the underlaying mamaPrice object. 
-	 * One can use it along with the APIs, but must not destroy it with the APIs.
-	 */
-	mamaPrice getMamaPrice() const
-	{
-		return mamaPrice_;
-	}
+    /*
+     * Returns the underlaying mamaPrice object. 
+     * One can use it along with the APIs, but must not destroy it with the APIs.
+     */
+    mamaPrice getMamaPrice() const
+    {
+        return mamaPrice_;
+    }
 
 private:
 
-	mamaPrice mamaPrice_;
+    mamaPrice mamaPrice_;
 };
 
 

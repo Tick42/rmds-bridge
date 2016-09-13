@@ -10,10 +10,10 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
       <AdditionalLibraryDirectories>$(TICK42_OPENMAMA)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>mamac.lib;commonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmamac.lib;libwombatcommonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>mamac.lib;commonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmamac.lib;libwombatcommonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(TICK42_OPENMAMA)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -33,10 +33,10 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
       <AdditionalLibraryDirectories>$(TICK42_OPENMAMA)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>mamac.lib;commonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmamac.lib;libwombatcommonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>mamac.lib;commonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmamac.lib;libwombatcommonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(TICK42_OPENMAMA)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -56,10 +56,10 @@
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <Link>
       <AdditionalLibraryDirectories>$(TICK42_OPENMAMA)\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>mamac.lib;commonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmamac.lib;libwombatcommonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
-      <AdditionalDependencies>mamac.lib;commonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>libmamac.lib;libwombatcommonc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Lib>
     <Lib>
       <AdditionalLibraryDirectories>$(TICK42_OPENMAMA)\x64\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

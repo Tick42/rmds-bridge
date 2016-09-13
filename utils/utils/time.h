@@ -44,15 +44,15 @@ namespace utils { namespace time {
 inline int32_t GetMilliCount()
 {
 #ifdef WIN32
-	return (int32_t)GetTickCount();
+    return (int32_t)GetTickCount();
 #else
-	// Something like GetTickCount but portable
-	// It rolls over every ~ 12.1 days (0x100000/24/60/60)
-	// Use GetMilliSpan to correct for rollover
-	timeb tb;
-	ftime( &tb );
-	int32_t nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
-	return nCount;
+    // Something like GetTickCount but portable
+    // It rolls over every ~ 12.1 days (0x100000/24/60/60)
+    // Use GetMilliSpan to correct for rollover
+    timeb tb;
+    ftime( &tb );
+    int32_t nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
+    return nCount;
 #endif
 }
 
@@ -64,15 +64,15 @@ inline int32_t GetMilliCount()
 inline int32_t GetMilliSpan( int32_t start )
 {
 #ifdef WIN32
-	int32_t span = GetTickCount() - start;
-	if ( span < 0 )
-	span += 0x100000 * 1000;
-	return span;
+    int32_t span = GetTickCount() - start;
+    if ( span < 0 )
+    span += 0x100000 * 1000;
+    return span;
 #else
-	int32_t span = GetMilliCount() - start;
-	if ( span < 0 )
-	span += 0x100000 * 1000;
-	return span;
+    int32_t span = GetMilliCount() - start;
+    if ( span < 0 )
+    span += 0x100000 * 1000;
+    return span;
 #endif
 }
 
@@ -84,10 +84,10 @@ inline int32_t GetMilliSpan( int32_t start )
  */
 inline int32_t GetMilliSpan( int32_t now, int32_t start)
 {
-	int32_t span = now - start;
-	if ( span < 0 )
-	span += 0x100000 * 1000;
-	return span;
+    int32_t span = now - start;
+    if ( span < 0 )
+    span += 0x100000 * 1000;
+    return span;
 }
 
 } /*namespace utils*/ } /*namespace time*/

@@ -36,13 +36,13 @@ static const char EnvVarWombatPath[] = "WOMBAT_PATH";
 
 std::string getVariable(const std::string &name)
 {
-	return  environment_getVariable(name.c_str());
+    return  environment_getVariable(name.c_str());
 
 }
 
 std::string getWombatPath()
 {
-	return getVariable(EnvVarWombatPath);
+    return getVariable(EnvVarWombatPath);
 }
 
 } /*namespace utils*/ } /*namespace environment*/

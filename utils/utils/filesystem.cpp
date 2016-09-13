@@ -29,33 +29,33 @@ namespace utils { namespace filesystem {
 
 std::string absolute_path(std::string path)
 {
-	boost::filesystem::path abs_path = boost::filesystem::absolute(path);
-	return abs_path.string();
+    boost::filesystem::path abs_path = boost::filesystem::absolute(path);
+    return abs_path.string();
 }
 
 bool path_exists(std::string path)
 {
-	return boost::filesystem::exists(path);
+    return boost::filesystem::exists(path);
 }
 
 bool has_relative_path(std::string path)
 {
-	boost::filesystem::path fs_path = path;
-	return fs_path.has_relative_path();
+    boost::filesystem::path fs_path = path;
+    return fs_path.has_relative_path();
 }
 
 bool has_complete_path(std::string path)
 {
-	boost::filesystem::path fs_path = path;
-	return fs_path.is_absolute();
+    boost::filesystem::path fs_path = path;
+    return fs_path.is_absolute();
 }
 
 std::string complete_path(const std::string &path_prefix, const std::string &path_suffix)
 {
 
-	boost::filesystem::path fs_path;
-	fs_path = boost::filesystem::path(path_prefix) / boost::filesystem::path(path_suffix);
-	return fs_path.string();
+    boost::filesystem::path fs_path;
+    fs_path = boost::filesystem::path(path_prefix) / boost::filesystem::path(path_suffix);
+    return fs_path.string();
 }
 
 } /*namespace utils*/ } /*namespace filesystem*/ 

@@ -36,79 +36,79 @@
 class RMDSNIPublisher: public RMDSPublisherBase, public LoginResponseListener, public ConnectionListener
 {
 public:
-	RMDSNIPublisher(UPATransportNotifier &notify);
-	virtual ~RMDSNIPublisher();
+    RMDSNIPublisher(UPATransportNotifier &notify);
+    virtual ~RMDSNIPublisher();
 
-	bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string &transport_name);
+    bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string &transport_name);
     bool Start();
 
-	boost::shared_ptr<TransportConfig_t> Config(void)
-	{
-		return config_;
-	}
+    boost::shared_ptr<TransportConfig_t> Config(void)
+    {
+        return config_;
+    }
 
-	char * InterfaceName() {return interfaceName_;}
-	RsslConnectionTypes ConnType() {return connType_;}
+    char * InterfaceName() {return interfaceName_;}
+    RsslConnectionTypes ConnType() {return connType_;}
 
     std::string GetTransportName() {return transportName_;}
     
-	// Listener functions
-	virtual void LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, const std::string &extraInfo);
+    // Listener functions
+    virtual void LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, bool loginSucceeded, const char* extraInfo);
 
-	UPANIProvider_ptr_t NIProvider() const { return niProvider_; }
+    UPANIProvider_ptr_t NIProvider() const { return niProvider_; }
 
-	virtual  RsslChannel * GetChannel()
-	{
-		return niProvider_->RsslNIProviderChannel();
-	}
+    virtual  RsslChannel * GetChannel()
+    {
+        return niProvider_->RsslNIProviderChannel();
+    }
 
-	// unsolicited messages for NI publishers
-	virtual bool SolicitedMessages()
-	{
-		return false;
-	}
+    // unsolicited messages for NI publishers
+    virtual bool SolicitedMessages()
+    {
+        return false;
+    }
 
 private:
-	// keep a ref to the bridge impl
-	mamaBridgeImpl* bridgeImpl_;
+    // keep a ref to the bridge impl
+    mamaBridgeImpl* bridgeImpl_;
 
-	// source
-	void InitialiseSource(const std::string source);
-	boost::shared_ptr<TransportConfig_t> config_;
+    // source
+    void InitialiseSource(const std::string source);
+    boost::shared_ptr<TransportConfig_t> config_;
 
     // connection configuration
-	char* interfaceName_;
-	RsslConnectionTypes connType_;
+    char* interfaceName_;
+    RsslConnectionTypes connType_;
 
-	// login
-	UPALogin::RsslLoginResponseInfo responseInfo_;
-	// log the login details
-	void LogResponseInfo(const UPALogin::RsslLoginResponseInfo &responseInfo);
+    // login
+    UPALogin::RsslLoginResponseInfo responseInfo_;
+    // log the login details
+    void LogResponseInfo(const UPALogin::RsslLoginResponseInfo &responseInfo);
 
-	// listeners
-	virtual void ConnectionNotification(bool connected, std::string extraInfo);
+    // listeners
+    virtual void ConnectionNotification(bool connected, const char* extraInfo);
 
-	// UPA Thread
-	// upa consumer thread
-	wthread_t NIProviderThread_; 
+    // UPA Thread
+    // upa consumer thread
+    wthread_t NIProviderThread_; 
 
-	UPANIProvider_ptr_t niProvider_;
+    UPANIProvider_ptr_t niProvider_;
 
-	typedef enum
-	{
-		unconnected = 0,
-		connecting,
-		loggingin,
-		sendingsourcedirectory,
-		live,
-		reconnecting
+    typedef enum
+    {
+        unconnected = 0,
+        connecting,
+        loggingin,
+        sendingsourcedirectory,
+        live,
+        reconnecting
 
-	} NIPublisherState_t;
+    } NIPublisherState_t;
 
-	NIPublisherState_t publisherState_;
+    NIPublisherState_t publisherState_;
 
-	// connection state
-	bool recovering_;
-	bool connected_;
+    // connection state
+    bool recovering_;
+    bool connected_;
 };
 

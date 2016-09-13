@@ -28,28 +28,32 @@
 #include <utils/mama/types.h>
 namespace /*anonymous*/
 {
-	utils::thread::lock_t globalUserNameStringLock; // see implementation of mama_getUserName for why the lock is needed
+    utils::thread::lock_t globalUserNameStringLock; // see implementation of mama_getUserName for why the lock is needed
 } /*namespace anonymous*/
 
 namespace utils { namespace os {
 
 bool getUserName(std::string &username)
 {
-	utils::thread::T42Lock synchronized(&globalUserNameStringLock);
-	const char*     username_    =   NULL;
-	mama_status     status      =   MAMA_STATUS_OK;
+    utils::thread::T42Lock synchronized(&globalUserNameStringLock);
+    const char*     username_    =   NULL;
+    mama_status     status      =   MAMA_STATUS_OK;
 
-	status=mama_getUserName(&username_);
-	if (MAMA_STATUS_OK == status)
-	{
-		username = username_;
-		return true;
-	}
-	return false;
+    status=mama_getUserName(&username_);
+    if (MAMA_STATUS_OK == status &&
+            username_)
+    {
+        username = username_;
+        return true;
+    }
+    return false;
 }
 
+// Enable this macro to set the thread name
+//#define SETTHREADNAMES
 
-#  if defined(_WIN32)
+#if defined(_WIN32) && defined(SETTHREADNAMES)
+
 // A function that names the thread for Microsoft Visual Studio
 // to display when debugging
 typedef struct tagTHREADNAME_INFO
@@ -62,7 +66,7 @@ typedef struct tagTHREADNAME_INFO
 
 void setThreadName(int threadID, const char *threadName)
 {
-   THREADNAME_INFO info;
+    THREADNAME_INFO info;
    info.dwType = 0x1000;
    info.szName = threadName;
    info.dwThreadID = (DWORD)threadID;
@@ -71,7 +75,14 @@ void setThreadName(int threadID, const char *threadName)
    // the exception is used to hook the name into the visual studio debugger
    __try
    {
-	  RaiseException( 0x406D1388, 0, sizeof(info)/sizeof(DWORD), (const ULONG_PTR*)&info );
+#ifdef FB_X64
+       RaiseException(0x406D1388, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+       // ------------------------------------------------^^^^^^^^^ this was DWORD! but
+       //                                                 the API counts pointer-sized arguments
+       // 
+#else
+       RaiseException(0x406D1388, 0, sizeof(info) / sizeof(DWORD), (DWORD *)&info);
+#endif
    }
    __except(EXCEPTION_CONTINUE_EXECUTION)
    {

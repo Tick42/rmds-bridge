@@ -36,17 +36,17 @@ UPADecodeUtils::~UPADecodeUtils(void)
 
 bool UPADecodeUtils::DateTimeFromMidnightMs( mamaDateTime dateTime, RsslUInt64 ms_from_midnight )
 {
-	if (mamaDateTime_clear (dateTime) != MAMA_STATUS_OK)
-		return false;
+    if (mamaDateTime_clear (dateTime) != MAMA_STATUS_OK)
+        return false;
 
 
-	// need to split into seconds and millis so we can set required precision and hints
-	int seconds = (int)(ms_from_midnight / 1000);
-	int millis = ms_from_midnight %1000;
-	if (mamaDateTime_setWithHints(dateTime, seconds, millis*1000, MAMA_DATE_TIME_PREC_MILLISECONDS, MAMA_DATE_TIME_HAS_TIME) != MAMA_STATUS_OK)
-		return false;
+    // need to split into seconds and millis so we can set required precision and hints
+    int seconds = (int)(ms_from_midnight / 1000);
+    int millis = ms_from_midnight %1000;
+    if (mamaDateTime_setWithHints(dateTime, seconds, millis*1000, MAMA_DATE_TIME_PREC_MILLISECONDS, MAMA_DATE_TIME_HAS_TIME) != MAMA_STATUS_OK)
+        return false;
 
 
 
-	return true;
+    return true;
 }

@@ -32,8 +32,8 @@ class ConnectionListener
 {
 public:
 
-	// todo define an enum or struct to carry detailed connection info
-	virtual void ConnectionNotification(bool connected, std::string extraInfo="") = 0;
+    // todo define an enum or struct to carry detailed connection info
+    virtual void ConnectionNotification(bool connected, const char* extraInfo = "") = 0;
 };
 
 

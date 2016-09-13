@@ -78,6 +78,11 @@
 
 #include <wombat/port.h>
 
+#if _MSC_VER > 1500
+#define fileno _fileno
+#define isatty _isatty
+#endif
+
 using namespace Wombat;
 
 using std::list;
@@ -185,7 +190,7 @@ private:
     const char*              mDictTport;
     MamaTransport*           mDictTransport;
     int                      mDumpDataDict;
-    bool					 mBuildDataDict;
+    bool                     mBuildDataDict;
     bool                     mDictionaryComplete;
     int                      mRequireInitial;
     int                      mSnapshot;
@@ -203,8 +208,8 @@ private:
     void*                    mDisplayCallback;
     SubscriptionList         mSubscriptionList;
 //    MamaTransport*           mTransport;
-	int						 mNumTransports;
-	vector<MamaTransport *>  mTransportsVec;
+    int                         mNumTransports;
+    vector<MamaTransport *>  mTransportsVec;
     MamaQueueGroup*          mQueueGroup;
     MamaLogLevel             mMamaLogLevel;
     FILE*                    mMamaLogFile;   
@@ -445,7 +450,7 @@ MamaListen::MamaListen():
     mDictTport              (NULL),
     mDictTransport          (NULL),
     mDumpDataDict           (0),
-	mBuildDataDict			(true),
+    mBuildDataDict            (true),
     mDictionaryComplete     (false),
     mRequireInitial         (1),
     mSnapshot               (0),
@@ -459,7 +464,7 @@ MamaListen::MamaListen():
     mSymbolMapFromFile      (NULL),
     mDictionary             (NULL),
     mDisplayCallback        (NULL),
-	mNumTransports(1),
+    mNumTransports(1),
     //mTransport              (NULL),
     mQueueGroup             (NULL),
     mMamaLogLevel           (MAMA_LOG_LEVEL_WARN),
@@ -649,11 +654,11 @@ void MamaListen::parseCommandLine (int argc, const char* argv[])
             mTport = argv[i+1];
             i += 2;
         }
-		else if (strcmp (argv[i], "-numTport") == 0)
-		{
-			mNumTransports = atoi(argv[i+1]);
-			i += 2;
-		}
+        else if (strcmp (argv[i], "-numTport") == 0)
+        {
+            mNumTransports = atoi(argv[i+1]);
+            i += 2;
+        }
         else if (strcmp (argv[i], "-v") == 0)
         {
             if (mMamaLogLevel == MAMA_LOG_LEVEL_WARN)
@@ -744,7 +749,7 @@ void MamaListen::subscribeToSymbol (const char* symbol)
 {
     static int howMany = 0;
     
-	static int nextTport = 0;
+    static int nextTport = 0;
 
     if (!mDisplayCallback)
     {
@@ -777,11 +782,11 @@ void MamaListen::subscribeToSymbol (const char* symbol)
                  symbol,
                  NULL);
 
-	// roll the index
-	if (nextTport >= mNumTransports)
-	{
-		nextTport = 0;
-	}
+    // roll the index
+    if (nextTport >= mNumTransports)
+    {
+        nextTport = 0;
+    }
 
     mSubscriptionList.push_back (sub);
     sub->setDebugLevel (mSubscLogLevel);
@@ -874,19 +879,19 @@ void MamaListen::buildDataDictionary ()
     DictionaryCallback cb (this, mBridgeImpl);
     if (mBuildDataDict)
     {
-		mDictionary = new MamaDictionary;
-		mDictionary->create (mDefaultQueue,
-							 &cb,
-							 mDictSource,
-							 3,
-							 10.0);
+        mDictionary = new MamaDictionary;
+        mDictionary->create (mDefaultQueue,
+                             &cb,
+                             mDictSource,
+                             3,
+                             10.0);
 
-		Mama::start (mBridgeImpl);
-		if (mDictionaryComplete == false)
-		{
-			cerr << "Failed to create dictionary. Exiting." << endl;
-			exit (1);
-		}
+        Mama::start (mBridgeImpl);
+        if (mDictionaryComplete == false)
+        {
+            cerr << "Failed to create dictionary. Exiting." << endl;
+            exit (1);
+        }
     }
 }
 
@@ -901,7 +906,7 @@ bool MamaListen::hasSpecificFields ()
 
 void MamaListen::onTimer(MamaTimer *timer)
 {
-	// Destroy the timer
+    // Destroy the timer
     mShutdownTimer.destroy();
 
     // Shutdown mama
@@ -921,7 +926,7 @@ void MamaListen::start ()
         mShutdownTimer.create(mDefaultQueue, this, (mama_f64_t)mShutdownTime, NULL);
     }
 
-	// Start mama
+    // Start mama
     Mama::start (mBridgeImpl);
 }
 
@@ -1000,30 +1005,30 @@ void MamaListen::initializeMama ()
     }
 
 
-	// create a std::vector of transports.
-	int index;
+    // create a std::vector of transports.
+    int index;
     for (index = 0; index < mNumTransports; index ++)
     {
-	    MamaTransport * t = new MamaTransport;
-	    t->setTransportCallback (new TransportCallback ());
-	    t->create               (mTport, mBridgeImpl);  
-	
-	    if (!mQualityForAll)
-	    {
-	        t->setInvokeQualityForAllSubscs (false);
-	    }
-	
-	    if (mThrottle != -1)
-	    {
-	        t->setOutboundThrottle (mThrottle, MAMA_THROTTLE_DEFAULT);
-	    }
-	
-	    if (mRecapThrottle != -1)
-	    {
-	        t->setOutboundThrottle (mRecapThrottle, MAMA_THROTTLE_RECAP);
-	    }
+        MamaTransport * t = new MamaTransport;
+        t->setTransportCallback (new TransportCallback ());
+        t->create               (mTport, mBridgeImpl);  
+    
+        if (!mQualityForAll)
+        {
+            t->setInvokeQualityForAllSubscs (false);
+        }
+    
+        if (mThrottle != -1)
+        {
+            t->setOutboundThrottle (mThrottle, MAMA_THROTTLE_DEFAULT);
+        }
+    
+        if (mRecapThrottle != -1)
+        {
+            t->setOutboundThrottle (mRecapThrottle, MAMA_THROTTLE_RECAP);
+        }
 
-		mTransportsVec.push_back(t);
+        mTransportsVec.push_back(t);
 
     }
 
@@ -1130,12 +1135,12 @@ void MamaListen::loadSymbolMap (void)
                     mMapFilename);
             exit (1);
         }
-		
-		int index;
-		for(index = 0; index < mNumTransports; index++)
-		{
-			mTransportsVec[index]->setSymbolMap (mSymbolMapFromFile);
-		}
+        
+        int index;
+        for(index = 0; index < mNumTransports; index++)
+        {
+            mTransportsVec[index]->setSymbolMap (mSymbolMapFromFile);
+        }
 
     }
 }
@@ -1489,9 +1494,9 @@ void DisplayCallback::onMsg (MamaSubscription* subscription,
     }
      
 #ifdef _WIN32
-	unsigned int tid =  GetCurrentThreadId() ;
+    unsigned int tid =  GetCurrentThreadId() ;
 #else
-	unsigned int tid = pthread_self();
+    unsigned int tid = pthread_self();
 #endif
 
     if (mMamaListen->getQuietness() < 2)
@@ -1502,7 +1507,7 @@ void DisplayCallback::onMsg (MamaSubscription* subscription,
                  subscription->getSymbol (),
                  msg.getMsgTypeName (),
                  msg.getMsgStatusString (),
-				 tid);
+                 tid);
         printData ("%s", msgBuffer); 
     }
     

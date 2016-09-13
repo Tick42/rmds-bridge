@@ -34,7 +34,7 @@ class RMDSPublisherSource;
 //
 // Implements the Non-Interactive provider in the bridge
 
-class RMDSPublisher : public RMDSPublisherBase
+class RMDSPublisher : public RMDSPublisherBase, public ConnectionListener
 {
 public:
     RMDSPublisher(UPATransportNotifier &notify);
@@ -102,6 +102,9 @@ private:
     std::string subscriberTransportName_;
 
     UPAProvider_ptr_t provider_;
+
+    // listeners
+    virtual void ConnectionNotification(bool connected, const char* extraInfo);
 
     // UPA provider thread
     wthread_t hProviderThread_; 

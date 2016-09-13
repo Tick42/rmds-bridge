@@ -32,18 +32,18 @@
 
 typedef struct 
 {
-	std::string source_;
-	std::string symbol_;
+    std::string source_;
+    std::string symbol_;
 } RMDSBridgeMsgReplyHandle_t;
 
 typedef struct 
 {
-	mamaMsg                     parent_;
-	RMDSBridgeMsgType_t         msgType_;
-	uint8_t                     isValid_;
-	std::string					sendSubject_;
+    mamaMsg                     parent_;
+    RMDSBridgeMsgType_t         msgType_;
+    uint8_t                     isValid_;
+    std::string                    sendSubject_;
 
-	RMDSBridgeMsgReplyHandle_t    replyHandle_;
+    RMDSBridgeMsgReplyHandle_t    replyHandle_;
 
 } RMDSBridgeMsgImpl_t;
 
@@ -55,51 +55,51 @@ typedef struct
  mama_status
  tick42rmdsBridgeMamaMsg_create (msgBridge* msg, mamaMsg parent)
  {
-	 RMDSBridgeMsgImpl_t * impl = NULL;
+     RMDSBridgeMsgImpl_t * impl = NULL;
 
-	 if (NULL == msg)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
+     if (NULL == msg)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
 
-	 /* Null initialize the msgBridge pointer */
-	 *msg = NULL;
+     /* Null initialize the msgBridge pointer */
+     *msg = NULL;
 
-	 /* Allocate memory for the implementation struct */
-	 impl = new RMDSBridgeMsgImpl_t();
+     /* Allocate memory for the implementation struct */
+     impl = new RMDSBridgeMsgImpl_t();
 
-	 if (NULL == impl)
-	 {
-		 t42log_error( "tick42rmdsBridgeMamaMsg_create (): Failed to allocate memory for bridge message.\n");
-		 return MAMA_STATUS_NOMEM;
-	 }
+     if (NULL == impl)
+     {
+         t42log_error( "tick42rmdsBridgeMamaMsg_create (): Failed to allocate memory for bridge message.\n");
+         return MAMA_STATUS_NOMEM;
+     }
 
-	 /* Back reference the parent message */
-	 impl->parent_       = parent;
-	 impl->isValid_      = 1;
+     /* Back reference the parent message */
+     impl->parent_       = parent;
+     impl->isValid_      = 1;
 
-	 impl->replyHandle_.source_="";
-	 impl->replyHandle_.symbol_ = "";
-	 impl->sendSubject_ = "";
+     impl->replyHandle_.source_="";
+     impl->replyHandle_.symbol_ = "";
+     impl->sendSubject_ = "";
 
-	 /* Populate the msgBridge pointer with the implementation */
-	 *msg = (msgBridge) impl;
+     /* Populate the msgBridge pointer with the implementation */
+     *msg = (msgBridge) impl;
 
-	 return MAMA_STATUS_OK;
+     return MAMA_STATUS_OK;
  }
 
  
  mama_status
  tick42rmdsBridgeMamaMsg_destroy (msgBridge msg, int destroyMsg)
  {
-	 if (NULL == msg)
-	 {
-		 return MAMA_STATUS_INVALID_ARG;
-	 }
-	 /* Free the underlying implementation */
-	 delete (RMDSBridgeMsgImpl_t*)msg;
+     if (NULL == msg)
+     {
+         return MAMA_STATUS_INVALID_ARG;
+     }
+     /* Free the underlying implementation */
+     delete (RMDSBridgeMsgImpl_t*)msg;
 
-	 return MAMA_STATUS_OK;
+     return MAMA_STATUS_OK;
  }
  
  
@@ -131,10 +131,10 @@ typedef struct
  tick42rmdsBridgeMamaMsg_getPlatformError (msgBridge msg, void** error)
  {
 
-	 if (NULL != error)
-	 {
-		 *error  = NULL;
-	 }
+     if (NULL != error)
+     {
+         *error  = NULL;
+     }
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
  
@@ -155,16 +155,16 @@ typedef struct
  int
  tick42rmdsBridgeMamaMsg_isFromInbox (msgBridge msg)
  {
-	 if (NULL == msg)
-	 {
-		 return -1;
-	 }
-	 if (RMDS_MSG_INBOX_REQUEST == ((RMDSBridgeMsgImpl_t*)msg)->msgType_ || RMDS_MSG_PUB_NEW_ITEM_REQUEST == ((RMDSBridgeMsgImpl_t*)msg)->msgType_ )
-	 {
-		 return 1;
-	 }
+     if (NULL == msg)
+     {
+         return -1;
+     }
+     if (RMDS_MSG_INBOX_REQUEST == ((RMDSBridgeMsgImpl_t*)msg)->msgType_ || RMDS_MSG_PUB_NEW_ITEM_REQUEST == ((RMDSBridgeMsgImpl_t*)msg)->msgType_ )
+     {
+         return 1;
+     }
 
-	 return 0;
+     return 0;
  }
  
  
@@ -173,36 +173,36 @@ typedef struct
                                  const char* symbol,
                                  const char* subject)
  { 
-	 RMDSBridgeMsgImpl_t* impl     = (RMDSBridgeMsgImpl_t*) msg;
-	 mama_status        status   = MAMA_STATUS_OK;
+     RMDSBridgeMsgImpl_t* impl     = (RMDSBridgeMsgImpl_t*) msg;
+     mama_status        status   = MAMA_STATUS_OK;
 
-	 if (NULL == impl || NULL == symbol || NULL == subject)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
+     if (NULL == impl || NULL == symbol || NULL == subject)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
 
-	  //Update the MAMA message with the send subject if it has a parent 
-	 if (NULL != impl->parent_)
-	 {
-		 status = mamaMsg_updateString (impl->parent_,
-			 MamaFieldSubscSymbol.mName,
-			 MamaFieldSubscSymbol.mFid,
-			 symbol);
-	 }
-	 return status;
+      //Update the MAMA message with the send subject if it has a parent 
+     if (NULL != impl->parent_)
+     {
+         status = mamaMsg_updateString (impl->parent_,
+             MamaFieldSubscSymbol.mName,
+             MamaFieldSubscSymbol.mFid,
+             symbol);
+     }
+     return status;
  }
  
  
  mama_status
  tick42rmdsBridgeMamaMsg_getNativeHandle (msgBridge msg, void** result)
  {
-	 RMDSBridgeMsgImpl_t* impl = (RMDSBridgeMsgImpl_t*) msg;
-	 if (NULL == impl || NULL == result)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
-	 *result = impl;
-	 return MAMA_STATUS_OK;
+     RMDSBridgeMsgImpl_t* impl = (RMDSBridgeMsgImpl_t*) msg;
+     if (NULL == impl || NULL == result)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
+     *result = impl;
+     return MAMA_STATUS_OK;
  }
  
  
@@ -237,57 +237,57 @@ typedef struct
  // metadata functions
  mama_status tick42rmdsBridgeMamaMsgImpl_setMsgType (msgBridge msg, RMDSBridgeMsgType_t   type)
  {
-	 RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
+     RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
 
-	 if (NULL == impl)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
-	 impl->msgType_ = type;
-	 return MAMA_STATUS_OK;
+     if (NULL == impl)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
+     impl->msgType_ = type;
+     return MAMA_STATUS_OK;
  }
 
  mama_status tick42rmdsBridgeMamaMsgImpl_setReplyTo (msgBridge msg, std::string source, std::string symbol)
  {
-	 RMDSBridgeMsgImpl_t *  impl        = (RMDSBridgeMsgImpl_t*) msg;
+     RMDSBridgeMsgImpl_t *  impl        = (RMDSBridgeMsgImpl_t*) msg;
 
-	 if (NULL == impl)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
+     if (NULL == impl)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
 
-	 impl->replyHandle_.source_ = source;
-	 impl->replyHandle_.symbol_ = symbol;
+     impl->replyHandle_.source_ = source;
+     impl->replyHandle_.symbol_ = symbol;
 
-	 return MAMA_STATUS_OK;
+     return MAMA_STATUS_OK;
  }
 
  mama_status tick42rmdsBridgeMamaMsgImpl_getReplyTo (msgBridge msg, std::string & source, std::string & symbol)
  {
-	 RMDSBridgeMsgImpl_t *  impl        = (RMDSBridgeMsgImpl_t*) msg;
+     RMDSBridgeMsgImpl_t *  impl        = (RMDSBridgeMsgImpl_t*) msg;
 
-	 if (NULL == impl)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
+     if (NULL == impl)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
 
 
-	 source = impl->replyHandle_.source_;
-	 symbol = impl->replyHandle_.symbol_;
+     source = impl->replyHandle_.source_;
+     symbol = impl->replyHandle_.symbol_;
 
-	 return MAMA_STATUS_OK;
+     return MAMA_STATUS_OK;
  }
 
  mama_status tick42rmdsBridgeMamaMsgImpl_getMsgType( msgBridge msg, RMDSBridgeMsgType_t * type )
  {
-	 RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
+     RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
 
-	 if (NULL == impl)
-	 {
-		 return MAMA_STATUS_NULL_ARG;
-	 }
+     if (NULL == impl)
+     {
+         return MAMA_STATUS_NULL_ARG;
+     }
 
-	 * type = impl->msgType_;
-	 return MAMA_STATUS_OK;
+     * type = impl->msgType_;
+     return MAMA_STATUS_OK;
  }
 

@@ -31,15 +31,15 @@ class SourceDirectoryResponseListener
 {
 public:
 
-	// SourceDirectory notifications will either be a refresh in response to a sourcedirectoryrequest, or an individual update
-	//
-	// typically the refresh items will contain the full service info while the updates will contain just one of the filter items - normally just state
-	// for a refresh the response info will contain both the service name and service id. For updates it will contain just the serviceId
-	
-	// The RefreshComplete notification can be used to trigger any state changes waiting on the sourcedirectory request
+    // SourceDirectory notifications will either be a refresh in response to a sourcedirectoryrequest, or an individual update
+    //
+    // typically the refresh items will contain the full service info while the updates will contain just one of the filter items - normally just state
+    // for a refresh the response info will contain both the service name and service id. For updates it will contain just the serviceId
+    
+    // The RefreshComplete notification can be used to trigger any state changes waiting on the sourcedirectory request
 
-	virtual void SourceDirectoryUpdate(RsslSourceDirectoryResponseInfo * pResponseInfo, bool isRefresh) = 0;
-	virtual void SourceDirectoryRefreshComplete(bool succeeded) = 0;
+    virtual void SourceDirectoryUpdate(RsslSourceDirectoryResponseInfo * pResponseInfo, bool isRefresh) = 0;
+    virtual void SourceDirectoryRefreshComplete(bool succeeded) = 0;
 
 
 };

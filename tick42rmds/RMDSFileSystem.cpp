@@ -30,40 +30,40 @@
 
 std::string GetActualPath( std::string path )
 {
-	using namespace utils;
-	using namespace utils::filesystem;
-	std::string actual_path=path;
-	bool exist=false;
+    using namespace utils;
+    using namespace utils::filesystem;
+    std::string actual_path=path;
+    bool exist=false;
 
-	if (has_relative_path(path))
-	{
-		std::string abs_path = absolute_path(path);
-		if (path_exists(abs_path))
-		{
-			actual_path = abs_path;
-			exist = true;
-		}
-		else
-		{
-			std::string env_prefix = environment::getWombatPath();
-			abs_path = complete_path(env_prefix, path);
-			if (path_exists(abs_path))
-			{
-				actual_path = abs_path;
-				exist = true;
-			}
-		}
-	}
-	else
-	{
-		exist = path_exists(path);
-	}
+    if (has_relative_path(path))
+    {
+        std::string abs_path = absolute_path(path);
+        if (path_exists(abs_path))
+        {
+            actual_path = abs_path;
+            exist = true;
+        }
+        else
+        {
+            std::string env_prefix = environment::getWombatPath();
+            abs_path = complete_path(env_prefix, path);
+            if (path_exists(abs_path))
+            {
+                actual_path = abs_path;
+                exist = true;
+            }
+        }
+    }
+    else
+    {
+        exist = path_exists(path);
+    }
 
-	if (exist)
-		mama_log (MAMA_LOG_LEVEL_NORMAL, "getActualPath: The actual path of [%s] is [%s].",path.c_str(), actual_path.c_str());
-	else
-		actual_path = "";
+    if (exist)
+        mama_log (MAMA_LOG_LEVEL_NORMAL, "getActualPath: The actual path of [%s] is [%s].",path.c_str(), actual_path.c_str());
+    else
+        actual_path = "";
 
-	return actual_path;
+    return actual_path;
 }
 

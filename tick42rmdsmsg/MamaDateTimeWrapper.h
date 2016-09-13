@@ -29,23 +29,23 @@
 class MamaDateTimeWrapper
 {
 public:
-	MamaDateTimeWrapper(mamaDateTime p);
-	~MamaDateTimeWrapper(void);
+    MamaDateTimeWrapper(mamaDateTime p);
+    ~MamaDateTimeWrapper(void);
 
-	void SetValue(mamaDateTime value);
+    void SetValue(mamaDateTime value);
 
-	/*
-	 * Returns the underlaying mamaDateTime object. 
-	 * One can use it along with the APIs, but must not destroy it with the APIs.
-	 */
-	mamaDateTime getMamaDateTime() const
-	{
-		return mamaDateTime_;
-	}
+    /*
+     * Returns the underlaying mamaDateTime object. 
+     * One can use it along with the APIs, but must not destroy it with the APIs.
+     */
+    mamaDateTime getMamaDateTime() const
+    {
+        return mamaDateTime_;
+    }
 
 private:
 
-	mamaDateTime mamaDateTime_;
+    mamaDateTime mamaDateTime_;
 
 };
 

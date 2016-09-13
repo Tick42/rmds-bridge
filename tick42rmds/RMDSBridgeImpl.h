@@ -37,104 +37,105 @@ class RMDSBridgeImpl
 {
 public:
 
-	RMDSBridgeImpl()
-	{
-	}
+    RMDSBridgeImpl()
+    {
+    }
 
-	// add a transport
-	void setTransportBridge(const boost::shared_ptr<RMDSTransportBridge>& transportBridge = boost::shared_ptr<RMDSTransportBridge>())
-	{
-		transports_.push_back(transportBridge);
-	}
+    // add a transport
+    void setTransportBridge(const boost::shared_ptr<RMDSTransportBridge>& transportBridge = boost::shared_ptr<RMDSTransportBridge>())
+    {
+        transports_.push_back(transportBridge);
+    }
 
-	//  get the first transport
-	 boost::shared_ptr<RMDSTransportBridge> getTransportBridge() const
-	{
-		// just return the first
-		return transports_[0];
-	}
-
-
-	 // get the transport wrapping the specified mama transport
-	 boost::shared_ptr<RMDSTransportBridge> getTransportBridge(mamaTransport transport) const
-	 {
-		boost::shared_ptr<RMDSTransportBridge> ret;
-
-		// find the specified transport
-		for(size_t index = 0; index < transports_.size(); index++)
-		{
-			if (transports_[index].get()->GetTransport() == transport)
-			{
-				return transports_[index];
-			}
-		}
-
-		// just return the empty shared ptr if its not found
-		return ret;
-	 }
+    //  get the first transport
+     boost::shared_ptr<RMDSTransportBridge> getTransportBridge() const
+    {
+        // just return the first
+        return transports_[0];
+    }
 
 
-	 // get a transport by name
-	boost::shared_ptr<RMDSTransportBridge> getTransportBridge(std::string transportName)
-	{
-		boost::shared_ptr<RMDSTransportBridge> ret;
-		// so theres rarely more than 2 or 3 tports so just walk the array to fin the one we want
-		for(size_t index = 0; index < transports_.size(); index++)
-		{
-			if (transports_[index]->Name() == transportName)
-			{
-				return transports_[index];
-			}
+     // get the transport wrapping the specified mama transport
+     boost::shared_ptr<RMDSTransportBridge> getTransportBridge(mamaTransport transport) const
+     {
+        boost::shared_ptr<RMDSTransportBridge> ret;
 
-		}
+        // find the specified transport
+        for(size_t index = 0; index < transports_.size(); index++)
+        {
+            if (transports_[index].get()->GetTransport() == transport)
+            {
+                return transports_[index];
+            }
+        }
 
-		// just return an empty shared ptr if not found
-		return ret;
-	}
-
-
-	// get by index
-	 boost::shared_ptr<RMDSTransportBridge> getTransportBridge(size_t index) const
-	 {
-		 return transports_[index];
-	 }
+        // just return the empty shared ptr if its not found
+        return ret;
+     }
 
 
-	bool hasTransportBridge() const
-	{
-		return transports_.size() > 0;
-	}
+     // get a transport by name
+    boost::shared_ptr<RMDSTransportBridge> getTransportBridge(std::string transportName)
+    {
+        boost::shared_ptr<RMDSTransportBridge> ret;
+        // so theres rarely more than 2 or 3 tports so just walk the array to fin the one we want
+        for(size_t index = 0; index < transports_.size(); index++)
+        {
+            if (transports_[index]->Name() == transportName)
+            {
+                return transports_[index];
+            }
+
+        }
+
+        // just return an empty shared ptr if not found
+        return ret;
+    }
 
 
-	// named transport exists
-	bool hasTransportBridge(std::string transportName) const
-	{
-		// so theres rarely more than 2 or 3 tports so just walk the array to fin the one we want
-		for(size_t index = 0; index < transports_.size(); index++)
-		{
-			if (transports_[index]->Name() == transportName)
-			{
-				return true;
-			}
-
-		}
-
-		return false;
-	}
+    // get by index
+     boost::shared_ptr<RMDSTransportBridge> getTransportBridge(size_t index) const
+     {
+         return transports_[index];
+     }
 
 
-	// how many transports
-	size_t NumTransports() const
-	{
-		return transports_.size();
-	}
+    bool hasTransportBridge() const
+    {
+        return transports_.size() > 0;
+    }
+
+
+    // named transport exists
+    bool hasTransportBridge(std::string transportName) const
+    {
+        // so theres rarely more than 2 or 3 tports so just walk the array to fin the one we want
+        for(size_t index = 0; index < transports_.size(); index++)
+        {
+            if (transports_[index]->Name() == transportName)
+            {
+                return true;
+            }
+
+        }
+
+        return false;
+    }
+
+
+    // how many transports
+    size_t NumTransports() const
+    {
+        return transports_.size();
+    }
 
 private:
 
-	// vector of transports created in the bridge
-	typedef boost::shared_ptr<RMDSTransportBridge> TransportBridge_ptr_t;
-	std::vector<TransportBridge_ptr_t> transports_;
+    // vector of transports created in the bridge
+    typedef boost::shared_ptr<RMDSTransportBridge> TransportBridge_ptr_t;
+    std::vector<TransportBridge_ptr_t> transports_;
 
 };
 
 #endif
+

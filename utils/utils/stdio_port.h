@@ -30,9 +30,9 @@
 namespace utils { namespace stdio_port {
 
 #ifdef _WIN32 //fixme: this is a preparation for later on
-//	inline int snprintf(char *buffer, size_t count, const char *format ,	... )
+//    inline int snprintf(char *buffer, size_t count, const char *format ,    ... )
 #else
-//	inline int snprintf(char *buffer, size_t count, const char *format ,	... )
+//    inline int snprintf(char *buffer, size_t count, const char *format ,    ... )
 #endif 
 
 } /*namespace utils*/ } /*namespace stdio_port*/

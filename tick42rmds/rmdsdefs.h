@@ -35,13 +35,13 @@
 
 
 #ifdef ENABLE_TESTING
-	#ifdef MAMA_DLL
-	#define RMDSExpDll __declspec( dllexport )
-	#else
-	#define RMDSExpDll __declspec( dllimport )
-	#endif
+    #ifdef MAMA_DLL
+    #define RMDSExpDll __declspec( dllexport )
+    #else
+    #define RMDSExpDll __declspec( dllimport )
+    #endif
 #else
-	#define RMDSExpDll 
+    #define RMDSExpDll 
 #endif
 
 #endif /* RMDS_DEFS_H */

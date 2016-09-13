@@ -12,6 +12,7 @@ set (INCLUDE_LIBRARIES_LIST
    ${OPENMAMA_COMMON_INCLUDE_DIR}
    ${Boost_INCLUDE_DIRS}
    ${UPAAPI_CPP_INCLUDE_DIR}
+   ${UPAAPI_CPP_ANSI_INCLUDE_DIR}
    ${WOMBAT_OS_DEPENDENT_INCLUDE_DIR}
    ${PROJECT_ROOT_DIR}/utils
    )
@@ -23,7 +24,7 @@ include_directories(
    ${INCLUDE_LIBRARIES_LIST}
    )
 
-set(SRC_FILES 
+set(SRC_FILES
    bridge.cpp
    inbox.cpp
    io.cpp
@@ -132,7 +133,7 @@ set(SRC_FILES
    ${PROJECT_ROOT_DIR}/utils/utils/mama/types.h
    ${PROJECT_ROOT_DIR}/utils/utils/thread/interlockedInt.h
    ${PROJECT_ROOT_DIR}/utils/utils/thread/lock.h
-   ${PROJECT_ROOT_DIR}/utils/utils/thread/semaphore.h   
+   ${PROJECT_ROOT_DIR}/utils/utils/thread/semaphore.h
 
    ${PROJECT_ROOT_DIR}/utils/utils/environment.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/filesystem.cpp
@@ -143,7 +144,7 @@ set(SRC_FILES
    ${PROJECT_ROOT_DIR}/utils/utils/threadMonitor.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/mama/mamaDictionaryWrapper.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/mama/mamaFieldDescriptorWrapper.cpp
-   
+
    # Special files
    config.h.in
 )
@@ -154,7 +155,7 @@ if (RMDS_ENHANCED)
   include(${PROJECT_ROOT_DIR}/tick42rmds/enhanced/enhanced_modules.txt)
 endif (RMDS_ENHANCED)
 
-   
+
 
 add_library(mamatick42rmdsimpl SHARED ${SRC_FILES})
 

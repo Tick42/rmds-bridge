@@ -27,8 +27,11 @@
 
 #pragma once
 
+#include <vector>
+
 #include "rmdsBridgeTypes.h"
 #include "UPALogin.h"
+#include "ConnectionListener.h"
 
 class RMDSPublisher;
 
@@ -39,129 +42,134 @@ class RMDSPublisher;
 class UPAProvider
 {
 public:
-	UPAProvider(RMDSPublisher * owner);
-	virtual ~UPAProvider();
+    UPAProvider(RMDSPublisher * owner);
+    virtual ~UPAProvider();
 
-	void Run();
+    void Run();
 
-	void Shutdown();
+    void Shutdown();
 
 
-	mamaQueue RequestQueue() const { return requestQueue_; }
+    mamaQueue RequestQueue() const { return requestQueue_; }
 
-	//RsslChannel * RsslProviderChannel() const { return rsslConsumerChannel_; }
+    //RsslChannel * RsslProviderChannel() const { return rsslConsumerChannel_; }
+
+    // connection notifications
+    void AddListener( ConnectionListener * pListener );
 
 protected:
-	virtual RsslRet ProcessPost(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
-	RsslRet SendAck(RsslChannel *chnl, RsslPostMsg *postMsg, RsslUInt8 nakCode, char *errText);
+    virtual RsslRet ProcessPost(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
+    RsslRet SendAck(RsslChannel *chnl, RsslPostMsg *postMsg, RsslUInt8 nakCode, char *errText);
 
-	UPALogin login_;
+    UPALogin login_;
 
 
-	// We need to keep a record of channel / streams ids to items so that we can handle close requests (these contain no identity)
+    // We need to keep a record of channel / streams ids to items so that we can handle close requests (these contain no identity)
 
-	// keep this separate from the UPAClientConnection_t structure because it really is unrelated;
-	// We can reasonably use a nested map here because this is only accessed on new item and item close events, which are relatively infrequent
-	//
-	// these are also now used by on-stream posts so may want to consider a more efficient lookup
-	typedef std::map<RsslUInt32, UPAPublisherItem_ptr_t> ChannelStreamIdMap_t;
-	typedef struct  
-	{
-		RsslChannel * chnl_;
-		ChannelStreamIdMap_t streamIdMap_;
+    // keep this separate from the UPAClientConnection_t structure because it really is unrelated;
+    // We can reasonably use a nested map here because this is only accessed on new item and item close events, which are relatively infrequent
+    //
+    // these are also now used by on-stream posts so may want to consider a more efficient lookup
+    typedef std::map<RsslUInt32, UPAPublisherItem_ptr_t> ChannelStreamIdMap_t;
+    typedef struct  
+    {
+        RsslChannel * chnl_;
+        ChannelStreamIdMap_t streamIdMap_;
 
-	} ChannelDictionaryItem_t;
+    } ChannelDictionaryItem_t;
 
-	typedef std::map<RsslChannel *, ChannelDictionaryItem_t *> ChannelDictionary_t;
+    typedef std::map<RsslChannel *, ChannelDictionaryItem_t *> ChannelDictionary_t;
 
-	ChannelDictionary_t channelDictionary_;
+    ChannelDictionary_t channelDictionary_;
 
-	RMDSPublisher * owner_;
+    RMDSPublisher * owner_;
 
 private:
 
 
-		// rssl connection
-	fd_set	readfds_;
-	fd_set	exceptfds_;
-	fd_set	wrtfds_;
+        // rssl connection
+    fd_set    readfds_;
+    fd_set    exceptfds_;
+    fd_set    wrtfds_;
 
 
-	// Socket connection
-	// Rssl structure that is bound to the listen socket
-	RsslServer * rsslServer_;
+    // Socket connection
+    // Rssl structure that is bound to the listen socket
+    RsslServer * rsslServer_;
 
-	// the listen port
-	char *portno_;
-	bool Bind(char* portno, RsslError* error);
+    // the listen port
+    char *portno_;
+    bool Bind(char* portno, RsslError* error);
 
-	bool runThread_;
+    bool runThread_;
 
+    // notify listeners
+    std::vector<ConnectionListener*> listeners_;
+    void NotifyListeners(bool connected, const char* extraInfo);
 
+    // connection management
+    //
+    // client connection information - required per connection
+    typedef struct
+    {
+        RsslChannel *clientChannel;
+        time_t nextReceivePingTime;
+        time_t nextSendPingTime;
+        RsslBool receivedClientMsg;
+        RsslBool pingsInitialized;
+    } UPAClientConnection_t;
 
-	// connection management
-	//
-	// client connection information - required per connection
-	typedef struct
-	{
-		RsslChannel *clientChannel;
-		time_t nextReceivePingTime;
-		time_t nextSendPingTime;
-		RsslBool receivedClientMsg;
-		RsslBool pingsInitialized;
-	} UPAClientConnection_t;
+    UPAClientConnection_t * clientConnections_;
 
-	UPAClientConnection_t * clientConnections_;
+    // clear the connection struct
+    void ResetClientConnection(UPAClientConnection_t * connection);
 
-	// clear the connection struct
-	void ResetClientConnection(UPAClientConnection_t * connection);
+    // Close the client connection 
+    void ShutdownClientConnection(UPAClientConnection_t * connection);
 
-	// Close the client connection 
-	void ShutdownClientConnection(UPAClientConnection_t * connection);
+    // close the rssl channel
+    void ShutdownChannel(RsslChannel * chnl);
 
-	// close the rssl channel
-	void ShutdownChannel(RsslChannel * chnl);
-
-	// remove ths connection on this channel
-	void RemoveChannelConnection(RsslChannel * chnl);
-
-
-
-
-	// handle incoming on the read socket
-	void ReadFromChannel(RsslChannel* chnl);
-	void CreateNewClientConnection();
-
-	RsslRet ProcessRequest(RsslChannel* chnl, RsslBuffer* buffer);
-
-	RsslRet ProcessLoginRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
-	RsslRet ProcessSourceDirectoryRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
-	RsslRet ProcessDictionaryRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
-
-	RsslRet ProcessItemRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
-
-
-
-	// ping management
-	void InitChannelPingTimes(UPAClientConnection_t * clientConnection);
-
-	// send and received pings
-	uint32_t lastPingCheck_;
-	void HandlePings();
-
-	RsslRet sendPing(RsslChannel* chnl);
-
-	void SetChannelReceivedClientMsg(RsslChannel *chnl);
-
-	// queue for dispatching requests onto provider thread
-	mamaQueue requestQueue_;
+    // remove ths connection on this channel
+    void RemoveChannelConnection(RsslChannel * chnl);
 
 
 
 
-	bool acceptsPosts_;
+    // handle incoming on the read socket
+    void ReadFromChannel(RsslChannel* chnl);
+    void CreateNewClientConnection();
 
-	RsslRet EncodeAck(RsslChannel* chnl, RsslBuffer* ackBuf, RsslPostMsg *postMsg, RsslUInt8 nakCode, char *text);
+    RsslRet ProcessRequest(RsslChannel* chnl, RsslBuffer* buffer);
+
+    RsslRet ProcessLoginRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
+    RsslRet ProcessSourceDirectoryRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
+    RsslRet ProcessDictionaryRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
+
+    RsslRet ProcessItemRequest(RsslChannel* chnl, RsslMsg* msg, RsslDecodeIterator* dIter);
+
+
+
+    // ping management
+    void InitChannelPingTimes(UPAClientConnection_t * clientConnection);
+
+    // send and received pings
+    uint32_t lastPingCheck_;
+    void HandlePings();
+
+    RsslRet sendPing(RsslChannel* chnl);
+
+    void SetChannelReceivedClientMsg(RsslChannel *chnl);
+
+    // queue for dispatching requests onto provider thread
+    mamaQueue requestQueue_;
+
+
+
+
+    bool acceptsPosts_;
+
+    RsslRet EncodeAck(RsslChannel* chnl, RsslBuffer* ackBuf, RsslPostMsg *postMsg, RsslUInt8 nakCode, char *text);
 
 };
 

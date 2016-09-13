@@ -39,82 +39,83 @@ class DictionaryResponseListener;
 class UPADictionary
 {
 public:
-	UPADictionary(const std::string &transport_name);
-	virtual ~UPADictionary(void);
+    UPADictionary(const std::string &transport_name);
+    virtual ~UPADictionary(void);
 
-	void AddListener( DictionaryResponseListener * pListener );
+    void AddListener( DictionaryResponseListener * pListener );
 
-	// queue a request to rmds for the dictionary
-	bool QueueRequest(mamaQueue Queue);
+    // queue a request to rmds for the dictionary
+    bool QueueRequest(mamaQueue Queue);
 
-	// queue a request from the mamaclient
-	// this decouples handling mama client dictionary subscriptions from the rmds dictionary request process
-	bool QueueMamaClientRequest(mamaQueue queue);
-	bool HandleClientRequest();
+    // queue a request from the mamaclient
+    // this decouples handling mama client dictionary subscriptions from the rmds dictionary request process
+    bool QueueMamaClientRequest(mamaQueue queue);
+    bool HandleClientRequest();
 
-	// request the dictionary from RMDS
-	bool SendRequest();
+    // request the dictionary from RMDS
+    bool SendRequest();
 
-	bool IsComplete();
-	
-	void NotifyComplete();
+    bool IsComplete();
+    
+    void NotifyComplete();
 
-	void LoadDictionaryFromFile();
-	RsslChannel* UPAChannel() const { return UPAChannel_; }
-	void UPAChannel(RsslChannel* val) { UPAChannel_ = val; }
-
-
-	// called from consumer message loop
-	RsslRet ProcessDictionaryResponse(RsslMsg* msg, RsslDecodeIterator* dIter);
+    void LoadDictionaryFromFile();
+    RsslChannel* UPAChannel() const { return UPAChannel_; }
+    void UPAChannel(RsslChannel* val) { UPAChannel_ = val; }
 
 
-	UPADictionaryWrapper_ptr_t RsslDictionary() const { return rsslDictionary_; }
-	UPADictionaryWrapper_ptr_t GetUnderlyingDictionary() {return rsslDictionary_;}
+    // called from consumer message loop
+    RsslRet ProcessDictionaryResponse(RsslMsg* msg, RsslDecodeIterator* dIter);
+
+
+    UPADictionaryWrapper_ptr_t RsslDictionary() const { return rsslDictionary_; }
+    UPADictionaryWrapper_ptr_t GetUnderlyingDictionary() {return rsslDictionary_;}
 private:
 
-	void NotifyListeners( bool dictionaryComplete );
-	std::vector<DictionaryResponseListener *> listeners_;
+    void NotifyListeners( bool dictionaryComplete );
+    std::vector<DictionaryResponseListener *> listeners_;
 
-	RsslChannel* UPAChannel_;
+    RsslChannel* UPAChannel_;
 
-	/* dictionary loaded flag */
-	RsslBool fieldDictionaryLoaded_ ;
-	/* dictionary loaded from file flag */
-	RsslBool fieldDictionaryLoadedFromFile_;
+    /* dictionary loaded flag */
+    RsslBool fieldDictionaryLoaded_ ;
+    /* dictionary loaded from file flag */
+    RsslBool fieldDictionaryLoadedFromFile_;
 
-	/* enum table loaded flag */
-	RsslBool enumTypeDictionaryLoaded_ ;
-	/* enum table loaded from file flag */
-	RsslBool enumTypeDictionaryLoadedFromFile_;
-	/* enum table file name */
+    /* enum table loaded flag */
+    RsslBool enumTypeDictionaryLoaded_ ;
+    /* enum table loaded from file flag */
+    RsslBool enumTypeDictionaryLoadedFromFile_;
+    /* enum table file name */
 
-	// send requests to channel
-	RsslRet SendDictionaryRequest(const char *dictionaryName, RsslInt32 streamId);
-	RsslRet EncodeDictionaryRequest( RsslBuffer* msgBuf, const char *dictionaryName, RsslInt32 streamId);
-
-
-	RsslInt32 fieldDictionaryStreamId_; 
-	RsslInt32 enumDictionaryStreamId_;
-
-	RsslRet CloseDictionaryStream( RsslInt32 streamId);
-	RsslRet EncodeDictionaryClose( RsslBuffer* msgBuf, RsslInt32 streamId);
-	void FreeDictionary();
-	void ResetDictionaryStreamId();
-	RsslBool NeedToDeleteDictionary();
+    // send requests to channel
+    RsslRet SendDictionaryRequest(const char *dictionaryName, RsslInt32 streamId);
+    RsslRet EncodeDictionaryRequest( RsslBuffer* msgBuf, const char *dictionaryName, RsslInt32 streamId);
 
 
-	// wrapper on the underlying dictionary
-	UPADictionaryWrapper_ptr_t rsslDictionary_;
+    RsslInt32 fieldDictionaryStreamId_; 
+    RsslInt32 enumDictionaryStreamId_;
+
+    RsslRet CloseDictionaryStream( RsslInt32 streamId);
+    RsslRet EncodeDictionaryClose( RsslBuffer* msgBuf, RsslInt32 streamId);
+    void FreeDictionary();
+    void ResetDictionaryStreamId();
+    RsslBool NeedToDeleteDictionary();
 
 
-	std::string transport_name_;
+    // wrapper on the underlying dictionary
+    UPADictionaryWrapper_ptr_t rsslDictionary_;
+
+
+    std::string transport_name_;
 
 };
 
 class DictionaryResponseListener
 {
 public:
-	virtual void DictionaryUpdate(bool dictionaryComplete) = 0;
+    virtual void DictionaryUpdate(bool dictionaryComplete) = 0;
 };
 
 #endif //__UPADICTIONARY_H__
+

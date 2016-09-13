@@ -40,7 +40,7 @@
 
 extern "C"
 {
-   fd_set	wrtfds;
+   fd_set    wrtfds;
 }
 
 RMDSSubscriber::RMDSSubscriber(UPATransportNotifier &notify)
@@ -126,12 +126,13 @@ bool RMDSSubscriber::Start(const char* interfaceName, RsslConnectionTypes connTy
       consumer_->AddListener(this);
       sources_->Initialise(consumer_);
 
-	  // and fire up the thread
+      // and fire up the thread
       bool result = (0 == wthread_create(&hConsumerThread_, 0, threadFunc, this));
       if (result)
       {
          subscriberState_ = connecting;
       }
+      t42log_info("RMDSSubscriber start Consumer thread %p", hConsumerThread_);
       return result;
    }
    else
@@ -146,6 +147,7 @@ bool RMDSSubscriber::Start(const char* interfaceName, RsslConnectionTypes connTy
 bool RMDSSubscriber::Stop()
 {
    // Stop the consumer thread
+   t42log_info("RMDSSubscriber stop Consumer thread %p", hConsumerThread_);
    if (0 != hConsumerThread_)
    {
       consumer_->JoinThread(hConsumerThread_);
@@ -183,16 +185,16 @@ void LogResponseInfo(const UPALogin::RsslLoginResponseInfo &responseInfo)
    t42log_debug("\tisSolicited [%s]", responseInfo.isSolicited ? "true" : "false");
 }
 
-void RMDSSubscriber::LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, const std::string &extraInfo)
+void RMDSSubscriber::LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, bool loginSucceeded, const char* extraInfo)
 {
    // Copy current login state
    memcpy(&responseInfo_, pResponseInfo, sizeof(responseInfo_));
 
    LogResponseInfo(*pResponseInfo);
 
-   if (connected_)
+   if (connected_ && loginSucceeded)
    {
-      t42log_debug(extraInfo.c_str());
+      t42log_debug(extraInfo);
 
       subscriberState_ = requestingSourceDirectory;
 
@@ -206,7 +208,7 @@ void RMDSSubscriber::LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseIn
 }
 
 
-void RMDSSubscriber::ConnectionNotification(bool connected, std::string extraInfo)
+void RMDSSubscriber::ConnectionNotification(bool connected, const char* extraInfo)
 {
    t42log_debug("Connected = %s", connected ? "true" : "false");
 
@@ -255,7 +257,7 @@ void RMDSSubscriber::SourceDirectoryUpdate( RsslSourceDirectoryResponseInfo * pR
     t42log_info("Received SourceInfo for %s, service ID is %d, state = %s, accepting requests = %s\n" ,
         pResponseInfo->ServiceGeneralInfo.ServiceName, sid, state, acceptingRequests);
 
-	// The update to the source will propagate any state changes through to all the subscriptions active on the source
+    // The update to the source will propagate any state changes through to all the subscriptions active on the source
     sources_->UpdateOrCreate(
         pResponseInfo->ServiceId,
         pResponseInfo->ServiceGeneralInfo.ServiceName,
@@ -280,7 +282,7 @@ void RMDSSubscriber::SourceDirectoryRefreshComplete(bool succeeded)
    else
    {
       subscriberState_ = unconnected;
-      notify_.onSourceDirectoryRequestFailed(string("Failed to process source directory"));
+      notify_.onSourceDirectoryRequestFailed("Failed to process source directory");
    }
 
 
@@ -353,7 +355,7 @@ void RMDSSubscriber::DictionaryUpdate(bool dictionaryComplete)
 
    if (dictionaryComplete)
    {
-	  // now have a complete rmds dictionary so can build the field map
+      // now have a complete rmds dictionary so can build the field map
       UpdateUpaMamaFieldMap();
 
       t42log_debug("update mama field map on transport %s, sentDictionary = %d, dictionaryReply = 0x%x\n", transport_name_.c_str(), sentDictionary_, dictionaryReply_.get());
@@ -363,14 +365,14 @@ void RMDSSubscriber::DictionaryUpdate(bool dictionaryComplete)
          t42log_debug("Sent dictionary on transport %s\n", transport_name_.c_str());
          sentDictionary_ = true;
       }
-	  else
-	  {
-		  // we need to combine the dictionaries anyway
-		  UpaMamaFieldMap_->GetCombinedMamaDictionary();
-	  }
+      else
+      {
+          // we need to combine the dictionaries anyway
+          UpaMamaFieldMap_->GetCombinedMamaDictionary();
+      }
       SetLive();
 
-	  // if the feed is recovering, receipt of the dictionary completes the reconnection, so resubscribe to everything
+      // if the feed is recovering, receipt of the dictionary completes the reconnection, so resubscribe to everything
       if (recovering_)
       {
          recovering_ = false;
@@ -379,13 +381,13 @@ void RMDSSubscriber::DictionaryUpdate(bool dictionaryComplete)
       }
       else
       {
-         notify_.onConnectionComplete(string("Connection Live"));
+         notify_.onConnectionComplete("Connection Live");
       }
    }
    else
    {
       subscriberState_ = unconnected;
-      notify_.onDictionaryRequestFailed(string("Failed to process data dictionary"));
+      notify_.onDictionaryRequestFailed("Failed to process data dictionary");
    }
 }
 
@@ -394,6 +396,7 @@ bool RMDSSubscriber::AddSubscription( subscriptionBridge* subscriber, const char
    bool logrmdsvalues = config_->getBool("logrmdsvalues");
 
    // trim the source name
+   if (source == NULL) source = "";
    string strSource(source);
    boost::algorithm::trim(strSource);
 
@@ -431,9 +434,9 @@ bool RMDSSubscriber::AddSubscription( subscriptionBridge* subscriber, const char
    // The open mama subscription creation model requires the subscription to complete without error so we defer the parts that can fail
    // (invalid source etc)
    {
-	   // take a lock on the list while we add
-	   utils::thread::T42Lock l(&pendingListLock_);
-	   pendingSubscriptions_.push_back(sub);
+       // take a lock on the list while we add
+       utils::thread::T42Lock l(&pendingListLock_);
+       pendingSubscriptions_.push_back(sub);
    }
 
 
@@ -453,52 +456,52 @@ void RMDSSubscriber::SetLive()
 
 void RMDSSubscriber::ProcessPendingSubcriptions()
 {
-	if(subscriberState_ != live)
-	{
-		// cant dop anything
-		return;
-	}
+    if(subscriberState_ != live)
+    {
+        // cant dop anything
+        return;
+    }
 
-	// process pending subscriptions
+    // process pending subscriptions
 
-	utils::thread::T42Lock l(&pendingListLock_);
-	while(pendingSubscriptions_.size() !=0)
-	{
-		RMDSBridgeSubscription_ptr_t sub = pendingSubscriptions_.front();
-		pendingSubscriptions_.pop_front();
-		// release the lock as this may call back into mama (if there is an error
-		pendingListLock_.unlock();
-		try
-		{
-			AddSubscriptionToSource(sub);
-		}
-		catch (...)
-		{
-			t42log_warn("caught exception processing pending subscription\n");
-		}
-		pendingListLock_.lock();
-	}
+    utils::thread::T42Lock l(&pendingListLock_);
+    while(pendingSubscriptions_.size() !=0)
+    {
+        RMDSBridgeSubscription_ptr_t sub = pendingSubscriptions_.front();
+        pendingSubscriptions_.pop_front();
+        // release the lock as this may call back into mama (if there is an error
+        pendingListLock_.unlock();
+        try
+        {
+            AddSubscriptionToSource(sub);
+        }
+        catch (...)
+        {
+            t42log_warn("caught exception processing pending subscription\n");
+        }
+        pendingListLock_.lock();
+    }
 
 
 
-	// still holding the lock at this point
-	// process pending snapshots
-	while(pendingSnapshots_.size() !=0)
-	{
-		RMDSBridgeSnapshot_ptr_t snap = pendingSnapshots_.front();
-		pendingSnapshots_.pop_front();
-		// release the lock as this may call back into mama (if there is an error
-		pendingListLock_.unlock();
-		try
-		{
-			AddSnaphotToSource(snap);
-		}
-		catch (...)
-		{
-			t42log_warn("caught exception processing pending snapshot\n");
-		}
-		pendingListLock_.lock();
-	}
+    // still holding the lock at this point
+    // process pending snapshots
+    while(pendingSnapshots_.size() !=0)
+    {
+        RMDSBridgeSnapshot_ptr_t snap = pendingSnapshots_.front();
+        pendingSnapshots_.pop_front();
+        // release the lock as this may call back into mama (if there is an error
+        pendingListLock_.unlock();
+        try
+        {
+            AddSnaphotToSource(snap);
+        }
+        catch (...)
+        {
+            t42log_warn("caught exception processing pending snapshot\n");
+        }
+        pendingListLock_.lock();
+    }
 
 }
 
@@ -517,6 +520,8 @@ bool RMDSSubscriber::AddSubscriptionToSource( RMDSBridgeSubscription_ptr_t sub )
       //notify invalid source
       t42log_info("Unknown source name '%s' for symbol '%s' \n", sub->SourceName().c_str(), sub->Symbol().c_str());
       sub->Callback().onError(sub->Subscription(), MAMA_STATUS_BAD_SYMBOL, 0, 0, sub->Closure());
+
+      badSourceFailures_.insert(BadSourceFailuresMap_t::value_type(sub.get(), sub));
       return false;
    }
 
@@ -559,7 +564,7 @@ bool RMDSSubscriber::AddSubscriptionToSource( RMDSBridgeSubscription_ptr_t sub )
          return false;
       }
       src->AddSubscription(upaSub);
-	  upaSub->SetDomain(src->SourceDomain());
+      upaSub->SetDomain(src->SourceDomain());
       upaSub->Source(src);
       upaSub->AddListener(sub);
 
@@ -580,7 +585,17 @@ bool RMDSSubscriber::RemoveSubscription( RMDSBridgeSubscription * pSubscription 
    RMDSSource_ptr_t src;
    if (!sources_->Find(pSubscription->SourceName(), src))
    {
-      t42log_warn( "RMDSSubscriber::RemoveSubscription - Unable to remove subscription for %s:%s - no such source", pSubscription->SourceName().c_str(), pSubscription->Symbol().c_str());
+       // The source for this subscription is not in the sources map so assume it was created on a bad source
+       BadSourceFailuresMap_t::iterator it = badSourceFailures_.find(pSubscription);
+       if(it != badSourceFailures_.end())
+       {
+           badSourceFailures_.erase(it);
+       }
+       else
+       {
+          t42log_warn( "RMDSSubscriber::RemoveSubscription - Unable to remove subscription for %s:%s - no such source", pSubscription->SourceName().c_str(), pSubscription->Symbol().c_str());
+       }
+
       return false;
    }
 
@@ -683,9 +698,9 @@ bool RMDSSubscriber::GetNewItemSubscription(const std::string & sourceName, mama
 // get the insert subscription for the specified source
 bool RMDSSubscriber::GetInsertSubscription(const std::string & sourceName, mamaSubscription * sub)
 {
-	t42log_warn("The enhanced version of the Tick42 RMDS bridge is required to accept posted messages");
+    t42log_warn("The enhanced version of the Tick42 RMDS bridge is required to accept posted messages");
 
-	return false;
+    return false;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -710,54 +725,54 @@ void RMDSSubscriber::ResumeUpdates()
 
 void RMDSSubscriber::SendSnapshotRequest( SnapshotReply_ptr_t snapReply )
 {
-	bool logrmdsvalues = config_->getBool("logrmdsvalues");
+    bool logrmdsvalues = config_->getBool("logrmdsvalues");
 
 
 
-	RMDSBridgeSnapshot_ptr_t snap = RMDSBridgeSnapshot_ptr_t(
-		new RMDSBridgeSnapshot(snapReply, logrmdsvalues));
+    RMDSBridgeSnapshot_ptr_t snap = RMDSBridgeSnapshot_ptr_t(
+        new RMDSBridgeSnapshot(snapReply, logrmdsvalues));
 
 
-	// Add the subscription to the pending queue. This will allow the initialization to complete asynchronously.
-	// The open mama subscription creation model requires the subscription to complete without error so we defer the parts that can fail
-	// (invalid source etc)
-	{
-		// take a lock on the list while we add
-		utils::thread::T42Lock l(&pendingListLock_);
-		pendingSnapshots_.push_back(snap);
-	}
+    // Add the subscription to the pending queue. This will allow the initialization to complete asynchronously.
+    // The open mama subscription creation model requires the subscription to complete without error so we defer the parts that can fail
+    // (invalid source etc)
+    {
+        // take a lock on the list while we add
+        utils::thread::T42Lock l(&pendingListLock_);
+        pendingSnapshots_.push_back(snap);
+    }
 
 
 }
 
 bool RMDSSubscriber::AddSnaphotToSource( RMDSBridgeSnapshot_ptr_t snap )
 {
-	//add the snapshot to the source
+    //add the snapshot to the source
 
-	// find whether we already have a UPA subscription for this symbol/source, if we do then just added it, otherwise we have to create a new UPASubscription
-	RMDSSource_ptr_t src;
-	if (!sources_->Find(snap->SourceName(), src))
-	{
-		//notify invalid source
-		t42log_info("Unknown source name '%s' for symbol '%s' \n", snap->SourceName().c_str(), snap->Symbol().c_str());
-		snap->OnError(MAMA_STATUS_BAD_SYMBOL);
-		return false;
-	}
+    // find whether we already have a UPA subscription for this symbol/source, if we do then just added it, otherwise we have to create a new UPASubscription
+    RMDSSource_ptr_t src;
+    if (!sources_->Find(snap->SourceName(), src))
+    {
+        //notify invalid source
+        t42log_info("Unknown source name '%s' for symbol '%s' \n", snap->SourceName().c_str(), snap->Symbol().c_str());
+        snap->OnError(MAMA_STATUS_BAD_SYMBOL);
+        return false;
+    }
 
-	UPASubscription_ptr_t upaSnap = src->CreateSubscription(snap->Symbol(), snap->LogRMDSValues());
+    UPASubscription_ptr_t upaSnap = src->CreateSubscription(snap->Symbol(), snap->LogRMDSValues());
 
-	// save the subscription so we can destroy it on the way out
-	snap->Subscription(upaSnap);
+    // save the subscription so we can destroy it on the way out
+    snap->Subscription(upaSnap);
 
-	upaSnap->SetDomain(src->SourceDomain());
-	upaSnap->Source(src);
-	upaSnap->Snapshot(consumer_, snap);
+    upaSnap->SetDomain(src->SourceDomain());
+    upaSnap->Source(src);
+    upaSnap->Snapshot(consumer_, snap);
 
-	return true;
+    return true;
 }
 
 bool RMDSSubscriber::SendInsertMessage( const std::string & sourceName, mamaMsg msg )
 {
-	t42log_warn("The enhanced version of the Tick42 RMDS bridge is required to accept posted messages");
-	return false;
+    t42log_warn("The enhanced version of the Tick42 RMDS bridge is required to accept posted messages");
+    return false;
 }

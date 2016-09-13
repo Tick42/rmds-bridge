@@ -46,6 +46,8 @@ static const bool Default_disabledataconversion = false;
 static const char * Default_retrysched = "0,3(3),10(3),30(6)"; 
 static const int Default_maxdisp = 1000; 
 static const int Default_maxPending = 1000; 
+static const char * Default_useCallbacks = "0";
+static const char * Default_sendAckMessage = "1";
 
 /* Thin wrapper class that reflects mama.properties in type safe way.
  * Calling any of the get_<field name> will result with the value of the related filed in mama.properties that ends with that name.
@@ -53,103 +55,103 @@ static const int Default_maxPending = 1000;
  */
 class TransportConfig_t
 {
-	const std::string TPORT_PREFIX;
-	std::string transportName_;
-	utils::properties properties_;
-	struct flag_t //a helper class for the macro above, that default a boolean member to false, that way all cached properties have a corresponding flag that says if they were loaded or not
-	{
-		bool flag_;
-		flag_t() : flag_(false) {}
-	};
+    const std::string TPORT_PREFIX;
+    std::string transportName_;
+    utils::properties properties_;
+    struct flag_t //a helper class for the macro above, that default a boolean member to false, that way all cached properties have a corresponding flag that says if they were loaded or not
+    {
+        bool flag_;
+        flag_t() : flag_(false) {}
+    };
 public:
-	TransportConfig_t(std::string transportName) : TPORT_PREFIX("mama.tick42rmds.transport"), transportName_(transportName) {}
+    TransportConfig_t(std::string transportName) : TPORT_PREFIX("mama.tick42rmds.transport"), transportName_(transportName) {}
 
-	TransportConfig_t &operator=(const TransportConfig_t &rhs) 
-	{
-		if (this!=&rhs)
-		{
-			transportName_ = rhs.transportName_;
-			properties_ = rhs.properties_;
-		}
-		return *this;
-	}
-	TransportConfig_t(const TransportConfig_t &rhs) : TPORT_PREFIX(rhs.TPORT_PREFIX)
-	{
-		*this = rhs;
-	}
+    TransportConfig_t &operator=(const TransportConfig_t &rhs) 
+    {
+        if (this!=&rhs)
+        {
+            transportName_ = rhs.transportName_;
+            properties_ = rhs.properties_;
+        }
+        return *this;
+    }
+    TransportConfig_t(const TransportConfig_t &rhs) : TPORT_PREFIX(rhs.TPORT_PREFIX)
+    {
+        *this = rhs;
+    }
 
-	inline bool exists(const std::string &name) 
-	{ 
-		return utils::propertyExists(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name);
-	}
+    inline bool exists(const std::string &name) 
+    { 
+        return utils::propertyExists(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name);
+    }
 
-	inline bool getBool(const std::string &name, bool default_value=false)
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
-	}
+    inline bool getBool(const std::string &name, bool default_value=false)
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
+    }
 
-	inline int getInt(const std::string &name, int default_value=0)
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
-	}
+    inline int getInt(const std::string &name, int default_value=0)
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
+    }
 
-	inline std::string getString(const std::string &name, const std::string &default_value="")
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
-	}
+    inline std::string getString(const std::string &name, const std::string &default_value="")
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
+    }
 
-	inline uint16_t getUint16(const std::string &name, uint16_t default_value=0)
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
-	}
+    inline uint16_t getUint16(const std::string &name, uint16_t default_value=0)
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + name, default_value);
+    }
 
-	inline bool existServiceProperty(const std::string &service, const std::string &name) 
-	{ 
-		return utils::propertyExists(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name);
-	}
+    inline bool existServiceProperty(const std::string &service, const std::string &name) 
+    { 
+        return utils::propertyExists(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name);
+    }
 
-	inline bool getServicePropertyBool(const std::string &service, const std::string &name, bool default_value=false)
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
-	}
+    inline bool getServicePropertyBool(const std::string &service, const std::string &name, bool default_value=false)
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
+    }
 
-	inline int getServicePropertyInt(const std::string &service, const std::string &name, int default_value=0)
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
-	}
+    inline int getServicePropertyInt(const std::string &service, const std::string &name, int default_value=0)
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
+    }
 
-	inline std::string getServicePropertyString(const std::string &service, const std::string &name, const std::string &default_value="")
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
-	}
+    inline std::string getServicePropertyString(const std::string &service, const std::string &name, const std::string &default_value="")
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
+    }
 
-	inline uint16_t getServicePropertyUint16(const std::string &service, const std::string &name, uint16_t default_value=0)
-	{ 
-		return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
-	}
+    inline uint16_t getServicePropertyUint16(const std::string &service, const std::string &name, uint16_t default_value=0)
+    { 
+        return properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + service + std::string(".") + name, default_value);
+    }
 
 private: 
-	bool cached_property_disabledataconversion_;
-	flag_t is_loaded_property_disabledataconversion_;
+    bool cached_property_disabledataconversion_;
+    flag_t is_loaded_property_disabledataconversion_;
 public: 
-	inline bool get_disabledataconversion () 
-	{ 
-		if (!is_loaded_property_disabledataconversion_.flag_) 
-		{ 
-			is_loaded_property_disabledataconversion_.flag_=true;
-			cached_property_disabledataconversion_ = properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + "disabledataconversion", Default_disabledataconversion);
-		} 
-		return cached_property_disabledataconversion_;
-	} 
-	inline bool default_disabledataconversion () 
-	{ 
-		return Default_disabledataconversion;
-	} 
-	inline bool exist_disabledataconversion () 
-	{ 
-		std::string dummy;
-		return utils::getProperty(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + "disabledataconversion", dummy);
-	}
+    inline bool get_disabledataconversion () 
+    { 
+        if (!is_loaded_property_disabledataconversion_.flag_) 
+        { 
+            is_loaded_property_disabledataconversion_.flag_=true;
+            cached_property_disabledataconversion_ = properties_.get(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + "disabledataconversion", Default_disabledataconversion);
+        } 
+        return cached_property_disabledataconversion_;
+    } 
+    inline bool default_disabledataconversion () 
+    { 
+        return Default_disabledataconversion;
+    } 
+    inline bool exist_disabledataconversion () 
+    { 
+        std::string dummy;
+        return utils::getProperty(TPORT_PREFIX + std::string(".") + transportName_ + std::string(".") + "disabledataconversion", dummy);
+    }
 };
 
 

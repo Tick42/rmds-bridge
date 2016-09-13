@@ -70,7 +70,7 @@ protected:
     // transport notification callbacks
     UPATransportNotifier notify_;
 
-    RMDSPublisherSource *publisherSource_;	
+    RMDSPublisherSource *publisherSource_;    
 
     // access to mama
     mamaBridge bridge_;

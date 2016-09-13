@@ -30,18 +30,16 @@
 
 // System headers
 #include <cstdio>
-#include <cstdint>
 #include <string>
+#include <queue>
 #include <fstream>
 #include <climits>
 #include <cstring>
 #include <vector>
-#include <unordered_map>
 #include <sstream>
 #include <ctype.h>
 #include <limits>
 #include <list>
-#include <unordered_set>
 #include <map>
 #include <set>
 #include <functional>
@@ -75,7 +73,7 @@
 
 // Thompson-Reuters headers
 
-#include "rtr/rsslMessagePackage.h"
+#include <rtr/rsslMessagePackage.h>
 #include <rtr/rsslIterators.h>
 #include <rtr/rsslMsg.h>
 #include <rtr/rsslMsgDecoders.h>
@@ -110,6 +108,8 @@
 #include <throttle.h>
 #include <timers.h>
 #include <transportimpl.h>
+
+#include <utils/namespacedefines.h>
 
 extern "C"
 {

@@ -34,70 +34,70 @@ static const size_t sizeErrTxt = 256;
 
 UPADictionaryWrapper::UPADictionaryWrapper() 
 {
-	size_t sizeErrTxt = 256;
-	lastErrTxt_ = (char *)malloc(sizeErrTxt);
-	memset(lastErrTxt_, 0, sizeErrTxt);
-	lastErrorTextBuffer_.length = (RsslUInt32)sizeErrTxt-1; //suitable for ASCIIZ buffers
-	lastErrorTextBuffer_.data = (char*)lastErrTxt_;
+    size_t sizeErrTxt = 256;
+    lastErrTxt_ = (char *)malloc(sizeErrTxt);
+    memset(lastErrTxt_, 0, sizeErrTxt);
+    lastErrorTextBuffer_.length = (RsslUInt32)sizeErrTxt-1; //suitable for ASCIIZ buffers
+    lastErrorTextBuffer_.data = (char*)lastErrTxt_;
 
-	memset(&dictionary_,0, sizeof(dictionary_));
-	rsslClearDataDictionary(&dictionary_);
+    memset(&dictionary_,0, sizeof(dictionary_));
+    rsslClearDataDictionary(&dictionary_);
 }
 
 UPADictionaryWrapper::~UPADictionaryWrapper()
 {
-	try {
-		clear();
-		//free buffers
-		free(lastErrTxt_);
-	} catch(...) {
-		; 
-	}
+    try {
+        clear();
+        //free buffers
+        free(lastErrTxt_);
+    } catch(...) {
+        ; 
+    }
 }
 
 
 load_status_t UPADictionaryWrapper::LoadFieldDictionary(std::string filename)
 {
 
-	if (rsslLoadFieldDictionary(filename.length() == 0 ? DictionaryFileName : filename.c_str(), &dictionary_, &lastErrorTextBuffer_) >= 0)
-	{
-		fieldDictionaryStatus_.loaded = true;
-		fieldDictionaryStatus_.loaded_from_file = true;
-	}
+    if (rsslLoadFieldDictionary(filename.length() == 0 ? DictionaryFileName : filename.c_str(), &dictionary_, &lastErrorTextBuffer_) >= 0)
+    {
+        fieldDictionaryStatus_.loaded = true;
+        fieldDictionaryStatus_.loaded_from_file = true;
+    }
 
-	return fieldDictionaryStatus_;
+    return fieldDictionaryStatus_;
 }
 
 load_status_t UPADictionaryWrapper::LoadFieldDictionary()
 {
-	return LoadFieldDictionary(DictionaryFileName);
+    return LoadFieldDictionary(DictionaryFileName);
 }
 
 load_status_t UPADictionaryWrapper::LoadEnumTypeDictionary(std::string filename)
 {
-	if (rsslLoadEnumTypeDictionary(filename.length() == 0 ? EnumTableFileName : filename.c_str(), &dictionary_, &lastErrorTextBuffer_) >= 0)
-	{
-		enumTypeDictionaryStatus_.loaded = true;
-		enumTypeDictionaryStatus_.loaded_from_file = true;
-	}
+    if (rsslLoadEnumTypeDictionary(filename.length() == 0 ? EnumTableFileName : filename.c_str(), &dictionary_, &lastErrorTextBuffer_) >= 0)
+    {
+        enumTypeDictionaryStatus_.loaded = true;
+        enumTypeDictionaryStatus_.loaded_from_file = true;
+    }
 
-	return enumTypeDictionaryStatus_;
+    return enumTypeDictionaryStatus_;
 }
 
 load_status_t UPADictionaryWrapper::LoadEnumTypeDictionary()
 {
-	return LoadEnumTypeDictionary(EnumTableFileName);
+    return LoadEnumTypeDictionary(EnumTableFileName);
 }
 
 bool UPADictionaryWrapper::clear()
 {
-	bool result = false;
-	if (dictionary_.isInitialized)
-	{
-		rsslDeleteDataDictionary(&dictionary_);
-		rsslClearDataDictionary(&dictionary_);
-		memset(lastErrTxt_, 0, sizeErrTxt);
-		result = true;
-	}
-	return result;
+    bool result = false;
+    if (dictionary_.isInitialized)
+    {
+        rsslDeleteDataDictionary(&dictionary_);
+        rsslClearDataDictionary(&dictionary_);
+        memset(lastErrTxt_, 0, sizeErrTxt);
+        result = true;
+    }
+    return result;
 }

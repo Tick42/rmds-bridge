@@ -3,10 +3,10 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <OutDir>$(SolutionDir)VS_$(VisualStudioVersion)\$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)VS_$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup>
-    <IntDir>VS_$(VisualStudioVersion)\$(Platform)\$(Configuration)\</IntDir>
+    <IntDir>VS_$(PlatformToolsetVersion)\$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup />
   <ItemGroup />

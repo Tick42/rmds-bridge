@@ -31,12 +31,12 @@
 // use the set of types defined by QPID but may not need them all
 typedef enum RMDSBridgeMsgType_t
 {
-	RMDS_MSG_PUB_SUB        =               0x00,
-	RMDS_MSG_INBOX_REQUEST,
-	RMDS_MSG_PUB_NEW_ITEM_REQUEST,
-	RMDS_MSG_INBOX_RESPONSE,
-	RMDS_MSG_SUB_REQUEST,
-	RMDS_MSG_TERMINATE      =               0xff
+    RMDS_MSG_PUB_SUB        =               0x00,
+    RMDS_MSG_INBOX_REQUEST,
+    RMDS_MSG_PUB_NEW_ITEM_REQUEST,
+    RMDS_MSG_INBOX_RESPONSE,
+    RMDS_MSG_SUB_REQUEST,
+    RMDS_MSG_TERMINATE      =               0xff
 
 } RMDSBridgeMsgType_t;
 

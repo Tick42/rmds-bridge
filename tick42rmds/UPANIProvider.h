@@ -37,83 +37,83 @@ class UPALogin;
 class UPANIProvider
 {
 public:
-	UPANIProvider(RMDSNIPublisher *);
-	virtual ~UPANIProvider(void);
+    UPANIProvider(RMDSNIPublisher *);
+    virtual ~UPANIProvider(void);
 
 
-	void Run();
+    void Run();
 
-	bool IsConnectionConfigValid();
+    bool IsConnectionConfigValid();
 
-	// connection notifications
-	void AddListener( ConnectionListener * pListener );
+    // connection notifications
+    void AddListener( ConnectionListener * pListener );
 
-	static void MAMACALLTYPE LoginRequestCb(mamaQueue queue,void *closure);
-	bool RequestLogin(mamaQueue requestQueue);
+    static void MAMACALLTYPE LoginRequestCb(mamaQueue queue,void *closure);
+    bool RequestLogin(mamaQueue requestQueue);
 
-	static void MAMACALLTYPE SendSourceDirectoryCb(mamaQueue queue,void *closure);
-	bool SendSourceDirectory(mamaQueue requestQueue);
+    static void MAMACALLTYPE SendSourceDirectoryCb(mamaQueue queue,void *closure);
+    bool SendSourceDirectory(mamaQueue requestQueue);
 
-	RsslChannel * RsslNIProviderChannel() const { return rsslNIProviderChannel_; }
+    RsslChannel * RsslNIProviderChannel() const { return rsslNIProviderChannel_; }
 
 private:
-	RMDSNIPublisher * owner_;
+    RMDSNIPublisher * owner_;
 
-	// sockets
-	// rssl connection
-	fd_set	readfds_;
-	fd_set	exceptfds_;
-	fd_set	wrtfds_;
+    // sockets
+    // rssl connection
+    fd_set    readfds_;
+    fd_set    exceptfds_;
+    fd_set    wrtfds_;
 
-	// manage connection
-	RsslChannel* ConnectToRsslServer(const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error);
+    // manage connection
+    RsslChannel* ConnectToRsslServer(const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error);
 
-	void RecoverConnection();
-	void RemoveChannel(RsslChannel* chnl);
+    void RecoverConnection();
+    void RemoveChannel(RsslChannel* chnl);
 
-	RMDSConnectionConfig connectionConfig_;
-	RsslBool shouldRecoverConnection_;
-	RsslBool receivedServerMsg_;
-	void WaitReconnectionDelay();
-	void LogReconnection();
-	
-	void InitPingHandler(RsslChannel* chnl);
+    RMDSConnectionConfig connectionConfig_;
+    RsslBool shouldRecoverConnection_;
+    RsslBool receivedServerMsg_;
+    void WaitReconnectionDelay();
+    void LogReconnection();
+    
+    void InitPingHandler(RsslChannel* chnl);
 
-	RsslUInt32 pingTimeoutServer_;
-	RsslUInt32 pingTimeoutClient_;
-	time_t nextReceivePingTime_;
-	time_t nextSendPingTime_;
+    RsslUInt32 pingTimeoutServer_;
+    RsslUInt32 pingTimeoutClient_;
+    time_t nextReceivePingTime_;
+    time_t nextSendPingTime_;
 
-	RsslChannel *rsslNIProviderChannel_;
+    RsslChannel *rsslNIProviderChannel_;
 
-	RsslRet ReadFromChannel(RsslChannel* chnl);
-	void ProcessPings(RsslChannel* chnl);
+    RsslRet ReadFromChannel(RsslChannel* chnl);
+    void ProcessPings(RsslChannel* chnl);
 
-	RsslRet ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer);
+    RsslRet ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer);
 
-	// notify listeners
-	std::vector<ConnectionListener*> listeners_;
-	void NotifyListeners(bool connected, std::string extraInfo);
+    // notify listeners
+    std::vector<ConnectionListener*> listeners_;
+    void NotifyListeners(bool connected, const char* extraInfo);
 
-	// keep the thread spinning
-	bool runThread_;
+    // keep the thread spinning
+    bool runThread_;
 
-	RsslBool isInLoginSuspectState_;
+    RsslBool isInLoginSuspectState_;
 
-	char* interfaceName_;
-	RsslConnectionTypes connType_;
+    char* interfaceName_;
+    RsslConnectionTypes connType_;
 
-	mamaQueue requestQueue_;
+    mamaQueue requestQueue_;
 
-	UPALogin * login_;
+    UPALogin * login_;
 
-	// manage reconnection
+    // manage reconnection
 
 
-	// pump incoming events from mama queue
-	void PumpQueueEvents();
+    // pump incoming events from mama queue
+    void PumpQueueEvents();
 
-	void ExitThread();
+    void ExitThread();
 };
 
 

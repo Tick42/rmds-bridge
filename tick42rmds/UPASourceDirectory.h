@@ -44,89 +44,90 @@ class SourceDirectoryResponseListener;
 class UPASourceDirectory
 {
 public:
-	UPASourceDirectory();
-	~UPASourceDirectory(void);
+    UPASourceDirectory();
+    ~UPASourceDirectory(void);
 
 
-	void AddListener( SourceDirectoryResponseListener * pListener );
+    void AddListener( SourceDirectoryResponseListener * pListener );
    void RemoveListener( SourceDirectoryResponseListener * pListener );
 
-	bool QueueRequest(mamaQueue Queue);
-	bool QueueRequest(mamaQueue Queue, mamaQueueEventCB cb);
+    bool QueueRequest(mamaQueue Queue);
+    bool QueueRequest(mamaQueue Queue, mamaQueueEventCB cb);
 
-	bool SendRequest();
+    bool SendRequest();
 
-	RsslChannel* UPAChannel() const { return UPAChannel_; }
-	void UPAChannel(RsslChannel* val) { UPAChannel_ = val; }
+    RsslChannel* UPAChannel() const { return UPAChannel_; }
+    void UPAChannel(RsslChannel* val) { UPAChannel_ = val; }
 
-	RsslRet ProcessSourceDirectoryResponse(RsslMsg* msg, RsslDecodeIterator* dIter);
-
-
-
-	// currently just the reasons in the rssl provider sample, but might want to add more
-	typedef enum
-	{
-	MaxSrcdirRequestsReached = 0,
-	IncorrectFilterFlags = 1
-	} RsslSrcDirRequestRejectReason;
+    RsslRet ProcessSourceDirectoryResponse(RsslMsg* msg, RsslDecodeIterator* dIter);
 
 
-	RsslRet SendSrcDirectoryRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslSrcDirRequestRejectReason reason);
 
-	// send the response with all the source services
-	RsslRet SendSourceDirectoryResponse(RsslChannel* chnl, RsslInt32 streamId, RsslMsgKey* msgKey, RMDSPublisherSource *source, bool solicited = true);
+    // currently just the reasons in the rssl provider sample, but might want to add more
+    typedef enum
+    {
+    MaxSrcdirRequestsReached = 0,
+    IncorrectFilterFlags = 1
+    } RsslSrcDirRequestRejectReason;
+
+
+    RsslRet SendSrcDirectoryRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslSrcDirRequestRejectReason reason);
+
+    // send the response with all the source services
+    RsslRet SendSourceDirectoryResponse(RsslChannel* chnl, RsslInt32 streamId, RsslMsgKey* msgKey, RMDSPublisherSource *source, bool solicited = true);
 
 private:
    typedef std::vector<SourceDirectoryResponseListener *> listener_t;
-	listener_t listeners_;
+    listener_t listeners_;
 
-	RsslChannel* UPAChannel_;
+    RsslChannel* UPAChannel_;
 
-	// encode the request;
-	RsslRet EncodeSourceDirectoryRequest(RsslBuffer* msgBuf, RsslInt32 streamId);
+    // encode the request;
+    RsslRet EncodeSourceDirectoryRequest(RsslBuffer* msgBuf, RsslInt32 streamId);
 
-	// and the close
-	RsslRet  EncodeSourceDirectoryClose(RsslBuffer* msgBuf, RsslInt32 streamId);
+    // and the close
+    RsslRet  EncodeSourceDirectoryClose(RsslBuffer* msgBuf, RsslInt32 streamId);
 
-	// decoding functions
-	RsslRet DecodeSourceDirectoryResponse(RsslDecodeIterator* dIter, bool isRefresh, RsslUInt32 maxCapabilities, RsslUInt32 maxQOS, RsslUInt32 maxDictionaries, RsslUInt32 maxLinks);
-	RsslRet DecodeServiceGeneralInfo(RsslServiceGeneralInfo* serviceGeneralInfo, RsslDecodeIterator* dIter,	RsslUInt32 maxCapabilities, RsslUInt32 maxQOS, RsslUInt32 maxDictionaries);
-	RsslRet DecodeServiceLinkInfo(RsslServiceLinkInfo* serviceLinkInfo, RsslDecodeIterator* dIter, RsslUInt32 maxLinks);
-	RsslRet DecodeServiceDataInfo(RsslServiceDataInfo* serviceDataInfo, RsslDecodeIterator* dIter);
-	RsslRet DecodeServiceLoadInfo(RsslServiceLoadInfo* serviceLoadInfo, RsslDecodeIterator* dIter);
-	RsslRet DecodeServiceGroupInfo(RsslServiceGroupInfo* serviceGroupInfo,  RsslDecodeIterator* dIter);
-	RsslRet DecodeServiceStateInfo(RsslServiceStateInfo* serviceStateInfo,  RsslDecodeIterator* dIter);
+    // decoding functions
+    RsslRet DecodeSourceDirectoryResponse(RsslDecodeIterator* dIter, bool isRefresh, RsslUInt32 maxCapabilities, RsslUInt32 maxQOS, RsslUInt32 maxDictionaries, RsslUInt32 maxLinks);
+    RsslRet DecodeServiceGeneralInfo(RsslServiceGeneralInfo* serviceGeneralInfo, RsslDecodeIterator* dIter,    RsslUInt32 maxCapabilities, RsslUInt32 maxQOS, RsslUInt32 maxDictionaries);
+    RsslRet DecodeServiceLinkInfo(RsslServiceLinkInfo* serviceLinkInfo, RsslDecodeIterator* dIter, RsslUInt32 maxLinks);
+    RsslRet DecodeServiceDataInfo(RsslServiceDataInfo* serviceDataInfo, RsslDecodeIterator* dIter);
+    RsslRet DecodeServiceLoadInfo(RsslServiceLoadInfo* serviceLoadInfo, RsslDecodeIterator* dIter);
+    RsslRet DecodeServiceGroupInfo(RsslServiceGroupInfo* serviceGroupInfo,  RsslDecodeIterator* dIter);
+    RsslRet DecodeServiceStateInfo(RsslServiceStateInfo* serviceStateInfo,  RsslDecodeIterator* dIter);
 
-	RsslRet CloseSourceDirectoryStream();
+    RsslRet CloseSourceDirectoryStream();
 
 
-	RsslRet EncodeSrcDirectoryRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslSrcDirRequestRejectReason reason, RsslBuffer* msgBuf);
+    RsslRet EncodeSrcDirectoryRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslSrcDirRequestRejectReason reason, RsslBuffer* msgBuf);
 
-	//RsslRet EncodeSourceDirectoryResponse(RsslChannel* chnl, RMDSPublisher * pub, RsslInt32 streamId, RsslMsgKey* requestKey, RsslBuffer* msgBuf, RsslUInt16 refreshFlags);
-	RsslRet EncodeSourceDirectoryResponse(RsslChannel* chnl, RMDSPublisherSource *, RsslInt32 streamId, RsslMsgKey* requestKey, RsslBuffer* msgBuf, RsslUInt16 refreshFlags);
+    //RsslRet EncodeSourceDirectoryResponse(RsslChannel* chnl, RMDSPublisher * pub, RsslInt32 streamId, RsslMsgKey* requestKey, RsslBuffer* msgBuf, RsslUInt16 refreshFlags);
+    RsslRet EncodeSourceDirectoryResponse(RsslChannel* chnl, RMDSPublisherSource *, RsslInt32 streamId, RsslMsgKey* requestKey, RsslBuffer* msgBuf, RsslUInt16 refreshFlags);
 
-	RsslRet EncodeSourceDirectoryInfo(RsslChannel* chnl, RMDSPublisherSource * srcInfo,  RsslMsgKey* requestKey, RsslBuffer* msgBuf, RsslEncodeIterator * eIter);
+    RsslRet EncodeSourceDirectoryInfo(RsslChannel* chnl, RMDSPublisherSource * srcInfo,  RsslMsgKey* requestKey, RsslBuffer* msgBuf, RsslEncodeIterator * eIter);
 
-	RsslRet EncodeServiceGeneralInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
-	RsslRet EncodeServiceStateInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
-	RsslRet EncodeServiceLoadInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
-	RsslRet EncodeServiceLinkInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
+    RsslRet EncodeServiceGeneralInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
+    RsslRet EncodeServiceStateInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
+    RsslRet EncodeServiceLoadInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
+    RsslRet EncodeServiceLinkInfo(RMDSPublisherSource * srcInfo, RsslEncodeIterator* eIter);
 
-	void NotifyListenersUpdate(RsslSourceDirectoryResponseInfo *pResponseInfo, bool isRefresh );
-	void NotifyListenersComplete(bool succeeded);
+    void NotifyListenersUpdate(RsslSourceDirectoryResponseInfo *pResponseInfo, bool isRefresh );
+    void NotifyListenersComplete(bool succeeded);
 
-	// clear down the response structures
+    // clear down the response structures
 
-	// clear a single source directory response info
-	void ResetSourceDirRespInfo(RsslSourceDirectoryResponseInfo* srcDirRespInfo);
-	void ResetServiceGeneralInfo(RsslServiceGeneralInfo * serviceGeneralInfo);
-	void ResetServiceStateInfo(RsslServiceStateInfo * serviceStateInfo);
-	void ResetServiceGroupInfo(RsslServiceGroupInfo * serviceGroupInfo);
-	void ResetServiceLoadInfo(RsslServiceLoadInfo * serviceLoadInfo);
-	void ResetServiceDataInfo(RsslServiceDataInfo * serviceDataInfo);
-	void ResetServiceLinkInfo(RsslServiceLinkInfo * serviceLinkInfo);
+    // clear a single source directory response info
+    void ResetSourceDirRespInfo(RsslSourceDirectoryResponseInfo* srcDirRespInfo);
+    void ResetServiceGeneralInfo(RsslServiceGeneralInfo * serviceGeneralInfo);
+    void ResetServiceStateInfo(RsslServiceStateInfo * serviceStateInfo);
+    void ResetServiceGroupInfo(RsslServiceGroupInfo * serviceGroupInfo);
+    void ResetServiceLoadInfo(RsslServiceLoadInfo * serviceLoadInfo);
+    void ResetServiceDataInfo(RsslServiceDataInfo * serviceDataInfo);
+    void ResetServiceLinkInfo(RsslServiceLinkInfo * serviceLinkInfo);
 };
 
 
 
 //#endif //__UPASOURCEDIRECTORY_H__
+

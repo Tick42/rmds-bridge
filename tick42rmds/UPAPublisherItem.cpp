@@ -29,33 +29,34 @@
 #include "RMDSPublisher.h"
 #include "RMDSSubscriber.h"
 #include "UPAFieldEncoder.h"
+#include <utils/namespacedefines.h>
 
 using namespace std;
 
 const RsslUInt32 pubMsgSize = 4096;
 const RsslUInt32 StateTextLen = 128;
 
-unordered_set<int> suppressBadEnumWarnings_;
+utils::collection::unordered_set<int> suppressBadEnumWarnings_;
 
 UPAPublisherItem::UPAPublisherItem( RsslChannel * chnl, RsslUInt32 streamId, string source, string symbol, RsslUInt32 serviceId )
    :  source_(source), symbol_(symbol), serviceId_(serviceId), solicitedMessages_(true)
 {
-	// This gets created in one of 2 contexts - 
-	// either (a) handling a RSSL_MC_REQUEST message from the TREP, in which case it has a channel and stream id
-	// or (b) because the mama client has chosen to create a publisher where there will be no channel/stream
-	// in case (b) we just go ahead and create without setting up a channel. When eventually we receive a request for the item from 
-	// the TREP 
-	if (chnl != 0)
+    // This gets created in one of 2 contexts - 
+    // either (a) handling a RSSL_MC_REQUEST message from the TREP, in which case it has a channel and stream id
+    // or (b) because the mama client has chosen to create a publisher where there will be no channel/stream
+    // in case (b) we just go ahead and create without setting up a channel. When eventually we receive a request for the item from 
+    // the TREP 
+    if (chnl != 0)
     {
-	   // don't have this channel so create one
-	   UpaChannel_t * upaChannel = new UpaChannel_t();
-	   upaChannel->channel_ = chnl;
-	
-	   // and insert into the map
-	   channelMap_[chnl] = upaChannel;
-	
-	   // now add the stream to the refresh list
-	   upaChannel->refreshStreamList_.push_back(streamId);
+       // don't have this channel so create one
+       UpaChannel_t * upaChannel = new UpaChannel_t();
+       upaChannel->channel_ = chnl;
+    
+       // and insert into the map
+       channelMap_[chnl] = upaChannel;
+    
+       // now add the stream to the refresh list
+       upaChannel->refreshStreamList_.push_back(streamId);
     }
 }
 
@@ -126,8 +127,11 @@ RsslRet UPAPublisherItem::SendItemRequestReject(RsslChannel* chnl, RsslInt32 str
       RsslRet ret = 0;
       if ((ret = rsslEncodeMsg(&encodeIter, (RsslMsg*)&msg)) < RSSL_RET_SUCCESS)
       {
-         printf("rsslEncodeMsg() failed with return code: %d\n", ret);
-         return ret;
+        RsslError err;
+        rsslReleaseBuffer(msgBuf, &err);
+
+        printf("rsslEncodeMsg() failed with return code: %d\n", ret);
+        return ret;
       }
 
       msgBuf->length = rsslGetEncodedBufferLength(&encodeIter);
@@ -167,7 +171,7 @@ void UPAPublisherItem::AddChannel( RsslChannel * chnl, RsslUInt32 streamId )
    }
    else
    {
-	   upaChannel = it->second;
+       upaChannel = it->second;
    }
 
    // now add the stream to the refresh list
@@ -225,7 +229,7 @@ void UPAPublisherItem::ProcessRecapMessage( mamaMsg msg )
 {
 }
 
-void UPAPublisherItem::PublishMessage( mamaMsg msg )
+mama_status UPAPublisherItem::PublishMessage( mamaMsg msg, std::string& errorText )
 {
    ChannelMap_t::iterator it = channelMap_.begin();
 
@@ -234,7 +238,7 @@ void UPAPublisherItem::PublishMessage( mamaMsg msg )
       // if the last channel has been closed.
       // it looks like the client is still sending updates, just log and return
       t42log_debug("No Channels to publish message for %s : %s \n", source_.c_str(), symbol_.c_str());
-      return;
+      return MAMA_STATUS_NOT_INITIALISED;
    }
 
 
@@ -250,12 +254,30 @@ void UPAPublisherItem::PublishMessage( mamaMsg msg )
    {
       t42log_warn("Unable to obtain rssl buffer to post message for %s : %s - error code is %d (%s) \n",
          source_.c_str(), symbol_.c_str(), err.rsslErrorId, err.text);
-      return;
+
+      errorText.assign(err.text);
+
+      return MAMA_STATUS_NOMEM;
    }
 
-   BuildPublishMessage(UpaChannel, rsslMessageBuffer, msg);
+   if(!BuildPublishMessage(UpaChannel, rsslMessageBuffer, msg))
+   {
+       // Release buffer since we a re not going to send the message
+       RsslError err;
+       rsslReleaseBuffer(rsslMessageBuffer, &err);
 
-   SendUPAMessage(chnl, rsslMessageBuffer);
+       errorText.assign(err.text);
+
+       return MAMA_STATUS_NOT_INITIALISED;
+   }
+
+   RsslRet rsslRet = SendUPAMessageWithErrorText(chnl, rsslMessageBuffer, errorText);
+   if (rsslRet >= RSSL_RET_SUCCESS)
+   {
+       return MAMA_STATUS_OK;
+   }
+
+   return MAMA_STATUS_PLATFORM;
 }
 
 bool UPAPublisherItem::BuildPublishMessage( UpaChannel_t * chnl, RsslBuffer* rsslMessageBuffer, mamaMsg msg )

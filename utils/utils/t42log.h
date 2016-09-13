@@ -92,3 +92,4 @@ void t42log_debug(const char * format, ...);
 
 #endif
 #endif //__UTILS_T42LOG_H__
+

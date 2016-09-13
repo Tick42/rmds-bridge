@@ -27,15 +27,15 @@
 
 MamaDateTimeWrapper::MamaDateTimeWrapper( mamaDateTime p )
 {
-	mamaDateTime_ = p;
+    mamaDateTime_ = p;
 }
 
 MamaDateTimeWrapper::~MamaDateTimeWrapper(void)
 {
-	mamaDateTime_destroy(mamaDateTime_);
+    mamaDateTime_destroy(mamaDateTime_);
 }
 
 void MamaDateTimeWrapper::SetValue( mamaDateTime value )
 {
-	mamaDateTime_copy (mamaDateTime_, value);
+    mamaDateTime_copy (mamaDateTime_, value);
 }

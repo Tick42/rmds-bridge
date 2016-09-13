@@ -28,7 +28,7 @@
 
 std::string epochTimeToString(unsigned long long ms)
 {
-	static const boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
+    static const boost::posix_time::ptime epoch(boost::gregorian::date(1970, 1, 1));
 
-	return boost::posix_time::to_simple_string(epoch + boost::posix_time::milliseconds(ms));
+    return boost::posix_time::to_simple_string(epoch + boost::posix_time::milliseconds(ms));
 }
