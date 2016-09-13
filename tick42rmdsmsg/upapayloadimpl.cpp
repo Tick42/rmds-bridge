@@ -28,6 +28,7 @@
 #undef str
 #endif
 
+#include "version.h"
 #include "upapayloadimpl.h"
 #include "upamsgimpl.h"
 #include "upapayload.h"
@@ -122,27 +123,13 @@ extern mama_status
 }
 
 extern mama_status
-    tick42rmdsmsgPayload_createImpl (mamaPayloadBridge* result, char* identifier)
+    tick42rmdsmsgPayload_init(mamaPayloadBridge payloadBridge, char* identifier)
 {
-    mamaPayloadBridgeImpl*       impl    = NULL;
-    mama_status             resultStatus = MAMA_STATUS_OK;
+    mama_status resultStatus = MAMA_STATUS_OK;
 
-    if (!result) return MAMA_STATUS_NULL_ARG;
+    /* Will set the bridge's compile time MAMA version */
+    MAMA_SET_BRIDGE_COMPILE_TIME_VERSION(PAYLOAD_BRIDGE_NAME_STRING);
 
-    impl = (mamaPayloadBridgeImpl*)calloc (1, sizeof (mamaPayloadBridgeImpl));
-    if (!impl)
-    {
-        mama_log (MAMA_LOG_LEVEL_SEVERE, "tick42rmdsmsgPayload_createImpl(): "
-            "Could not allocate memory for payload impl.");
-        return MAMA_STATUS_NULL_ARG;
-    }
-
-    INITIALIZE_PAYLOAD_BRIDGE (impl, tick42rmdsmsg);
-    impl->msgPayloadCreate = tick42rmdsmsgPayload_create; 
-
-    impl->mClosure = NULL;
-
-    *result     = (mamaPayloadBridge)impl;
     *identifier = (char)MAMA_PAYLOAD_TICK42RMDS;
 
     return resultStatus;
@@ -244,19 +231,19 @@ mama_status
 }
 
 //mama_status
-//	tick42rmdsmsgPayload_markAllDirty (msgPayload msg)
+//    tick42rmdsmsgPayload_markAllDirty (msgPayload msg)
 //{
-//	CHECK_PAYLOAD(msg);
+//    CHECK_PAYLOAD(msg);
 //
-//	UpaPayload* payload = reinterpret_cast<UpaPayload*>(msg);
-//	if (!payload)
-//	{
-//		return MAMA_STATUS_PLATFORM;
-//	}
+//    UpaPayload* payload = reinterpret_cast<UpaPayload*>(msg);
+//    if (!payload)
+//    {
+//        return MAMA_STATUS_PLATFORM;
+//    }
 //
-//	payload->markAllDirty();
+//    payload->markAllDirty();
 //
-//	return MAMA_STATUS_OK;
+//    return MAMA_STATUS_OK;
 //}
 
 mama_status
@@ -1768,6 +1755,7 @@ mama_status
     CHECK_PAYLOAD(msg);
     CHECK_NAME(name,fid);
     CHECK_RESULT_ARRAY_PTR(result);
+
     return upaMsg_getVectorString(upaPayload(msg), name, fid, result, size);
 }
 
@@ -2292,8 +2280,9 @@ mama_status
 {
     //if (!result)
     //    return MAMA_STATUS_INVALID_ARG;
-
-    return MAMA_STATUS_NOT_IMPLEMENTED;
+    const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
+    CHECK_FIELD(field);
+    return fieldPayload->getOpaque(result, size); 
 }
 
 

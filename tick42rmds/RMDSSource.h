@@ -32,27 +32,27 @@
 
 struct ServiceState
 {
-	bool state;
-	bool acceptConnections;
-	ServiceState() : state(false), acceptConnections(false) {}
-	ServiceState(bool state, bool acceptConnections) : state(state), acceptConnections(acceptConnections) {}
-	inline ServiceState &operator =(const ServiceState &rhs)
-	{
-		if (this != &rhs)
-		{
-			state = rhs.state;
-			acceptConnections = rhs.acceptConnections;
-		}
-		return *this;
-	}
-	ServiceState(const ServiceState &rhs)
-	{
-		*this = rhs;
-	}
-	bool operator==(const ServiceState &rhs) const
-	{
-		return (this == &rhs) || (state == rhs.state && acceptConnections == rhs.acceptConnections);
-	}
+    bool state;
+    bool acceptConnections;
+    ServiceState() : state(false), acceptConnections(false) {}
+    ServiceState(bool state, bool acceptConnections) : state(state), acceptConnections(acceptConnections) {}
+    inline ServiceState &operator =(const ServiceState &rhs)
+    {
+        if (this != &rhs)
+        {
+            state = rhs.state;
+            acceptConnections = rhs.acceptConnections;
+        }
+        return *this;
+    }
+    ServiceState(const ServiceState &rhs)
+    {
+        *this = rhs;
+    }
+    bool operator==(const ServiceState &rhs) const
+    {
+        return (this == &rhs) || (state == rhs.state && acceptConnections == rhs.acceptConnections);
+    }
 };
 
 
@@ -67,71 +67,72 @@ struct ServiceState
 class RMDSSource
 {
 public:
-	RMDSSource(const std::string & serviceName, const RsslUInt64 serviceId, UPAConsumer_ptr_t consumer);
-	virtual ~RMDSSource(void);
+    RMDSSource(const std::string & serviceName, const RsslUInt64 serviceId, UPAConsumer_ptr_t consumer);
+    virtual ~RMDSSource(void);
 
-	// properties
-	std::string ServiceName() const { return serviceName_; }
-	RsslUInt64 ServiceId() const { return serviceId_; }
+    // properties
+    std::string ServiceName() const { return serviceName_; }
+    RsslUInt64 ServiceId() const { return serviceId_; }
 
-	ServiceState State() const { return state_; }
+    ServiceState State() const { return state_; }
 
-	// add/remove subscriptions
+    // add/remove subscriptions
     virtual UPASubscription_ptr_t CreateSubscription(const std::string &symbol, bool logRmdsValues);
-	bool AddSubscription(UPASubscription_ptr_t sub);
-	bool RemoveSubscription( const std::string & symbol);
+    bool AddSubscription(UPASubscription_ptr_t sub);
+    bool RemoveSubscription( const std::string & symbol);
 
-	bool FindSubscription(const std::string & symbol, UPASubscription_ptr_t & sub);
+    bool FindSubscription(const std::string & symbol, UPASubscription_ptr_t & sub);
 
-	// manage the state
-	void SetState(ServiceState state);
+    // manage the state
+    void SetState(ServiceState state);
 
-	bool SetStale();
-	bool SetLive();
-	bool ReSubscribe();
+    bool SetStale();
+    bool SetLive();
+    bool ReSubscribe();
 
-	// pause / resume updates
-	bool IsPausedUpdates() const
-	{
-		return pausedUpdates_;
-	}
-	void PauseUpdates()
-	{
-		pausedUpdates_ = true;
-	}
-	void ResumeUpdates()
-	{
-		pausedUpdates_ = false;
-	}
+    // pause / resume updates
+    bool IsPausedUpdates() const
+    {
+        return pausedUpdates_;
+    }
+    void PauseUpdates()
+    {
+        pausedUpdates_ = true;
+    }
+    void ResumeUpdates()
+    {
+        pausedUpdates_ = false;
+    }
 
-	// OMM domain for the source
-	// This is either set by config or implied by the symbol name
-	UPASubscription::UPASubscriptionType SourceDomain() const { return sourceDomain_; }
+    // OMM domain for the source
+    // This is either set by config or implied by the symbol name
+    UPASubscription::UPASubscriptionType SourceDomain() const { return sourceDomain_; }
 
 
 private:
-	RsslUInt64 serviceId_;
-	std::string serviceName_;
+    RsslUInt64 serviceId_;
+    std::string serviceName_;
 
     bool pausedUpdates_;
 
-	ServiceState state_;
+    ServiceState state_;
 
-	UPAConsumer_ptr_t consumer_;
+    UPAConsumer_ptr_t consumer_;
 
-	typedef std::map<std::string, UPASubscription_ptr_t> SubscriptionMap_t;
-	SubscriptionMap_t subscriptions_;
+    typedef std::map<std::string, UPASubscription_ptr_t> SubscriptionMap_t;
+    SubscriptionMap_t subscriptions_;
 
-	typedef std::list<UPASubscription_ptr_t> SubscriptionList_t;
+    typedef std::list<UPASubscription_ptr_t> SubscriptionList_t;
 
-	// park any bad subscriptions here to keep the ref count up until mama destroys them
-	SubscriptionList_t badSubscriptionsPark_;
+    // park any bad subscriptions here to keep the ref count up until mama destroys them
+    SubscriptionList_t badSubscriptionsPark_;
 
-	mutable utils::thread::lock_t subscriptionMapLock_;
+    mutable utils::thread::lock_t subscriptionMapLock_;
 
-	UPASubscription::UPASubscriptionType sourceDomain_;
+    UPASubscription::UPASubscriptionType sourceDomain_;
 
 
 };
 
 #endif //__RMDS_SOURCE_H__
+

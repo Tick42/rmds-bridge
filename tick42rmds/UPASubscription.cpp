@@ -22,6 +22,8 @@
 *         http://www.boost.org/LICENSE_1_0.txt)
 *
 */
+#define __STDC_LIMIT_MACROS
+
 #include "stdafx.h"
 #include "UPASubscription.h"
 #include "RMDSSubscriber.h"
@@ -52,13 +54,11 @@ using namespace utils::thread;
 int MonthFromName(char * monthName);
 
 UPASubscription::UPASubscription(const std::string&  sourceName, const std::string& symbol, bool logRmdsValues )
-    :sourceName_(sourceName), symbol_(symbol),  msgTotal_(0), streamId_(0),	msgNum_(0), msgSeqNum_(0), state_(SubscriptionStateInactive), subscriptionType_(SubscriptionTypeUnknown), logRmdsValues_(logRmdsValues),
+    :sourceName_(sourceName), symbol_(symbol),  msgTotal_(0), streamId_(0),    msgNum_(0), msgSeqNum_(0), state_(SubscriptionStateInactive), subscriptionType_(SubscriptionTypeUnknown), logRmdsValues_(logRmdsValues),
     numDecodeFailures_(0), numDecodeFailuresLast_(0), timeLastReport_(0),openCloseCount_(0), gotInitial_(false), isSnapshot_(false),isRefresh_(false),
-    reportedMFeedNotSupported_(false), reportedAnsiNotSupported_(false)
-
+    reportedMFeedNotSupported_(false), reportedAnsiNotSupported_(false), sendRecap_(true), useCallbacks_(false), sendAckMessages_(true)
 {
     t42log_debug("created new subscription for %s on stream %d\n", symbol_.c_str(), streamId_);
-
 }
 
 UPASubscription::~UPASubscription()
@@ -70,16 +70,22 @@ bool UPASubscription::Open( UPAConsumer_ptr_t consumer )
     SetSubscriptionState(SubscriptionStateSubscribing);
     consumer_ = consumer;
 
-	// grab a reference to the mamaMessage from the consumer 
-	msg_ = consumer_->MamaMsg();
+    // grab a reference to the mamaMessage from the consumer
+    msg_ = consumer_->MamaMsg();
 
     // get the field map
     fieldmap_ = consumer_->GetOwner()->FieldMap();
 
-    // initialise the book message structures 
+    // initialise the book message structures
     bookByPriceMessage_.Fieldmap(fieldmap_);
     bookByOrderMessage_.Fieldmap(fieldmap_);
 
+    string transportName = consumer->GetOwner()->GetTransportName();
+    boost::shared_ptr<TransportConfig_t> config_ = boost::make_shared<TransportConfig_t>(transportName);
+    string sendDup = config_->getString("sendRecapOnDuplicate");
+    sendRecap_ = (sendDup == "" || sendDup == "true");
+    useCallbacks_ = config_->getBool("use-callbacks", Default_useCallbacks);
+    sendAckMessages_ = config_->getBool("send-ack-messages", Default_sendAckMessage);
 
     t42log_debug("queue open request for %s on stream %d\n", symbol_.c_str(), streamId_);
     QueueOpenRequest();
@@ -99,8 +105,8 @@ bool UPASubscription::Snapshot( UPAConsumer_ptr_t consumer, RMDSBridgeSnapshot_p
     SetSubscriptionState(SubscriptionStateSubscribing);
     consumer_ = consumer;
 
-	// grab a reference to the mamaMessage from the consumer 
-	msg_ = consumer_->MamaMsg();
+    // grab a reference to the mamaMessage from the consumer
+    msg_ = consumer_->MamaMsg();
 
 
     isSnapshot_ = true;
@@ -116,30 +122,30 @@ bool UPASubscription::Snapshot( UPAConsumer_ptr_t consumer, RMDSBridgeSnapshot_p
 
 bool UPASubscription::Refresh( UPAConsumer_ptr_t consumer, RMDSBridgeSubscription_ptr_t subRequest )
 {
-	consumer_ = consumer;
-	isRefresh_ = true;
-	subscription_ = subRequest;
-	fieldmap_ = consumer_->GetOwner()->FieldMap();
+    consumer_ = consumer;
+    isRefresh_ = true;
+    subscription_ = subRequest;
+    fieldmap_ = consumer_->GetOwner()->FieldMap();
 
-	t42log_debug("queue open request for %s on stream %d\n", symbol_.c_str(), streamId_);
-	QueueRefreshRequest();
+    t42log_debug("queue refresh request for %s on stream %d\n", symbol_.c_str(), streamId_);
+    QueueRefreshRequest();
 
-	return true;
+    return true;
 }
 
 
 void UPASubscription::QueueSnapRequest()
 {
-	// create closure to carry a boost shared pointer to this on the queue and ensure it doesn't get deleted while queued
-	UPASubscriptionClosure * closure = new UPASubscriptionClosure(shared_from_this());
-	mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionSnapshotRequestCb, (void*) closure);
+    // create closure to carry a boost shared pointer to this on the queue and ensure it doesn't get deleted while queued
+    UPASubscriptionClosure * closure = new UPASubscriptionClosure(shared_from_this());
+    mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionSnapshotRequestCb, (void*) closure);
 }
 
 void UPASubscription::QueueRefreshRequest()
 {
-	// create closure to carry a boost shared pointer to this on the queue and ensure it doesn't get deleted while queued
-	UPASubscriptionClosure * closure = new UPASubscriptionClosure(shared_from_this());
-	mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionRefreshRequestCb, (void*) closure);
+    // create closure to carry a boost shared pointer to this on the queue and ensure it doesn't get deleted while queued
+    UPASubscriptionClosure * closure = new UPASubscriptionClosure(shared_from_this());
+    mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionRefreshRequestCb, (void*) closure);
 }
 
 
@@ -189,21 +195,21 @@ void MAMACALLTYPE UPASubscription::SubscriptionSnapshotRequestCb(mamaQueue queue
 
 void MAMACALLTYPE UPASubscription::SubscriptionRefreshRequestCb(mamaQueue queue, void *closure)
 {
-	// extract the object from the closure and do stuff with it
-	// when we have finished, delete the closure to release the shared pointer
-	UPASubscriptionClosure * cl = (UPASubscriptionClosure *)closure;
-	UPASubscription_ptr_t sub = cl->GetPtr();
+    // extract the object from the closure and do stuff with it
+    // when we have finished, delete the closure to release the shared pointer
+    UPASubscriptionClosure * cl = (UPASubscriptionClosure *)closure;
+    UPASubscription_ptr_t sub = cl->GetPtr();
 
-	if (sub->GetSubscriptionState() == SubscriptionStateSubscribing || sub->GetSubscriptionState() == SubscriptionStateLive)
-	{
-		sub->SendOpenRequest(false);
-	}
-	else
-	{
-		t42log_debug("Dispatched Open request ignored for %s : %s on stream %d as item is in state %d ", sub->SourceName().c_str(), sub->Symbol().c_str(), sub->StreamId(), sub->GetSubscriptionState());
-	}
+    if (sub->GetSubscriptionState() == SubscriptionStateSubscribing || sub->GetSubscriptionState() == SubscriptionStateLive)
+    {
+        sub->SendOpenRequest(false);
+    }
+    else
+    {
+        t42log_debug("Dispatched Open request ignored for %s : %s on stream %d as item is in state %d ", sub->SourceName().c_str(), sub->Symbol().c_str(), sub->StreamId(), sub->GetSubscriptionState());
+    }
 
-	delete cl;
+    delete cl;
 }
 
 bool UPASubscription::SendOpenRequest( bool isSnapshot )
@@ -227,15 +233,15 @@ bool UPASubscription::SendOpenRequest( bool isSnapshot )
 
     RsslChannel * UPAChannel = consumer_->RsslConsumerChannel();
 
-    // get a buffer for the item request 
+    // get a buffer for the item request
     msgBuf = rsslGetBuffer(UPAChannel, MAX_MSG_SIZE, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
-        // encode the item request 
+        // encode the item request
         if (EncodeItemRequest(UPAChannel, msgBuf, streamId_, isSnapshot) != RSSL_RET_SUCCESS)
         {
-            rsslReleaseBuffer(msgBuf, &error); 
+            rsslReleaseBuffer(msgBuf, &error);
             t42log_error("Market Price encodeItemRequest() failed\n");
             NotifyListenersError(MAMA_STATUS_PLATFORM);
             return false;
@@ -271,15 +277,15 @@ RsslRet UPASubscription::EncodeItemRequest(RsslChannel* UPAChannel, RsslBuffer* 
     RsslRequestMsg msg = RSSL_INIT_REQUEST_MSG;
     RsslEncodeIterator encodeIter;
 
-    // clear encode iterator 
+    // clear encode iterator
     rsslClearEncodeIterator(&encodeIter);
 
-    // initialise message 
+    // initialise message
     msg.msgBase.msgClass = RSSL_MC_REQUEST;
     msg.msgBase.streamId = streamId;
     msg.msgBase.containerType = RSSL_DT_NO_DATA;
 
-    // todo add support for QoS information 
+    // todo add support for QoS information
     if(isSnapshot )
     {
         // for snapshot dont want to add the RSSL_RQMF_STREAMING flag
@@ -327,7 +333,7 @@ RsslRet UPASubscription::EncodeItemRequest(RsslChannel* UPAChannel, RsslBuffer* 
 
     msg.msgBase.msgKey.serviceId = (RsslUInt16) source_->ServiceId();
 
-    // encode the message 
+    // encode the message
     if ((ret = rsslSetEncodeIteratorBuffer(&encodeIter, msgBuffer)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslSetEncodeIteratorBuffer() failed with return code: %d\n", ret);
@@ -357,7 +363,8 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
     RsslRet ret = 0;
 
     UPAStreamManager &mgr = consumer_->StreamManager();
-    if (GetSubscriptionState() == SubscriptionStateInactive)
+    UPASubscriptionState st = GetSubscriptionState();
+    if (st == SubscriptionStateInactive)
     {
         // its been closed so do nothing
         t42log_debug("got response on closed item for %s on stream %d\n", symbol_.c_str(), streamId_);
@@ -370,15 +377,13 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
         return RSSL_RET_SUCCESS;
     }
 
-    if (GetSubscriptionState() == SubscriptionStateSubscribing)
+    if (st == SubscriptionStateSubscribing || st == SubscriptionStateStale)
     {
         // response to a subscribe message so decrement  the count
-
         t42log_debug("got response - dec pending items count for %s on stream %d\n", symbol_.c_str(), streamId_);
-        mgr.removePendingItem(this);
+        bool found = mgr.removePendingItem(this);
         gotInitial_ = true;
     }
-
 
     setLineTime();
 
@@ -395,8 +400,8 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
 
     mamaMsgType msgType = MAMA_MSG_TYPE_UNKNOWN;
 
-	// will need to know later of we were processing a refresh
-	bool isRefreshMsg = false;
+    // will need to know later of we were processing a refresh
+    bool isRefreshMsg = false;
     switch (msg->msgBase.msgClass)
     {
     case RSSL_MC_REFRESH:
@@ -404,25 +409,31 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
 
         t42log_debug("got refresh for %s on stream %d\n", symbol_.c_str(), streamId_);
 
-		isRefreshMsg = true;
+        isRefreshMsg = true;
+
+        if (isRefresh_)
+        {
+            // Remove recap from pending items
+            mgr.removePendingItem(this);
+        }
 
         if (!SetRsslState(&msg->refreshMsg.state))
         {
-            // seems that if we request a bad symbol we sometimes get a refresh with bad name state rather than a status message 
+            // seems that if we request a bad symbol we sometimes get a refresh with bad name state rather than a status message
 
-            // SetRsslState will return false and log a message if the condition is bad. It will return true if there is not state change or the state is good. This happens 
+            // SetRsslState will return false and log a message if the condition is bad. It will return true if there is not state change or the state is good. This happens
             // when we get a second or subsequent image
 
             break;
         }
 
 
-        // fall through into the update handling 
+        // fall through into the update handling
 
     case RSSL_MC_UPDATE:
 
         {
-            // get key 
+            // get key
             key = (RsslMsgKey *)rsslGetMsgKey(msg);
 
             // log the item name
@@ -431,7 +442,7 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
             if (msg->msgBase.msgClass == RSSL_MC_UPDATE)
             {
                 // log the update type
-                t42log_debug("Update Type: %u\n", msg->updateMsg.updateType);	
+                t42log_debug("Update Type: %u\n", msg->updateMsg.updateType);
                 updateType = msg->updateMsg.updateType;
 
                 if (msg->updateMsg.flags & RSSL_UPMF_HAS_SEQ_NUM)
@@ -478,10 +489,10 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
             if (msg->msgBase.containerType ==  139) // Marketfeed
             {
                 ProcessMFeedMessage(msg);
-			}
-			else if (msg->msgBase.containerType ==  134) // ANSI buffer
-			{
-				ProcessAnsiMessage(msg);
+            }
+            else if (msg->msgBase.containerType ==  134) // ANSI buffer
+            {
+                ProcessAnsiMessage(msg);
             }
             else
             {
@@ -490,8 +501,8 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
                 // use the rssl field list decoder to decode the fields
                 if ((ret = rsslDecodeFieldList(dIter, &fList, 0)) == RSSL_RET_SUCCESS)
                 {
-                    UPAFieldDecoder decoder(consumer_->RsslDictionary()->RsslDictionary(), fieldmap_, symbol_, sourceName_);
-                    // decode each field entry in list 
+                    UPAFieldDecoder decoder(consumer_, fieldmap_, symbol_, sourceName_);
+                    // decode each field entry in list
                     while ((ret = rsslDecodeFieldEntry(dIter, &fEntry)) != RSSL_RET_END_OF_CONTAINER)
                     {
                         if (ret == RSSL_RET_SUCCESS)
@@ -523,29 +534,29 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
             // bump the mama message num fields
             setMsgNum(false);
 
-			if (isSnapshot_)
-			{
-				// this is just a regular snapshot
-				mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
+            if (isSnapshot_)
+            {
+                // this is just a regular snapshot
+                mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
 
-				if(0 != snapShot_)
-				{
-					snapShot_->OnMessage(msg_);
-					// now we have sent the message we dont need the reply any more
-					snapShot_.reset();
-				}
-			} 
-			else if (isRefresh_ && isRefreshMsg)
-			{
-			// test the isRefresh here because we may get an update between requesting the snapshot and receiving the reponse
-				mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
+                if(0 != snapShot_)
+                {
+                    snapShot_->OnMessage(msg_);
+                    // now we have sent the message we dont need the reply any more
+                    snapShot_.reset();
+                }
+            }
+            else if (isRefresh_ && isRefreshMsg)
+            {
+            // test the isRefresh here because we may get an update between requesting the snapshot and receiving the reponse
+                mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
 
-				// in the subscription stream
-				// send the message to each of the listeners
-				NotifyListenersRefreshMessage(msg_, subscription_);
-				isRefresh_= false;
-				subscription_.reset();
-			} 
+                // in the subscription stream
+                // send the message to each of the listeners
+                NotifyListenersRefreshMessage(msg_, subscription_);
+                isRefresh_= false;
+                subscription_.reset();
+            }
             else
             {
                 // its just a regular subscription
@@ -559,7 +570,7 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
         if (msg->statusMsg.flags & RSSL_STMF_HAS_STATE)
         {
             rsslStateToString(&stateBuffer, &msg->statusMsg.state);
-            t42log_debug("%s	%s", Symbol().c_str(), stateBuffer.data);
+            t42log_debug("%s    %s", Symbol().c_str(), stateBuffer.data);
 
             // and set the new state for the subscription
             SetRsslState(&msg->statusMsg.state);
@@ -582,7 +593,7 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
             }
             else
             {
-                t42log_warn("received response for on stream post with unknown id %d \n", id); 
+                t42log_warn("received response for on stream post with unknown id %d \n", id);
             }
         }
         break;
@@ -597,7 +608,7 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
 }
 
 
-mamaMsgType UPASubscription::SetMessageType( RsslUInt8 messageClass, RsslUInt8 updateType, bool bookMessage )
+mamaMsgType UPASubscription::SetMessageType( RsslUInt8 messageClass, RsslUInt8 updateType, bool bookMessage)
 {
     // record when we get and initial so we can differentiate between initial and recap
     const CommonFields &commonFields = UpaMamaCommonFields::CommonFields();
@@ -635,7 +646,7 @@ mamaMsgType UPASubscription::SetMessageType( RsslUInt8 messageClass, RsslUInt8 u
 
         }
 
-    } 
+    }
     else
     {
         // its a book message
@@ -665,8 +676,8 @@ mamaMsgType UPASubscription::SetMessageType( RsslUInt8 messageClass, RsslUInt8 u
 
     mamaMsg_addU8(msg_, MamaFieldMsgType.mName, MamaFieldMsgType.mFid, msgType);
     mamaMsg_addU8(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid,  msgStatus);
-    mamaMsg_addString(msg_, commonFields.wIssueSymbol.mama_field_name.c_str(),commonFields.wIssueSymbol.mama_fid, symbol_.c_str());
-    mamaMsg_addString(msg_, commonFields.wSymbol.mama_field_name.c_str(),commonFields.wSymbol.mama_fid, symbol_.c_str());
+    // mamaMsg_addString(msg_, commonFields.wIssueSymbol.mama_field_name.c_str(),commonFields.wIssueSymbol.mama_fid, symbol_.c_str());
+    // mamaMsg_addString(msg_, commonFields.wSymbol.mama_field_name.c_str(),commonFields.wSymbol.mama_fid, symbol_.c_str());
 
     return msgType;
 }
@@ -688,12 +699,20 @@ void UPASubscription::setMsgNum(bool IsStatusMsg)
     if(IsStatusMsg)
     {
         // for a status message we  need to set the seqnum to zero, otherwise it will be reported as a duplicate and the gapo detection gets confused
-        mamaMsg_addI64(msg_, MamaFieldSeqNum.mName, MamaFieldSeqNum.mFid, 0);  
+        mamaMsg_addI64(msg_, MamaFieldSeqNum.mName, MamaFieldSeqNum.mFid, 0);
     }
     else
     {
         // regular message insert and inc. the sequence number
-        mamaMsg_addI64(msg_,  MamaFieldSeqNum.mName, MamaFieldSeqNum.mFid, msgSeqNum_++);  
+        mamaMsg_addI64(msg_,  MamaFieldSeqNum.mName, MamaFieldSeqNum.mFid, msgSeqNum_);
+        if (msgSeqNum_ == INT64_MAX)
+        {
+            msgSeqNum_ = 0;
+        }
+        else
+        {
+            ++msgSeqNum_;
+        }
     }
 
 
@@ -706,7 +725,7 @@ void UPASubscription::setMsgNumBook()
     // MamdaBook handling requires difference types for the book
     mamaMsg_addI32(msg_, MamaFieldMsgTotal.mName, MamaFieldMsgTotal.mFid, msgTotal_);
     mamaMsg_addI32(msg_, MamaFieldMsgNum.mName, MamaFieldMsgNum.mFid, msgNum_);
-    mamaMsg_addI64(msg_,  MamaFieldSeqNum.mName, MamaFieldSeqNum.mFid, msgNum_);  
+    mamaMsg_addI64(msg_,  MamaFieldSeqNum.mName, MamaFieldSeqNum.mFid, msgNum_);
 
 
     ++msgNum_;
@@ -720,8 +739,6 @@ bool UPASubscription::SetStale(const char* msg)
     {
         SetSubscriptionState(SubscriptionStateStale);
 
-
-
         if (msg != NULL)
         {
             mamaMsg_addString(msg_, MamaFieldFeedName.mName, MamaFieldFeedName.mFid, msg);
@@ -731,7 +748,15 @@ bool UPASubscription::SetStale(const char* msg)
         mamaMsg_addU8(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid,  MAMA_MSG_STATUS_STALE);
         setMsgNum(true);
 
-        NotifyListenersMessage(msg_, MAMA_MSG_TYPE_SEC_STATUS);
+        if (sendAckMessages_)
+        {
+            NotifyListenersMessage(msg_, MAMA_MSG_TYPE_SEC_STATUS);
+        }
+
+        if (useCallbacks_)
+        {
+            NotifyListenersQuality(MAMA_QUALITY_STALE, 0);
+        }
 
         mamaMsg_clear(msg_);
         return true;
@@ -753,7 +778,15 @@ bool UPASubscription::SetLive()
 
         setMsgNum(true);
 
-        NotifyListenersMessage(msg_, MAMA_MSG_TYPE_SEC_STATUS);
+        if (sendAckMessages_)
+        {
+            NotifyListenersMessage(msg_, MAMA_MSG_TYPE_SEC_STATUS);
+        }
+
+        if (useCallbacks_)
+        {
+            NotifyListenersQuality(MAMA_QUALITY_OK, 0);
+        }
 
         mamaMsg_clear(msg_);
         return true;
@@ -767,6 +800,21 @@ bool UPASubscription::ReSubscribe()
     return Open(consumer_);
 }
 
+void UPASubscription::LogRsslState(RsslState* state)
+{
+    RsslBuffer stateBuf;
+    char buf[81];
+    memset((void*)buf,0,sizeof(buf));
+    stateBuf.data = buf;
+    stateBuf.length = sizeof(buf)-1;
+    rsslStateToString(&stateBuf, state);
+    t42log_warn("SetRsslState: state notification %s.%s %s/%d %s/%d %s/%d - %s",
+        SourceName().c_str(), Symbol().c_str(),
+        rsslStreamStateToString(state->streamState), state->streamState,
+        rsslStateCodeToString(state->code), state->code,
+        rsslDataStateToString(state->dataState), state->dataState,
+        stateBuf.data);
+}
 
 bool UPASubscription::SetRsslState(RsslState* state)
 {
@@ -774,11 +822,15 @@ bool UPASubscription::SetRsslState(RsslState* state)
     itemState_.dataState = state->dataState;
     itemState_.code = state->code;
 
+#if 0
+    LogRsslState(state);
+#endif
+
     // The 36 was seen from an RTIC, it is not defined in the state codes from RSSL
     if (state->streamState == RSSL_STREAM_CLOSED && (state->code == RSSL_SC_NOT_FOUND || state->code == 36))
     {
         // invalid security
-        NotifyListenersError(MAMA_STATUS_BAD_SYMBOL);
+        NotifyListenersError(MAMA_STATUS_NOT_FOUND);
         consumer_->StatsSubscriptionsFailed();
         return false;
     }
@@ -805,16 +857,16 @@ bool UPASubscription::SetRsslState(RsslState* state)
     }
     else if (state->streamState == RSSL_STREAM_NON_STREAMING)
     {
-		if(0 != snapShot_)
-		{
-			//it was a standalone snaphot
-			// there is no streaming data on this but treat as successful
-			SendStatusMsg(MAMA_MSG_STATUS_OK);
-			SetSubscriptionState(SubscriptionStateInactive);
-		}
+        if(0 != snapShot_)
+        {
+            //it was a standalone snaphot
+            // there is no streaming data on this but treat as successful
+            SendStatusMsg(MAMA_MSG_STATUS_OK);
+            SetSubscriptionState(SubscriptionStateInactive);
+        }
 
-		// otherwise we dont need to change the ste or send a status messagwe
-		consumer_->StatsSubscriptionsSucceeded();
+        // otherwise we dont need to change the ste or send a status messagwe
+        consumer_->StatsSubscriptionsSucceeded();
         return true;
     }
     else if (state->streamState == RSSL_STREAM_OPEN && state->code == RSSL_SC_PREEMPTED)
@@ -847,6 +899,18 @@ bool UPASubscription::SetRsslState(RsslState* state)
         return true;
     }
 
+    else if (state->streamState == RSSL_STREAM_OPEN && state->dataState == RSSL_DATA_NO_CHANGE)
+    {
+        // This comes back from RMDS sometimes, not just sure what it is
+        // SetRsslState: state notification BBG_BPIPE_DEV.PG.UN RSSL_STREAM_OPEN/1 RSSL_SC_NONE/0 RSSL_DATA_NO_CHANGE/0 - State: Open/No Change/None - text: "A27: Message Ordering Error. Recalling."
+        if (GetSubscriptionState() == SubscriptionStateSubscribing) {
+            SetSubscriptionState(SubscriptionStateLive);
+            consumer_->StatsSubscriptionsSucceeded();
+            consumer_->StreamManager().IncOpenItems();
+        }
+        return true;
+    }
+
     // we got data and we were waiting for it
     else if (state->streamState == RSSL_STREAM_OPEN && state->dataState == RSSL_DATA_OK && GetSubscriptionState() == SubscriptionStateSubscribing)
     {
@@ -861,18 +925,7 @@ bool UPASubscription::SetRsslState(RsslState* state)
 
         if ( !(state->streamState == RSSL_STREAM_OPEN && state->dataState == RSSL_DATA_OK))
         {
-            RsslBuffer stateBuf;
-            char buf[81];
-            memset((void*)buf,0,sizeof(buf));
-            stateBuf.data = buf;
-            stateBuf.length = sizeof(buf)-1;
-            rsslStateToString(&stateBuf, state);
-            t42log_warn("SetRsslState: unexpected state notification %s.%s %s/%d %s/%d %s/%d - %s", 
-                SourceName().c_str(), Symbol().c_str(),
-                rsslStreamStateToString(state->streamState), state->streamState,
-                rsslStateCodeToString(state->code), state->code,
-                rsslDataStateToString(state->dataState), state->dataState,
-                stateBuf.data);
+            LogRsslState(state);
             consumer_->StatsSubscriptionsFailed();
             return false;
         }
@@ -890,21 +943,21 @@ RsslRet UPASubscription::CloseStream(RsslChannel* UPAChannel, RsslInt32 streamId
     RsslError error;
     RsslBuffer* msgBuff = 0;
 
-    // get a buffer for the item close 
+    // get a buffer for the item close
     msgBuff = rsslGetBuffer(UPAChannel, MAX_MSG_SIZE, RSSL_FALSE, &error);
 
     if (msgBuff != NULL)
     {
-        // encode item close 
+        // encode item close
         if (EncodeItemClose(UPAChannel, msgBuff, streamId) != RSSL_RET_SUCCESS)
         {
-            rsslReleaseBuffer(msgBuff, &error); 
+            rsslReleaseBuffer(msgBuff, &error);
             t42log_warn("Market Price EncodeItemClose() failed\n");
             return RSSL_RET_FAILURE;
         }
 
         t42log_debug("Send close for %s on stream %d\n", Symbol().c_str(), streamId);
-        // send close 
+        // send close
         if (SendUPAMessage(UPAChannel, msgBuff) != RSSL_RET_SUCCESS)
         {
             return RSSL_RET_FAILURE;
@@ -928,13 +981,13 @@ RsslRet UPASubscription::EncodeItemClose(RsslChannel* chnl, RsslBuffer* msgBuf, 
     RsslCloseMsg msg = RSSL_INIT_CLOSE_MSG;
     RsslEncodeIterator encodeIter;
 
-    // clear the encode iterator 
+    // clear the encode iterator
     rsslClearEncodeIterator(&encodeIter);
 
-    // init the message 
+    // init the message
     msg.msgBase.msgClass = RSSL_MC_CLOSE;
     msg.msgBase.streamId = streamId;
-
+    msg.flags |= RSSL_CLMF_ACK;
 
     switch (subscriptionType_)
     {
@@ -1002,11 +1055,16 @@ void MAMACALLTYPE UPASubscription::SubscriptionCloseRequestCb(mamaQueue queue, v
 
 void UPASubscription::QueueCloseRequest()
 {
+    // There is a potential hazard that if the subscription hasn't completed when the item is closed that consumer_ will still be unitialised
+    if(consumer_ != 0)
+    {
     consumer_->StreamManager().IncPendingCloses();
 
     // create closure to carry a boost shared pointer to this on the queue and ensure it doesn't get deleted while queued
     UPASubscriptionClosure * closure = new UPASubscriptionClosure(shared_from_this());
+
     mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionCloseRequestCb, (void*) closure);
+    }
 }
 
 bool UPASubscription::SendCloseRequest()
@@ -1034,7 +1092,7 @@ bool UPASubscription::SendCloseRequest()
     return true;
 }
 
-// Process a market by order response message. 
+// Process a market by order response message.
 // Caller has decoded the message to the point where the message type is known
 //
 RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, RsslDecodeIterator* dIter)
@@ -1058,7 +1116,6 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
     if (GetSubscriptionState() == SubscriptionStateSubscribing)
     {
         // response to a subscribe message so decrement  the count
-
         t42log_debug("got response - dec pending items count for %s on stream %d\n", symbol_.c_str(), streamId_);
         mgr.removePendingItem(this);
         gotInitial_ = true;
@@ -1080,8 +1137,8 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
     // we use the book message object to maintain state between updates
     bookByOrderMessage_.StartUpdate();
 
-	// will need to know later if we were processing a refresh
-	bool isRefreshMsg = false;
+    // will need to know later if we were processing a refresh
+    bool isRefreshMsg = false;
 
     RsslMsgKey* key = 0;
     switch(msg->msgBase.msgClass)
@@ -1091,8 +1148,15 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
         // update the item state
         SetRsslState(&msg->refreshMsg.state);
 
-		isRefreshMsg = true;
-        // then just fall through 
+        isRefreshMsg = true;
+
+        if (isRefresh_)
+        {
+            // Remove recap from pending items
+            mgr.removePendingItem(this);
+        }
+
+        // then just fall through
 
     case RSSL_MC_UPDATE:
         {
@@ -1105,7 +1169,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
             if (msg->msgBase.msgClass == RSSL_MC_UPDATE)
             {
                 // log the update type
-                t42log_debug("Update Type: %u\n", msg->updateMsg.updateType);	
+                t42log_debug("Update Type: %u\n", msg->updateMsg.updateType);
                 updateType = msg->updateMsg.updateType;
 
                 if (msg->refreshMsg.flags & RSSL_UPMF_HAS_SEQ_NUM)
@@ -1164,15 +1228,15 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
             RsslLocalFieldSetDefDb localFieldSetDefDb;  // this must be cleared using the clear function below
             rsslClearLocalFieldSetDefDb(&localFieldSetDefDb);
 
-            UPAFieldDecoder decoder(consumer_->RsslDictionary()->RsslDictionary(), fieldmap_, symbol_, sourceName_);
+            UPAFieldDecoder decoder(consumer_, fieldmap_, symbol_, sourceName_);
 
-            // level 2 market by order is a map of field lists 
+            // level 2 market by order is a map of field lists
             if ((ret = rsslDecodeMap(dIter, &map)) == RSSL_RET_SUCCESS)
             {
-                // decode set definition database 
+                // decode set definition database
                 if (map.flags & RSSL_MPF_HAS_SET_DEFS)
                 {
-                    // required to decode the field list 
+                    // required to decode the field list
                     if (rsslDecodeLocalFieldSetDefDb(dIter, &localFieldSetDefDb) != RSSL_RET_SUCCESS)
                     {
                         ReportDecodeFailure("rsslDecodeLocalFieldSetDefDb()", ret );
@@ -1181,13 +1245,13 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                     }
                 }
 
-                // decode any summary data - this should be a field list depending on the domain model   
+                // decode any summary data - this should be a field list depending on the domain model
                 if (map.flags & RSSL_MPF_HAS_SUMMARY_DATA)
                 {
                     t42log_debug("SUMMARY DATA\n");
                     if ((ret = rsslDecodeFieldList(dIter, &fList, &localFieldSetDefDb)) == RSSL_RET_SUCCESS)
                     {
-                        // decode each field entry in list 
+                        // decode each field entry in list
                         while ((ret = rsslDecodeFieldEntry(dIter, &fEntry)) != RSSL_RET_END_OF_CONTAINER)
                         {
                             if (ret == RSSL_RET_SUCCESS)
@@ -1217,7 +1281,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                     }
                 }
 
-                // decode the map 
+                // decode the map
                 RsslMapEntry mapEntry = RSSL_INIT_MAP_ENTRY;
                 RsslBuffer mapKey = RSSL_INIT_BUFFER;
                 while ((ret = rsslDecodeMapEntry(dIter, &mapEntry, &mapKey)) != RSSL_RET_END_OF_CONTAINER)
@@ -1226,14 +1290,14 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                     {
                         const char* actionString;
 
-                        UPABookEntry_ptr_t entry = UPABookEntry_ptr_t(new UPABookEntry); 
+                        UPABookEntry_ptr_t entry = UPABookEntry_ptr_t(new UPABookEntry);
                         entry.use_count();
 
                         /* convert the action to a string for display purposes */
                         switch(mapEntry.action)
                         {
                         case RSSL_MPEA_UPDATE_ENTRY:
-                            actionString = "RSSL_MPEA_UPDATE_ENTRY"; 
+                            actionString = "RSSL_MPEA_UPDATE_ENTRY";
                             entry->ActionCode('U');
                             break;
                         case RSSL_MPEA_ADD_ENTRY:
@@ -1256,7 +1320,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                         }
 
                         // each entry in the map corresponds to an order
-                        // 
+                        //
                         string orderId(mapKey.data,  mapKey.length);
                         entry->Orderid(orderId);
 
@@ -1301,7 +1365,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                                 ReportDecodeFailure("rsslDecodeFieldList()", ret );
                                 // return RSSL_RET_SUCCESS otherwise it will shut down the thread
                                 return RSSL_RET_SUCCESS;
-                            }						
+                            }
                         }
                         else
                         {
@@ -1325,39 +1389,39 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                 setMsgNum(false);
 
 
-				if (isSnapshot_)
-				{
-					// this is just a regular snaphot
-					mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
+                if (isSnapshot_)
+                {
+                    // this is just a regular snaphot
+                    mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
 
-					// if its snapshot request 	then notifiy that
-					if(0 != snapShot_)
-					{
-						snapShot_->OnMessage(msg_);
-						// now we have sent the message we dont need the reply any more
-						snapShot_.reset();
-					}
-				} 
-				else if (isRefresh_ && isRefreshMsg)
-				{
-					// test the isRefresh here because we may get an update between requesting the snapshot and receiving the reponse
-					mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
-
-
-					// in the subscription stream
-					// send the message to each of the listeners
-					NotifyListenersRefreshMessage(msg_, subscription_);
-					isRefresh_= false;
-					subscription_.reset();
+                    // if its snapshot request     then notifiy that
+                    if(0 != snapShot_)
+                    {
+                        snapShot_->OnMessage(msg_);
+                        // now we have sent the message we dont need the reply any more
+                        snapShot_.reset();
+                    }
+                }
+                else if (isRefresh_ && isRefreshMsg)
+                {
+                    // test the isRefresh here because we may get an update between requesting the snapshot and receiving the reponse
+                    mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
 
 
-				} 
-				else
-				{
-					// its just a regular subscription
-					// send the message to each of the listeners
-					NotifyListenersMessage(msg_, msgType);
-				}
+                    // in the subscription stream
+                    // send the message to each of the listeners
+                    NotifyListenersRefreshMessage(msg_, subscription_);
+                    isRefresh_= false;
+                    subscription_.reset();
+
+
+                }
+                else
+                {
+                    // its just a regular subscription
+                    // send the message to each of the listeners
+                    NotifyListenersMessage(msg_, msgType);
+                }
 
                 // and clean up
                 bookByOrderMessage_.EndUpdate(msg_);
@@ -1378,7 +1442,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
         if (msg->statusMsg.flags & RSSL_STMF_HAS_STATE)
         {
             rsslStateToString(&tempBuffer, &msg->statusMsg.state);
-            t42log_debug("%s	%s\n\n", Symbol().c_str(), tempBuffer.data);
+            t42log_debug("%s    %s\n\n", Symbol().c_str(), tempBuffer.data);
             SetRsslState(&msg->statusMsg.state);
         }
 
@@ -1436,17 +1500,23 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
 
     mamaMsgType msgType = MAMA_MSG_TYPE_UNKNOWN;
 
-	// will need to know later of we were processing a refresh
-	bool isRefreshMsg = false;
+    // will need to know later of we were processing a refresh
+    bool isRefreshMsg = false;
 
     switch(msg->msgBase.msgClass)
     {
     case RSSL_MC_REFRESH:
         // update the item state
         SetRsslState(&msg->refreshMsg.state);
-		isRefreshMsg = true;
+        isRefreshMsg = true;
 
-        // then just fall thorugh 
+        if (isRefresh_)
+        {
+            // Remove recap from pending items
+            mgr.removePendingItem(this);
+        }
+
+        // then just fall thorugh
 
     case RSSL_MC_UPDATE:
         {
@@ -1460,7 +1530,7 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
             if (msg->msgBase.msgClass == RSSL_MC_UPDATE)
             {
                 /* When displaying update information, we should also display the updateType information. */
-                t42log_debug("UPDATE TYPE: %u\n", msg->updateMsg.updateType);	
+                t42log_debug("UPDATE TYPE: %u\n", msg->updateMsg.updateType);
                 updateType = msg->updateMsg.updateType;
 
                 if (msg->refreshMsg.flags & RSSL_UPMF_HAS_SEQ_NUM)
@@ -1519,15 +1589,15 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
             RsslLocalFieldSetDefDb localFieldSetDefDb;  // this must be cleared using the clear function below
             rsslClearLocalFieldSetDefDb(&localFieldSetDefDb);
 
-            UPAFieldDecoder decoder(consumer_->RsslDictionary()->RsslDictionary(), fieldmap_, symbol_, sourceName_);
+            UPAFieldDecoder decoder(consumer_, fieldmap_, symbol_, sourceName_);
 
             /* level 2 market by price is a map of field lists */
             if ((ret = rsslDecodeMap(dIter, &map)) == RSSL_RET_SUCCESS)
             {
-                // decode set definition database 
+                // decode set definition database
                 if (map.flags & RSSL_MPF_HAS_SET_DEFS)
                 {
-                    // required to decode the field list 
+                    // required to decode the field list
                     if (rsslDecodeLocalFieldSetDefDb(dIter, &localFieldSetDefDb) != RSSL_RET_SUCCESS)
                     {
                         ReportDecodeFailure("rsslDecodeLocalFieldSetDefDb()", ret );
@@ -1536,13 +1606,13 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                     }
                 }
 
-                // decode any summary data - this should be a field list depending on the domain model  
+                // decode any summary data - this should be a field list depending on the domain model
                 if (map.flags & RSSL_MPF_HAS_SUMMARY_DATA)
                 {
                     t42log_debug("SUMMARY DATA\n");
                     if ((ret = rsslDecodeFieldList(dIter, &fList, &localFieldSetDefDb)) == RSSL_RET_SUCCESS)
                     {
-                        // decode each field entry in the list 
+                        // decode each field entry in the list
                         while ((ret = rsslDecodeFieldEntry(dIter, &fEntry)) != RSSL_RET_END_OF_CONTAINER)
                         {
                             if (ret == RSSL_RET_SUCCESS)
@@ -1572,23 +1642,24 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                     }
                 }
 
-                // decode the map 
+                // decode the map
                 RsslMapEntry mapEntry = RSSL_INIT_MAP_ENTRY;
                 RsslBuffer mapKey = RSSL_INIT_BUFFER;
                 while ((ret = rsslDecodeMapEntry(dIter, &mapEntry, &mapKey)) != RSSL_RET_END_OF_CONTAINER)
                 {
+                    string pricePointKey(mapKey.data, mapKey.length);
                     if (ret == RSSL_RET_SUCCESS)
                     {
 
                         const char* actionString;
-                        UPABookEntry_ptr_t entry = UPABookEntry_ptr_t(new UPABookEntry); 
+                        UPABookEntry_ptr_t entry = UPABookEntry_ptr_t(new UPABookEntry);
                         entry.use_count();
 
                         /* convert the action to a string for display purposes */
                         switch(mapEntry.action)
                         {
                         case RSSL_MPEA_UPDATE_ENTRY:
-                            actionString = "RSSL_MPEA_UPDATE_ENTRY"; 
+                            actionString = "RSSL_MPEA_UPDATE_ENTRY";
                             entry->ActionCode('U');
                             break;
 
@@ -1613,44 +1684,9 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                             t42log_debug("ORDER ID: %.*s\nACTION: %s\n", mapKey.length, mapKey.data, actionString);
                         }
 
-                        // key is price as a string appended with 'a' or 'b' for the side
-                        // These are seen in LSE data
-                        // 227.15B
-                        // 222.60B:UBSL
-                        // 231.80A+A
-                        // 231.80A
-                        // 231.80A:UBSL
-                        // 231.90A:UBSL
-                        // 232.90A:PEEL
-                        // 221.95B:SCAP
-                        // 233.30A:SCAP
-                        // 223.25B:WINS
-                        // These are seen in TSE data
-                        // .<price>A. for Limit Orders ASK side 
-                        // .<price>B. for Limit Orders BID side 
-                        // .A-M.  for Market Orders ASK side 
-                        // .B-M.  for Market Orders BID side
-                        // .<price>A+C.  for .OnClose. limit order ASK side 
-                        // .<price>B+C.  for .OnClose. limit order BID side 
-                        // .A-M+C.  for .OnClose. Market Orders ASK side 
-                        // .B-M+C.  for .OnClose.Market Orders BID side
-                        // So, get the first char after the price and use that
-                        // Default to the last char, then look for an A or B
-                        char side = mapKey.data[mapKey.length-1];
-                        int numLen = 0;
-                        for (unsigned int i = 0; i < mapKey.length; ++i) {
-                            if (::toupper(mapKey.data[i]) == 'A' ||
-                                ::toupper(mapKey.data[i]) == 'B') {
-                                    side = mapKey.data[i];
-                                    break;
-                            }
-                            ++numLen;
-                        }
-
-                        string pricekey(mapKey.data, numLen);		// get only numeric chars
-
-                        // and set the side code into thge entry becuase the provider only includes it for a new level
-                        entry->SideCode(::toupper(side));
+                        //char side = ExtractSideCode(mapKey);
+      //                  // and set the side code into thge entry becuase the provider only includes it for a new level
+      //                  entry->SideCode(::toupper(side));
 
                         // only have a field list when the type is not a delete
                         if (mapEntry.action != RSSL_MPEA_DELETE_ENTRY)
@@ -1680,12 +1716,88 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                                     }
                                 }
 
+                                if(mapEntry.action == RSSL_MPEA_ADD_ENTRY)
+                                {
+                                    // should create a new pricepoint
+                                    //
+                                    // may not be abale to assume the the message has a side code - if not extract it from the key and set it
+                                    char side;
+                                    if(!entry->HasSide())
+                                    {
+                                        side = ExtractSideCode(mapKey);
+                                    }
+
+                                    PricePoint_ptr_t pp = PricePoint_ptr_t(new PricePoint(entry->Price(), entry->SideCode()));
+                                    PPMap_.insert(PricePointMap_t::value_type(pricePointKey, pp));
+                                }
+
+                                // if we havent decoded a side then should be able to get it from the price point map
+                                if(!entry->HasSide())
+                                {
+                                    // we see this in data from the TR rssl Provider sample code, so for safety assume other sources might be similar
+                                    PricePointMap_t::const_iterator itPricePoint = PPMap_.find(pricePointKey);
+                                    if(itPricePoint != PPMap_.end())
+                                    {
+                                        const PricePoint& pricePoint = *(itPricePoint->second);
+                                        entry->SideCode(pricePoint.SideCode());
+                                    }
+                                    else
+                                    {
+                                        // not much we can do about this
+                                        ReportDecodeFailure("Failed to look up price point key", ret );
+                                        // return RSSL_RET_SUCCESS otherwise it will shut down the thread
+                                        return RSSL_RET_SUCCESS;
+                                    }
+
+                                }
+
+
                                 if (mapEntry.action == RSSL_MPEA_ADD_ENTRY )
                                 {
                                     bookByPriceMessage_.AddEntry(entry);
                                 }
                                 else if (mapEntry.action == RSSL_MPEA_UPDATE_ENTRY)
                                 {
+                                    // This is for OMM MarketByPrice models that update an existing entry with a new price.
+                                    // Since OM uses the price as the key we need to send a delete before the update.
+                                    PricePointMap_t::iterator itPricePoint = PPMap_.find(pricePointKey);
+                                    if (itPricePoint != PPMap_.end())
+                                    {
+                                        // Existing price point
+                                        PricePoint& pricePoint = *(itPricePoint->second);
+                                        if (pricePoint.Price().value != entry->Price().value ||
+                                            pricePoint.SideCode() != entry->SideCode())
+                                        {
+                                            // Check is there is an update for this on a different price point.
+                                            // Only queue a delete if there is no preceeding update.
+                                            bool found = false;
+                                            const EntryList_t& entryList = bookByPriceMessage_.getEntryList();
+                                            EntryList_t::const_iterator itEntry = entryList.begin();
+                                            while (itEntry != entryList.end())
+                                            {
+                                                const UPABookEntry& bookEntry = *(*itEntry++);
+                                                if (bookEntry.Price().value == pricePoint.Price().value &&
+                                                    bookEntry.SideCode() == pricePoint.SideCode())
+                                                {
+                                                    found = true;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (!found)
+                                            {
+                                                // The new one is different than the existing point, so queue a delete
+                                                UPABookEntry_ptr_t delEntry = UPABookEntry_ptr_t(new UPABookEntry);
+                                                delEntry->Price(pricePoint.Price());
+                                                delEntry->SideCode(pricePoint.SideCode());
+                                                delEntry->ActionCode('D');
+                                                bookByPriceMessage_.AddEntry(delEntry);
+                                            }
+
+                                            // Now set the existing price point to the new data
+                                            pricePoint.assign(*entry);
+                                        }
+                                    }
                                     bookByPriceMessage_.AddEntry(entry);
                                 }
 
@@ -1695,16 +1807,25 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                                 ReportDecodeFailure("rsslDecodeFieldList()", ret );
                                 // return RSSL_RET_SUCCESS otherwise it will shut down the thread
                                 return RSSL_RET_SUCCESS;
-                            }						
+                            }
                         }
                         else
                         {
                             // do an entry delete
 
-                            // still need to set the price point in the entry even if its a delete because the OMM message doesnt carry it in the payload
-                            // so have to synthesize it from the key
-                            entry->Price(pricekey);
-                            bookByPriceMessage_.AddEntry(entry);
+                            // look up the price Point
+                            PricePointMap_t::const_iterator itPricePoint = PPMap_.find(pricePointKey);
+                            if (itPricePoint != PPMap_.end())
+                            {
+                                const PricePoint& pricePoint = *(itPricePoint->second);
+                                // still need to set the price point in the entry even if its a delete because the OMM message doesnt carry it in the payload
+                                entry->Price(pricePoint.Price());
+                                entry->SideCode(pricePoint.SideCode());
+                                // and erase the price point from the map
+                                PPMap_.erase(itPricePoint);
+
+                                bookByPriceMessage_.AddEntry(entry);
+                            }
                         }
 
                         t42log_debug("\n"); /* add a space between end of order and beginning of next order for readability */
@@ -1724,39 +1845,39 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                 setMsgNum(false);
 
 
-				if (isSnapshot_)
-				{
-					// this is just a regular snaphot
-					mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
+                if (isSnapshot_)
+                {
+                    // this is just a regular snaphot
+                    mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
 
-					// if its snapshot request 	then notify that
-					if(0 != snapShot_)
-					{
-						snapShot_->OnMessage(msg_);
-						// now we have sent the message we dont need the reply any more
-						snapShot_.reset();
-					}
-				} 
-				else if (isRefresh_ && isRefreshMsg)
-				{
-					// test the isRefresh here because we may get an update between requesting the refresh and receiving the response
-					mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
-
-
-					// in the subscription stream
-					// send the message to each of the listeners
-					NotifyListenersRefreshMessage(msg_, subscription_);
-					isRefresh_= false;
-					subscription_.reset();
+                    // if its snapshot request     then notify that
+                    if(0 != snapShot_)
+                    {
+                        snapShot_->OnMessage(msg_);
+                        // now we have sent the message we dont need the reply any more
+                        snapShot_.reset();
+                    }
+                }
+                else if (isRefresh_ && isRefreshMsg)
+                {
+                    // test the isRefresh here because we may get an update between requesting the refresh and receiving the response
+                    mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_OK);
 
 
-				} 
-				else
-				{
-					// its just a regular subscription
-					// send the message to each of the listeners
-					NotifyListenersMessage(msg_, msgType);
-				}
+                    // in the subscription stream
+                    // send the message to each of the listeners
+                    NotifyListenersRefreshMessage(msg_, subscription_);
+                    isRefresh_= false;
+                    subscription_.reset();
+
+
+                }
+                else
+                {
+                    // its just a regular subscription
+                    // send the message to each of the listeners
+                    NotifyListenersMessage(msg_, msgType);
+                }
 
             }
             else
@@ -1777,7 +1898,7 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
         if (msg->statusMsg.flags & RSSL_STMF_HAS_STATE)
         {
             rsslStateToString(&tempBuffer, &msg->statusMsg.state);
-            t42log_debug("%s	%s\n\n", Symbol().c_str(), tempBuffer.data);
+            t42log_debug("%s    %s\n\n", Symbol().c_str(), tempBuffer.data);
 
             SetRsslState(&msg->statusMsg.state);
         }
@@ -1809,7 +1930,7 @@ void UPASubscription::NotifyListenersMessage( mamaMsg msg, mamaMsgType msgType )
 {
     SubscriptionResponseListenersVector_t listenersSnap;
     {
-        T42Lock l(&subscriptionLock_);	
+        T42Lock l(&subscriptionLock_);
         // take a snap of the vector in case anything gets removed on the other thread
         listenersSnap = listeners_;
     }
@@ -1818,7 +1939,7 @@ void UPASubscription::NotifyListenersMessage( mamaMsg msg, mamaMsgType msgType )
     while(it != listenersSnap.end() )
     {
         RMDSBridgeSubscription_ptr_t sub = *it;
-        it++;	
+        it++;
 
         sub->OnMessage(msg, msgType);
     }
@@ -1827,38 +1948,48 @@ void UPASubscription::NotifyListenersMessage( mamaMsg msg, mamaMsgType msgType )
 
 void UPASubscription::NotifyListenersRefreshMessage(mamaMsg msg, RMDSBridgeSubscription_ptr_t sub, bool bookMessage)
 {
-	// send an in-stream snapshot to all the listeners. The subscription that requested the refresh gets a msg type initial and
-	// the rest get a message type recap.
+    // send an in-stream snapshot to all the listeners. The subscription that requested the refresh gets a msg type initial and
+    // the rest get a message type recap.
 
-	// We send a recap to all the other subscriptions on this stream in case the platform has conflated any updates into the snapshot.
-	SubscriptionResponseListenersVector_t listenersSnap;
-	{
-		T42Lock l(&subscriptionLock_);	
-		// take a snap of the vector in case anything gets removed on the other thread
-		listenersSnap = listeners_;
-	}
+    // We send a recap to all the other subscriptions on this stream in case the platform has conflated any updates into the snapshot.
+    SubscriptionResponseListenersVector_t listenersSnap;
+    {
+        T42Lock l(&subscriptionLock_);
+        // take a snap of the vector in case anything gets removed on the other thread
+        listenersSnap = listeners_;
+    }
 
-	SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
-	while(it != listenersSnap.end() )
-	{
-		// have to update the message type in here as this is where we know whether we are sending it to an existing subscription or one we have added to the stream
-		RMDSBridgeSubscription_ptr_t listener = *it;
-		it++;	
+    SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
+    while(it != listenersSnap.end() )
+    {
+        // have to update the message type in here as this is where we know whether we are sending it to an existing subscription or one we have added to the stream
+        RMDSBridgeSubscription_ptr_t listener = *it;
+        it++;
 
-		mamaMsgType msgType = MAMA_MSG_TYPE_UNKNOWN;
-		if(sub == listener)
-		{
-			msgType = bookMessage ? MAMA_MSG_TYPE_BOOK_INITIAL : MAMA_MSG_TYPE_INITIAL;
-		}
-		else
-		{
-			msgType = bookMessage ? MAMA_MSG_TYPE_BOOK_RECAP : MAMA_MSG_TYPE_RECAP;
+        mamaMsgType msgType = MAMA_MSG_TYPE_UNKNOWN;
+        if(sub == listener)
+        {
+            // Original/New subscriber
+            msgType = bookMessage ? MAMA_MSG_TYPE_BOOK_INITIAL : MAMA_MSG_TYPE_INITIAL;
+        }
+        else
+        {
+            // Existing/Duplicate subscriber
+            if (sendRecap_)
+            {
+                // Only send to existing subscribers if configured.
+                // This is to prevent too many RECAPS for cases where there are lots of duplicate symbols.
+                // TODO This may also not deliver updates that are conflated into the RECAP.
+                msgType = bookMessage ? MAMA_MSG_TYPE_BOOK_RECAP : MAMA_MSG_TYPE_RECAP;
+            }
+        }
 
-		}
-
-		mamaMsg_updateU8(msg_, MamaFieldMsgType.mName, MamaFieldMsgType.mFid, msgType);
-		sub->OnMessage(msg, msgType);
-	}
+        if (msgType != MAMA_MSG_TYPE_UNKNOWN)
+        {
+            mamaMsg_updateU8(msg_, MamaFieldMsgType.mName, MamaFieldMsgType.mFid, msgType);
+            listener->OnMessage(msg, msgType);
+        }
+    }
 }
 
 
@@ -1866,7 +1997,7 @@ void UPASubscription::NotifyListenersStatus( mamaMsgStatus statusCode )
 {
     SubscriptionResponseListenersVector_t listenersSnap;
     {
-        T42Lock l(&subscriptionLock_);	
+        T42Lock l(&subscriptionLock_);
         // take a snap of the vector in case anything gets removed on the other thread
         listenersSnap = listeners_;
     }
@@ -1875,7 +2006,7 @@ void UPASubscription::NotifyListenersStatus( mamaMsgStatus statusCode )
     while(it != listenersSnap.end() )
     {
         RMDSBridgeSubscription_ptr_t sub = *it;
-        it++;	
+        it++;
 
         sub->OnStatusMessage(statusCode);
     }
@@ -1884,31 +2015,47 @@ void UPASubscription::NotifyListenersStatus( mamaMsgStatus statusCode )
 
 void UPASubscription::NotifyListenersError( mama_status statusCode )
 {
-    /*	T42Lock l(&subscriptionLock_);
+    /*    T42Lock l(&subscriptionLock_);
     SubscriptionResponseListenersVector_t::iterator it = listeners_.begin()*/;
 
-	SubscriptionResponseListenersVector_t listenersSnap;
-	{
-		T42Lock l(&subscriptionLock_);	
-		// take a snap of the vector in case anything gets removed on the other thread
-		listenersSnap = listeners_;
-	}
+    SubscriptionResponseListenersVector_t listenersSnap;
+    {
+        T42Lock l(&subscriptionLock_);
+        // take a snap of the vector in case anything gets removed on the other thread
+        listenersSnap = listeners_;
+    }
 
-	SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
-	while(it != listenersSnap.end() )
-	{
-		RMDSBridgeSubscription_ptr_t sub = *it;
-		it++;	
-		sub->OnError(statusCode);
-	}
+    SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
+    while(it != listenersSnap.end() )
+    {
+        RMDSBridgeSubscription_ptr_t sub = *it;
+        it++;
+        sub->OnError(statusCode);
+    }
 }
 
+void UPASubscription::NotifyListenersQuality(mamaQuality quality, short cause)
+{
+    SubscriptionResponseListenersVector_t listenersSnap;
+    {
+        T42Lock l(&subscriptionLock_);
+        // take a snap of the vector in case anything gets removed on the other thread
+        listenersSnap = listeners_;
+    }
+
+    SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
+    while (it != listenersSnap.end())
+    {
+        RMDSBridgeSubscription_ptr_t sub = *it;
+        it++;
+        sub->OnQuality(quality, cause);
+    }
+}
 
 void UPASubscription::AddListener( RMDSBridgeSubscription_ptr_t listener )
 {
     T42Lock l(&subscriptionLock_);
     listeners_.push_back(listener);
-
 }
 
 void UPASubscription::RemoveListener( RMDSBridgeSubscription_ptr_t listener )
@@ -1948,8 +2095,8 @@ void UPASubscription::RemoveListener( RMDSBridgeSubscription * listener )
 void UPASubscription::RequestImage(RMDSBridgeSubscription_ptr_t sub)
 {
     T42Lock l(&subscriptionLock_);
-	// We obtain a new image by making a refresh request to the rmds
-	Refresh(consumer_, sub);
+    // We obtain a new image by making a refresh request to the rmds
+    Refresh(consumer_, sub);
 }
 
 
@@ -2030,8 +2177,8 @@ void UPASubscription::CompleteSnapshot()
     UPAStreamManager &mgr = consumer_->StreamManager();
     mgr.ReleaseStreamId(streamId_);
 
-	// and clear down mama message
-	mamaMsg_clear(msg_);
+    // and clear down mama message
+    mamaMsg_clear(msg_);
 
 }
 
@@ -2040,51 +2187,132 @@ void UPASubscription::CompleteSnapshot()
 void UPASubscription::ProcessMFeedMessage(RsslMsg * msg)
 {
 
-	// just report that mfeed is not supported once
-	if(!reportedMFeedNotSupported_)
-	{
-		t42log_warn("Processing of marketFeed messages requires the Tick42 Enhanced version of the bridge - please contact support@tick42.com\n");
-		reportedMFeedNotSupported_ = true;
-	}
-	ReportDecodeFailure("DecodeFieldEntry()", RSSL_RET_UNSUPPORTED_DATA_TYPE );
+    // just report that mfeed is not supported once
+    if(!reportedMFeedNotSupported_)
+    {
+        t42log_warn("Processing of marketFeed messages requires the Tick42 Enhanced version of the bridge - please contact support@tick42.com\n");
+        reportedMFeedNotSupported_ = true;
+    }
+    ReportDecodeFailure("DecodeFieldEntry()", RSSL_RET_UNSUPPORTED_DATA_TYPE );
 }
 
 
 void UPASubscription::ProcessAnsiMessage(RsslMsg * msg)
 {
 
-	// just report that ansi is not supported once
-	if(!reportedAnsiNotSupported_)
-	{
-		t42log_warn("Processing of ANSI messages requires the Tick42 Enhanced version of the bridge - please contact support@tick42.com\n");
-		reportedAnsiNotSupported_ = true;
-	}
-	ReportDecodeFailure("DecodeFieldEntry()", RSSL_RET_UNSUPPORTED_DATA_TYPE );
+    // just report that ansi is not supported once
+    if(!reportedAnsiNotSupported_)
+    {
+        t42log_warn("Processing of ANSI messages requires the Tick42 Enhanced version of the bridge - please contact support@tick42.com\n");
+        reportedAnsiNotSupported_ = true;
+    }
+    ReportDecodeFailure("DecodeFieldEntry()", RSSL_RET_UNSUPPORTED_DATA_TYPE );
 }
 
 
 // wrappers for the rssl message processing functions
 RsslRet UPASubscription::ProcessMarketPriceResponse(RsslMsg* msg, RsslDecodeIterator* dIter)
 {
-	RsslRet ret = InternalProcessMarketPriceResponse(msg, dIter);
-	mamaMsg_clear(msg_);
-	return ret;
+    RsslRet ret = InternalProcessMarketPriceResponse(msg, dIter);
+    mamaMsg_clear(msg_);
+    return ret;
 }
 
 RsslRet UPASubscription::ProcessMarketByOrderResponse(RsslMsg* msg, RsslDecodeIterator* dIter)
 {
-	RsslRet ret = InternalProcessMarketByOrderResponse(msg, dIter);
-	mamaMsg_clear(msg_);
-	return ret;
+    RsslRet ret = InternalProcessMarketByOrderResponse(msg, dIter);
+    mamaMsg_clear(msg_);
+    return ret;
 }
 
 RsslRet UPASubscription::ProcessMarketByPriceResponse(RsslMsg* msg, RsslDecodeIterator* dIter)
 {
-	RsslRet ret = InternalProcessMarketByPriceResponse(msg, dIter);
-	mamaMsg_clear(msg_);
-	return ret;
+    RsslRet ret = InternalProcessMarketByPriceResponse(msg, dIter);
+    mamaMsg_clear(msg_);
+    return ret;
 }
 
+char UPASubscription::ExtractSideCode(RsslBuffer &mapKey)
+{
+    // key is price as a string appended with 'a' or 'b' for the side
+    // These are seen in LSE data
+    // 227.15B
+    // 222.60B:UBSL
+    // 231.80A+A
+    // 231.80A
+    // 231.80A:UBSL
+    // 231.90A:UBSL
+    // 232.90A:PEEL
+    // 221.95B:SCAP
+    // 233.30A:SCAP
+    // 223.25B:WINS
+    // These are seen in TSE data
+    // .<price>A. for Limit Orders ASK side
+    // .<price>B. for Limit Orders BID side
+    // .A-M.  for Market Orders ASK side
+    // .B-M.  for Market Orders BID side
+    // .<price>A+C.  for .OnClose. limit order ASK side
+    // .<price>B+C.  for .OnClose. limit order BID side
+    // .A-M+C.  for .OnClose. Market Orders ASK side
+    // .B-M+C.  for .OnClose.Market Orders BID side
+    // So, get the first char after the price and use that
+    // Default to the last char, then look for an A or B
+    char side = mapKey.data[mapKey.length-1];
+    int numLen = 0;
+    for (unsigned int i = 0; i < mapKey.length; ++i) {
+        if (::toupper(mapKey.data[i]) == 'A' ||
+            ::toupper(mapKey.data[i]) == 'B') {
+                side = mapKey.data[i];
+                break;
+        }
+        ++numLen;
+    }
+
+    return side;
+}
+
+bool UPASubscription::FindListener(RMDSBridgeSubscription * listener, RMDSBridgeSubscription_ptr_t & listenerPtr)
+{
+    T42Lock l(&subscriptionLock_);
+    SubscriptionResponseListenersVector_t::iterator it;
+
+    RMDSBridgeSubscription_ptr_t ret;
 
 
+    for(it = listeners_.begin(); it != listeners_.end(); it ++)
+    {
 
+        if ((*it).get() == listener)
+        {
+            listenerPtr = *it;
+            return true;
+        }
+    }
+    return false;
+}
+
+void MAMACALLTYPE UPASubscription::SubscriptionDestroyCb(mamaQueue queue,void *closure)
+{
+    // Should queue it back on to the bridge's queue
+    RMDSBridgeSubscriptionClosure * cl = (RMDSBridgeSubscriptionClosure *)closure;
+    RMDSBridgeSubscription_ptr_t sub = cl->GetPtr();
+
+    mamaQueue_enqueueEvent(sub->Queue(), RMDSBridgeSubscription:: SubscriptionDestroyCb, closure);
+
+}
+
+void UPASubscription::QueueSubscriptionDestroy(RMDSBridgeSubscription_ptr_t & sub)
+{
+    if(0 != consumer_)
+    {
+        // create closure to carry a boost shared pointer to this on the queue and ensure it doesn't get deleted while queued
+        RMDSBridgeSubscriptionClosure * closure = new RMDSBridgeSubscriptionClosure(sub);
+        mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionDestroyCb, (void*) closure);
+    }
+
+}
+
+UPASubscription::RMDSBridgeSubscriptionClosure::~RMDSBridgeSubscriptionClosure()
+{
+    sub_.reset();
+}

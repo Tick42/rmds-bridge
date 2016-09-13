@@ -6,16 +6,15 @@ IF (NOT WIN32 OR CYGWIN)
 		#default #include library to current
 		find_path (UUID_INCLUDE_DIR 
 			NAMES
-				uuid.h
+				uuid/uuid.h
 			PATH_SUFFIXES 
 				include
 			PATHS
 				$ENV{TICK42_UUID}
-				/usr/local/include
-				/usr/include
-				/opt/local/include
-				/opt/include
+				/usr/local
 				/usr
+				/opt/local
+				/opt
 			)
 
 		#default the library object to nothing (won't link against nothing)
@@ -24,17 +23,15 @@ IF (NOT WIN32 OR CYGWIN)
 	# For other systems but native Windows
 		find_path (UUID_INCLUDE_DIR 
 			NAMES
-				uuid.h
+				uuid/uuid.h
 			PATH_SUFFIXES 
 				include
-				uuid
 			PATHS
 				$ENV{TICK42_UUID}
-				/usr/local/include
-				/usr/include
-				/opt/local/include
-				/opt/include
+				/usr/local
 				/usr
+				/opt/local
+				/opt
 			)
 
 		find_library (UUID_LIBRARIES
@@ -45,6 +42,7 @@ IF (NOT WIN32 OR CYGWIN)
 				lib64 
 				lib
 			PATHS
+                                $ENV{TICK42_UUID}
 				/usr/local
 				/usr
 				/opt/local

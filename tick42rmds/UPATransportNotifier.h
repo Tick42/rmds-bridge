@@ -32,27 +32,27 @@
  */
 class UPATransportNotifier
 {
-	mamaTransport transport;
+    mamaTransport transport;
 public:
     UPATransportNotifier(mamaTransport  transport);
     ~UPATransportNotifier();
-	// Notify the client that connection failed
-	void onConnectionFailed(std::string extraInfo="");
-	// Notify the client that Connection failed
-	void onLoginFailed(std::string extraInfo="");
-	// Notify the client the source directory request failed
-	void onSourceDirectoryRequestFailed(std::string extraInfo="");
-	// Notify the client the source directory request succeed
-	void onSourceDirectoryRequestConnect(std::string extraInfo="");
-	// Notify the dictionary request failed
-	void onDictionaryRequestFailed(std::string extraInfo="");
-	// Notify the client the connection completed successfully
-	void onConnectionComplete(std::string extraInfo="");
+    // Notify the client that connection failed
+    void onConnectionFailed(const char* extraInfo = "");
+    // Notify the client that Connection failed
+    void onLoginFailed(const char* extraInfo = "");
+    // Notify the client the source directory request failed
+    void onSourceDirectoryRequestFailed(const char* extraInfo = "");
+    // Notify the client the source directory request succeed
+    void onSourceDirectoryRequestConnect(const char* extraInfo = "");
+    // Notify the dictionary request failed
+    void onDictionaryRequestFailed(const char* extraInfo = "");
+    // Notify the client the connection completed successfully
+    void onConnectionComplete(const char* extraInfo = "");
 
-	// Notify the client that connection disconnected
-	void onConnectionDisconnect(std::string extraInfo);
-	// Notify the client that connection reconnected
-	void onConnectionReconnect(std::string extraInfo);
+    // Notify the client that connection disconnected
+    void onConnectionDisconnect(const char* extraInfo);
+    // Notify the client that connection reconnected
+    void onConnectionReconnect(const char* extraInfo);
 
 };
 

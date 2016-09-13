@@ -30,9 +30,10 @@
 namespace utils { namespace stdlib_port {
 
 #ifdef _WIN32
-	inline long long atoll(const char *nptr) { return ::_atoi64(nptr );}
+    inline long long atoll(const char *nptr) { return ::_atoi64(nptr );}
 #else
-	inline long long atoll(const char *nptr) { return ::atoll(nptr );}
+    inline long long atoll(const char *nptr) { return ::atoll(nptr );}
 #endif
 } /*namespace utils*/ } /*namespace stdlib_port*/
 #endif //__UTILS_STDLIB_PORT_H__
+

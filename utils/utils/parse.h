@@ -40,20 +40,20 @@ namespace utils { namespace parse {
  */
 struct retrysched_t
 {
-	unsigned int delay;
-	unsigned int retry;
-	retrysched_t() : delay(0), retry(1) {}
-	retrysched_t(unsigned int delay, unsigned int retry) : delay(delay), retry(retry){}
-	retrysched_t(const retrysched_t &rhs) : delay(rhs.delay), retry(rhs.retry) {}
-	retrysched_t &operator=(const retrysched_t &rhs)
-	{
-		if (this != &rhs)
-		{
-			this->delay = rhs.delay;
-			this->retry = rhs.retry;
-		}
-		return *this;
-	}
+    unsigned int delay;
+    unsigned int retry;
+    retrysched_t() : delay(0), retry(1) {}
+    retrysched_t(unsigned int delay, unsigned int retry) : delay(delay), retry(retry){}
+    retrysched_t(const retrysched_t &rhs) : delay(rhs.delay), retry(rhs.retry) {}
+    retrysched_t &operator=(const retrysched_t &rhs)
+    {
+        if (this != &rhs)
+        {
+            this->delay = rhs.delay;
+            this->retry = rhs.retry;
+        }
+        return *this;
+    }
 };
 
 /**
@@ -70,20 +70,20 @@ bool parse_retrysched_item(const std::string &retrysched_item, retrysched_t &res
  */
 struct host_t
 {
-	std::string host;
-	std::string port;
-	host_t() : port("80"){} //just arbitrary port picked
-	host_t(const std::string &host, std::string port) : host(host), port(port) {}
-	host_t(const host_t &rhs) : host(rhs.host) , port(rhs.port) {}
-	host_t &operator=(const host_t &rhs)
-	{
-		if (this != &rhs)
-		{
-			this->host = rhs.host;
-			this->port = rhs.port;
-		}
-		return *this;
-	}
+    std::string host;
+    std::string port;
+    host_t() : port("80"){} //just arbitrary port picked
+    host_t(const std::string &host, std::string port) : host(host), port(port) {}
+    host_t(const host_t &rhs) : host(rhs.host) , port(rhs.port) {}
+    host_t &operator=(const host_t &rhs)
+    {
+        if (this != &rhs)
+        {
+            this->host = rhs.host;
+            this->port = rhs.port;
+        }
+        return *this;
+    }
 };
 
 /**
@@ -103,29 +103,29 @@ bool parse_host_item(const std::string &host_item, host_t &result, const host_t 
  */
 template <typename ItemType> std::vector<ItemType> parse_to_vector(const std::string str, const ItemType &default_item, bool (*parse_item)( const std::string &, ItemType &, const ItemType &), std::string &skipped_items)
 {
-	using namespace boost;
-	typedef tokenizer< escaped_list_separator<char> > tokenizer_t;
-	std::vector<ItemType> result;
+    using namespace boost;
+    typedef tokenizer< escaped_list_separator<char> > tokenizer_t;
+    std::vector<ItemType> result;
 
-	tokenizer_t tokens(str);
-	for (tokenizer_t::const_iterator tok_cit = tokens.begin(); tok_cit != tokens.end(); ++tok_cit)
-	{
-		ItemType tmpItem;
-		std::string tok;
-		tok = *tok_cit;
-		trim(tok);
+    tokenizer_t tokens(str);
+    for (tokenizer_t::const_iterator tok_cit = tokens.begin(); tok_cit != tokens.end(); ++tok_cit)
+    {
+        ItemType tmpItem;
+        std::string tok;
+        tok = *tok_cit;
+        trim(tok);
 
         if (parse_item(tok, tmpItem, default_item))
-			result.push_back(tmpItem);
-		else
-		{
-			if (skipped_items.empty())
-				skipped_items += "[" + tok + "]";
-			else
-				skipped_items += ", [" + tok + "]";
-		}
-	}
-	return result;
+            result.push_back(tmpItem);
+        else
+        {
+            if (skipped_items.empty())
+                skipped_items += "[" + tok + "]";
+            else
+                skipped_items += ", [" + tok + "]";
+        }
+    }
+    return result;
 }
 
 

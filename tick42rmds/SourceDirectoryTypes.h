@@ -44,73 +44,73 @@ const size_t MaxSourceDirInfoStrLength = 256;
 // Service General Information
 typedef struct
 {
-	char		ServiceName[MaxSourceDirInfoStrLength];
-	char		Vendor[MaxSourceDirInfoStrLength];
-	RsslUInt64	IsSource;
-	RsslUInt64	Capabilities[MaxCapabilities];
-	char		DictionariesProvided[MaxDictionaries][MaxSourceDirInfoStrLength];
-	char		DictionariesUsed[MaxDictionaries][MaxSourceDirInfoStrLength];
-	RsslQos		QoS[MaxQOS];
-	RsslUInt64	SupportsQosRange;
-	char		ItemList[MaxSourceDirInfoStrLength];
-	RsslUInt64	SupportsOutOfBandSnapshots;
-	RsslUInt64	AcceptingConsumerStatus;
+    char        ServiceName[MaxSourceDirInfoStrLength];
+    char        Vendor[MaxSourceDirInfoStrLength];
+    RsslUInt64    IsSource;
+    RsslUInt64    Capabilities[MaxCapabilities];
+    char        DictionariesProvided[MaxDictionaries][MaxSourceDirInfoStrLength];
+    char        DictionariesUsed[MaxDictionaries][MaxSourceDirInfoStrLength];
+    RsslQos        QoS[MaxQOS];
+    RsslUInt64    SupportsQosRange;
+    char        ItemList[MaxSourceDirInfoStrLength];
+    RsslUInt64    SupportsOutOfBandSnapshots;
+    RsslUInt64    AcceptingConsumerStatus;
 } RsslServiceGeneralInfo;
 
 // service state information 
 typedef struct
 {
-	RsslUInt64	ServiceState;
-	RsslUInt64	AcceptingRequests;
-	RsslState	Status;
+    RsslUInt64    ServiceState;
+    RsslUInt64    AcceptingRequests;
+    RsslState    Status;
 } RsslServiceStateInfo;
 
 // service group information 
 typedef struct
 {
-	RsslUInt8	Group[MaxGroupInfoLength];
-	RsslUInt8	MergedToGroup[MaxGroupInfoLength];
-	RsslState	Status;
+    RsslUInt8    Group[MaxGroupInfoLength];
+    RsslUInt8    MergedToGroup[MaxGroupInfoLength];
+    RsslState    Status;
 } RsslServiceGroupInfo;
 
 // service load information 
 typedef struct
 {
-	RsslUInt64	OpenLimit;
-	RsslUInt64	OpenWindow;
-	RsslUInt64	LoadFactor;
+    RsslUInt64    OpenLimit;
+    RsslUInt64    OpenWindow;
+    RsslUInt64    LoadFactor;
 } RsslServiceLoadInfo;
 
 // service data information 
 typedef struct
 {
-	RsslUInt64	Type;
-	RsslUInt8	Data[MaxDataInfoLength];
+    RsslUInt64    Type;
+    RsslUInt8    Data[MaxDataInfoLength];
 } RsslServiceDataInfo;
 
 
 // service link information 
 typedef struct
 {
-	char		LinkName[MaxSourceDirInfoStrLength];
-	RsslUInt64	Type;
-	RsslUInt64	LinkState;
-	RsslUInt64	LinkCode;
-	char		Text[MaxSourceDirInfoStrLength];
+    char        LinkName[MaxSourceDirInfoStrLength];
+    RsslUInt64    Type;
+    RsslUInt64    LinkState;
+    RsslUInt64    LinkCode;
+    char        Text[MaxSourceDirInfoStrLength];
 } RsslServiceLinkInfo;
 
 
 // entire source directory response information 
 typedef struct
 {
-	RsslInt32 StreamId;
-	RsslUInt64 ServiceId;
-	RsslServiceGeneralInfo ServiceGeneralInfo;
-	RsslServiceStateInfo ServiceStateInfo;
-	RsslServiceGroupInfo ServiceGroupInfo;
-	RsslServiceLoadInfo ServiceLoadInfo;
-	RsslServiceDataInfo ServiceDataInfo;
-	RsslServiceLinkInfo ServiceLinkInfo[MaxLinks];
+    RsslInt32 StreamId;
+    RsslUInt64 ServiceId;
+    RsslServiceGeneralInfo ServiceGeneralInfo;
+    RsslServiceStateInfo ServiceStateInfo;
+    RsslServiceGroupInfo ServiceGroupInfo;
+    RsslServiceLoadInfo ServiceLoadInfo;
+    RsslServiceDataInfo ServiceDataInfo;
+    RsslServiceLinkInfo ServiceLinkInfo[MaxLinks];
 } RsslSourceDirectoryResponseInfo;
 
 

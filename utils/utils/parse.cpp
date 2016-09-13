@@ -32,7 +32,7 @@ using boost::bad_lexical_cast;
 
 bool parse_retrysched_item( const std::string &retrysched_item, retrysched_t &result, const retrysched_t &default_item)
 {
-	std::vector<std::string> tokens;
+    std::vector<std::string> tokens;
     char * pch;
     char * str = strdup(retrysched_item.c_str());
 
@@ -54,8 +54,8 @@ bool parse_retrysched_item( const std::string &retrysched_item, retrysched_t &re
 
     if ( tokens_size <= 2 && tokens_size > 0)
     {
-			unsigned int delay;
-			unsigned int retry;
+            unsigned int delay;
+            unsigned int retry;
 
         if (tokens_size==1) //for example <number> only
         {
@@ -105,7 +105,7 @@ bool parse_retrysched_item( const std::string &retrysched_item, retrysched_t &re
 
 bool parse_host_item( const std::string &host_item, host_t &result, const host_t &default_item)
 {
-	std::vector<std::string> tokens;
+    std::vector<std::string> tokens;
     char * pch;
     char * str = strdup(host_item.c_str());
 

@@ -26,19 +26,26 @@
 #ifndef __SUBSCRIPTIONRESPONSELISTENER_H__
 #define __SUBSCRIPTIONRESPONSELISTENER_H__
 
+#include "mama/quality.h"
+
+
 // abstract base class for responses
 class SubscriptionResponseListener
 {
 public:
 
-	// send a message on the mama subscription
-	virtual void OnMessage(mamaMsg msg, mamaMsgType msgType) = 0;
+    // send a message on the mama subscription
+    virtual void OnMessage(mamaMsg msg, mamaMsgType msgType) = 0;
 
-	// send a status message on the mama subcription
-	virtual void OnStatusMessage(mamaMsgStatus statusCode) = 0;
+    // send a status message on the mama subcription
+    virtual void OnStatusMessage(mamaMsgStatus statusCode) = 0;
 
-	// raise an error on the mama subscription
-	virtual void OnError(mama_status statusCode) = 0;
+    // raise an error on the mama subscription
+    virtual void OnError(mama_status statusCode) = 0;
+
+    // call OpenMAMA onQuality callback
+    virtual void OnQuality(mamaQuality quality, short cause) = 0;
 };
 
 #endif //__SUBSCRIPTIONRESPONSELISTENER_H__
+

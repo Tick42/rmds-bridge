@@ -276,9 +276,14 @@ mama_status
     const void*  value,
     size_t       size)
 {
-    /*if (!name) name = empty_buf; */ //uncomment that line, once the function is implemented
+    if (!name) 
+        name = empty_buf;
 
-    return MAMA_STATUS_NOT_IMPLEMENTED;
+    MamaOpaqueWrapper_ptr_t wrapper = MamaOpaqueWrapper_ptr_t(new MamaOpaqueWrapper(value, size));
+    upaPayload(msg)->setOpaque(fid, name, wrapper);
+
+    return MAMA_STATUS_OK;
+
 }
 
 mama_status
@@ -507,7 +512,7 @@ mama_status
         msgPayload payload;
         mamaMsgImpl_getPayload(value[index],  &payload);
 
-        //		MamaMsgPayloadWrapper_ptr_t p = boost::shared_ptr<MamaMsgPayloadWrapper>(new MamaMsgPayloadWrapper(payload));
+        //        MamaMsgPayloadWrapper_ptr_t p = boost::shared_ptr<MamaMsgPayloadWrapper>(new MamaMsgPayloadWrapper(payload));
         wrapper->addMessage(payload);
     }
 

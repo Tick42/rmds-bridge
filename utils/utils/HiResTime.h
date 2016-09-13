@@ -10,23 +10,23 @@
 class HiResTime
 {
 public:
-	HiResTime(void);
-	~HiResTime(void);
+    HiResTime(void);
+    ~HiResTime(void);
 
-	void Initialise();
-	void SetMamaDateTime(mamaDateTime& dt) const;
+    void Initialise();
+    void SetMamaDateTime(mamaDateTime& dt) const;
 
-	double GetTime() const;
+    double GetTime() const;
 
 private:
 #ifndef WIN32
-	struct itimerval ivalue;
-	struct itimerval ovalue;
+    struct itimerval ivalue;
+    struct itimerval ovalue;
 #else
-	LARGE_INTEGER freq;
-	double freqd;
-	double epocdiff;
-	__int64 calloverhead;
+    LARGE_INTEGER freq;
+    double freqd;
+    double epocdiff;
+    __int64 calloverhead;
 #endif
 };
 

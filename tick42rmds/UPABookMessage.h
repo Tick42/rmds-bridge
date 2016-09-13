@@ -23,14 +23,17 @@
 *
 */
 #pragma once
+
 #ifndef __UPABOOKMESSAGE_H__
 #define __UPABOOKMESSAGE_H__
+
+#include "utils/namespacedefines.h"
 
 //////////////////////////////////////////////////////////////////////////
 //
 // aggregate contents of rssl mbo or mbp response message to transform into mama message
 //
-///////	
+///////
 
 #include "UPAMamaFieldMap.h"
 
@@ -38,50 +41,52 @@
 class UPABookEntry
 {
 public:
-	UPABookEntry();
-	~UPABookEntry();
+    UPABookEntry();
+    ~UPABookEntry();
 
-	// accessors
-	char ActionCode() const;
-	void ActionCode(char val);
-	char SideCode() const;
-	void SideCode(char val);
-	std::string Orderid() const;
-	void Orderid(std::string val);
+    // accessors
+    char ActionCode() const;
+    void ActionCode(char val);
+    char SideCode() const;
+    void SideCode(char val);
+    std::string Orderid() const;
+    void Orderid(std::string val);
 
-	std::string OrderTone() const;
-	void OrderTone(std::string val);
-	bool HaveOrderTone();
+    std::string OrderTone() const;
+    void OrderTone(std::string val);
+    bool HaveOrderTone();
 
-	std::string Mmid() const;
-	void Mmid(std::string val);
-	bool HaveMmid();
+    std::string Mmid() const;
+    void Mmid(std::string val);
+    bool HaveMmid();
 
-	RsslInt Size() const;
-	void Size(RsslInt val);
-	RsslUInt64 Time() const;
-	void Time(RsslUInt64 val);
-	RsslState Status() const;
-	void Status(RsslState val);
-	RsslReal Price() const;
-	void Price(RsslReal val);
-	void Price( std::string val );
-	RsslUInt64 NumOrders() const;
-	void NumOrders(RsslUInt64 val);
+    RsslInt Size() const;
+    void Size(RsslInt val);
+    RsslUInt64 Time() const;
+    void Time(RsslUInt64 val);
+    RsslState Status() const;
+    void Status(RsslState val);
+    RsslReal Price() const;
+    void Price(RsslReal val);
+    void Price( std::string val );
+    RsslUInt64 NumOrders() const;
+    void NumOrders(RsslUInt64 val);
+
+    bool HasSide();
 
 private:
-	char actionCode_;	// 683|wEntryAction
-	char sideCode_;		// 654|wPlSide|
-	std::string orderid_;	// 681|wEntryId
-	std::string orderTone_;  // ???
-	std::string mmid_;		// xxx|wPartId
-	RsslInt size_;		// 682|wEntrySize
-	RsslReal price_;	// 653|wPlPrice
-	RsslUInt64 time_;	// 685|wEntryTime
-	RsslState status_;	// 686|wEntryStatus
-	RsslUInt64 numOrders_; //// 657|wPlNumEntries
-	bool haveOrderTone_;	// since ORDER_TONE is TSE, we only add it if it is in msg
-	bool haveMmid_;			// since MMID is not always there we only add it ...
+    char actionCode_;    // 683|wEntryAction
+    char sideCode_;        // 654|wPlSide|
+    std::string orderid_;    // 681|wEntryId
+    std::string orderTone_;  // ???
+    std::string mmid_;        // xxx|wPartId
+    RsslInt size_;        // 682|wEntrySize
+    RsslReal price_;    // 653|wPlPrice
+    RsslUInt64 time_;    // 685|wEntryTime
+    RsslState status_;    // 686|wEntryStatus
+    RsslUInt64 numOrders_; //// 657|wPlNumEntries
+    bool haveOrderTone_;    // since ORDER_TONE is TSE, we only add it if it is in msg
+    bool haveMmid_;            // since MMID is not always there we only add it ...
 };
 
 
@@ -89,80 +94,111 @@ typedef boost::shared_ptr<UPABookEntry> UPABookEntry_ptr_t;
 
 typedef std::list<UPABookEntry_ptr_t> EntryList_t;
 
-typedef std::set<std::string> OrderIDSet_t;
+
+// Some data sources use an encoding for the price point and dont include the fields in all messages.
+// We need to be able to maintain a map where the price points are keyed on the encoding.
+// items are inserted on an ADD message at the price point and removed on a DELETE message at the price point
+class PricePoint
+{
+public:
+    PricePoint(RsslReal price, char side)
+        :price_(price), sideCode_(side)
+    {
+    }
+
+    void assign(const UPABookEntry& src)
+    {
+        Price(src.Price());
+        SideCode(src.SideCode());
+    }
+
+    RsslReal Price() const { return price_; }
+    void Price(RsslReal val) { price_ = val; }
+    char SideCode() const { return sideCode_; }
+    void SideCode(char val) { sideCode_ = val; }
+
+private:
+    RsslReal price_;    // 653|wPlPrice
+    char sideCode_;        // 654|wPlSide|
+};
+
+typedef boost::shared_ptr<PricePoint> PricePoint_ptr_t;
+
+typedef utils::collection::unordered_map<std::string, PricePoint_ptr_t> PricePointMap_t;
+typedef utils::collection::unordered_set<std::string> OrderIDSet_t;
 
 class UPALevel
 {
 public:
-	UPALevel(RsslReal price, RsslUInt64 time, char sideCode, RsslInt size, UpaMamaFieldMap_ptr_t fieldmap); 
+    UPALevel(RsslReal price, RsslUInt64 time, char sideCode, RsslInt size, UpaMamaFieldMap_ptr_t fieldmap);
 
-	~UPALevel();
+    ~UPALevel();
 
-	void AddEntry(UPABookEntry_ptr_t entry);
+    void AddEntry(UPABookEntry_ptr_t entry);
 
-	void ClearDeltas();
+    void ClearDeltas();
 
-	char ActionCode() const
-	{
-		return actionCode_;
-	}
+    char ActionCode() const
+    {
+        return actionCode_;
+    }
 
-	void ActionCode(char val)
-	{
-		actionCode_ = val;
-	}
+    void ActionCode(char val)
+    {
+        actionCode_ = val;
+    }
 
-	char SideCode() const
-	{
-		return sideCode_;
-	}
+    char SideCode() const
+    {
+        return sideCode_;
+    }
 
-	void SideCode(char val)
-	{
-		sideCode_ = val;
-	}
+    void SideCode(char val)
+    {
+        sideCode_ = val;
+    }
 
-	bool Dirty() const { return dirty_; }
-	void Dirty(bool val) { dirty_ = val; }
+    bool Dirty() const { return dirty_; }
+    void Dirty(bool val) { dirty_ = val; }
 
-	int NumOrders() const
-	{
-		return (int)orders_.size();
-	}
+    int NumOrders() const
+    {
+        return (int)orders_.size();
+    }
 
    RsslUInt64 Time() const { return time_; }
 
-	RsslReal Price() const { return price_; }
-	void Price(RsslReal val) { price_ = val; }
+    RsslReal Price() const { return price_; }
+    void Price(RsslReal val) { price_ = val; }
 
-	int AddEntriesToMsg(mamaMsg & msg);
+    int AddEntriesToMsg(mamaMsg & msg);
 
-	void ClearMessageVector(mamaMsg msg);
+    void ClearMessageVector(mamaMsg msg);
 
 private:
     RsslUInt64 time_;
-	RsslReal price_;
-	RsslInt size_;
+    RsslReal price_;
+    RsslInt size_;
 
-	// this is the set of deltas on the level
-	EntryList_t entryListDelta_;
+    // this is the set of deltas on the level
+    EntryList_t entryListDelta_;
 
-	char actionCode_;	// 652|wPlAction
-	char sideCode_;		// 654|wPlSide
+    char actionCode_;    // 652|wPlAction
+    char sideCode_;        // 654|wPlSide
 
-	bool dirty_;
+    bool dirty_;
 
-	// need to maintains a set of current order ids in this level so that we can tell when the level is emprt and can be removed
-	OrderIDSet_t orders_;
+    // need to maintains a set of current order ids in this level so that we can tell when the level is emprt and can be removed
+    OrderIDSet_t orders_;
 
-	std::vector<mamaMsg> entryMsgs_;
+    std::vector<mamaMsg> entryMsgs_;
 
-	UpaMamaFieldMap_ptr_t fieldmap_;
+    UpaMamaFieldMap_ptr_t fieldmap_;
 };
 
 typedef boost::shared_ptr<UPALevel> UPALevel_ptr_t;
 
-typedef std::map<RsslInt, UPALevel_ptr_t> LevelMap_t;
+typedef utils::collection::unordered_map<RsslInt, UPALevel_ptr_t> LevelMap_t;
 // accumulate the entries keyed on price in here and render a mama message from it
 
 
@@ -170,36 +206,36 @@ typedef std::map<RsslInt, UPALevel_ptr_t> LevelMap_t;
 class UPABookByOrderMessage
 {
 public:
-	UPABookByOrderMessage(void);
-	~UPABookByOrderMessage(void);
+    UPABookByOrderMessage(void);
+    ~UPABookByOrderMessage(void);
 
-	void Fieldmap(UpaMamaFieldMap_ptr_t val) { fieldmap_ = val; }
-	bool StartUpdate();
-	bool EndUpdate(mamaMsg msg);
+    void Fieldmap(UpaMamaFieldMap_ptr_t val) { fieldmap_ = val; }
+    bool StartUpdate();
+    bool EndUpdate(mamaMsg msg);
 
-	// add an entry from the rssl message
-	bool AddEntry(UPABookEntry_ptr_t entry);
+    // add an entry from the rssl message
+    bool AddEntry(UPABookEntry_ptr_t entry);
 
-	// update an entry fromn the rssl message
-	bool UpdateEntry(UPABookEntry_ptr_t entry);
+    // update an entry fromn the rssl message
+    bool UpdateEntry(UPABookEntry_ptr_t entry);
 
-	bool RemoveEntry(UPABookEntry_ptr_t entry );
+    bool RemoveEntry(UPABookEntry_ptr_t entry );
 
-	// build the mamda message
-	bool BuildMamdaMessage(mamaMsg msg);
+    // build the mamda message
+    bool BuildMamdaMessage(mamaMsg msg);
 
 private:
-	typedef std::map<std::string, UPABookEntry_ptr_t> OrderMap_t;
-	OrderMap_t orderMap_;
+    typedef utils::collection::unordered_map<std::string, UPABookEntry_ptr_t> OrderMap_t;
+    OrderMap_t orderMap_;
 
-	std::vector<mamaMsg> levelMsgs_;
+    std::vector<mamaMsg> levelMsgs_;
 
-	uint16_t numLevelMsgs_;
+    uint16_t numLevelMsgs_;
 
-	LevelMap_t levelMapBid_;
-	LevelMap_t levelMapAsk_;
+    LevelMap_t levelMapBid_;
+    LevelMap_t levelMapAsk_;
 
-	UpaMamaFieldMap_ptr_t fieldmap_;
+    UpaMamaFieldMap_ptr_t fieldmap_;
 
 };
 
@@ -207,23 +243,25 @@ private:
 class UPABookByPriceMessage
 {
 public:
-	UPABookByPriceMessage();
-	~UPABookByPriceMessage();
+    UPABookByPriceMessage();
+    ~UPABookByPriceMessage();
 
-	void Fieldmap(UpaMamaFieldMap_ptr_t val) { fieldmap_ = val; }
+    void Fieldmap(UpaMamaFieldMap_ptr_t val) { fieldmap_ = val; }
 
-	bool StartUpdate();
+    bool StartUpdate();
 
-	bool AddEntry(UPABookEntry_ptr_t entry);
+    bool AddEntry(UPABookEntry_ptr_t entry);
 
-	bool BuildMamdaMessage(mamaMsg msg);
+    bool BuildMamdaMessage(mamaMsg msg);
+
+    const EntryList_t& getEntryList() const { return entries_; }
 
 private:
 
-	std::vector<mamaMsg> levelMsgs_;
-	EntryList_t entries_;
+    std::vector<mamaMsg> levelMsgs_;
+    EntryList_t entries_;
 
-	UpaMamaFieldMap_ptr_t fieldmap_;
+    UpaMamaFieldMap_ptr_t fieldmap_;
 
 };
 

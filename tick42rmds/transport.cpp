@@ -37,7 +37,7 @@
 #else
 #include "RMDSSubscriber.h"
 #include "RMDSPublisher.h"
-#endif	//ENABLE_TICK42_ENAHNCED
+#endif    //ENABLE_TICK42_ENAHNCED
 
 #include "RMDSNIPublisher.h"
 #include "UPATransportNotifier.h"
@@ -89,8 +89,8 @@ mama_status
 
    if(hosts.empty() && source.empty())
    {
-	   t42log_error("ERROR - Transport name %s is invalid\n", name);
-	   return MAMA_STATUS_INVALID_ARG;
+       t42log_error("ERROR - Transport name %s is invalid\n", name);
+       return MAMA_STATUS_INVALID_ARG;
    }
 
 
@@ -422,22 +422,22 @@ mama_status RMDSTransportBridge::Start()
    {
 
 #ifdef ENABLE_TICK42_ENHANCED
-	   // Additional functionality provided by the enhanced bridge is available as part of a a support package
-	   // please contact support@tick42.com
-	   subscriber_ = boost::shared_ptr<RMDSSubscriber> (new T42Enh_RMDSSubscriber(*gNotify)); 
+       // Additional functionality provided by the enhanced bridge is available as part of a a support package
+       // please contact support@tick42.com
+       subscriber_ = boost::shared_ptr<RMDSSubscriber> (new T42Enh_RMDSSubscriber(*gNotify)); 
 #else
-	   subscriber_ = boost::shared_ptr<RMDSSubscriber> (new RMDSSubscriber(*gNotify)); 
-#endif	//ENABLE_TICK42_ENHANCED
+       subscriber_ = boost::shared_ptr<RMDSSubscriber> (new RMDSSubscriber(*gNotify)); 
+#endif    //ENABLE_TICK42_ENHANCED
 
-	   subscriber_->Initialize((mamaBridge)bridgeImpl, transport_, name_);
+       subscriber_->Initialize((mamaBridge)bridgeImpl, transport_, name_);
 
-	   if (!subscriber_->Start(NULL, RSSL_CONN_TYPE_SOCKET ))
-	   {
-		  if (ret == RSSL_RET_SUCCESS)
-			 rsslUninitialize();
-		  started_ = false;
-		  return MAMA_STATUS_PLATFORM;
-	   }
+       if (!subscriber_->Start(NULL, RSSL_CONN_TYPE_SOCKET ))
+       {
+          if (ret == RSSL_RET_SUCCESS)
+             rsslUninitialize();
+          started_ = false;
+          return MAMA_STATUS_PLATFORM;
+       }
 
    }
 
@@ -448,9 +448,9 @@ mama_status RMDSTransportBridge::Start()
    {
       // create and start up a publisher too
 #ifdef ENABLE_TICK42_ENHANCED
-	   // Additional functionality provided by the enhanced bridge is available as part of a a support package
-	   // please contact support@tick42.com
-	   publisher_ = RMDSPublisherBase_ptr_t(new T42Enh_RMDSPublisher(*gNotify));
+       // Additional functionality provided by the enhanced bridge is available as part of a a support package
+       // please contact support@tick42.com
+       publisher_ = RMDSPublisherBase_ptr_t(new T42Enh_RMDSPublisher(*gNotify));
 
 #else
       publisher_ = RMDSPublisherBase_ptr_t(new RMDSPublisher(*gNotify));
@@ -489,7 +489,7 @@ mama_status RMDSTransportBridge::Stop()
       if (subscriber_)
       {
          subscriber_->Stop();
-		 mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s) - subscriber stopped\n", name_.c_str());
+         mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s) - subscriber stopped\n", name_.c_str());
       }
    }
 
@@ -517,6 +517,8 @@ void RMDSTransportBridge::setDictionaryReply( boost::shared_ptr<DictionaryReply_
 
 mama_status RMDSTransportBridge::Pause()
 {
+   t42log_info("RMDSTransportBridge::Pause:");
+
    // stop the statistics logger thread now, in case we are shutting down the whole bridge
    StatisticsLogger::PauseUpdates();
 
@@ -531,6 +533,8 @@ mama_status RMDSTransportBridge::Pause()
 
 mama_status RMDSTransportBridge::Resume()
 {
+   t42log_info("RMDSTransportBridge::Resume: stopped=%d paused=%d", stopped_, paused_);
+
    if (stopped_)
    {
       t42log_error("cannot resume bridge - it has been stopped");
@@ -556,10 +560,11 @@ mama_status RMDSTransportBridge::Resume()
 void RMDSTransportBridge::SendSnapshotRequest( SnapshotReply_ptr_t snapReply )
 {
 
-	// should lock this to avoid shutdown issues
-	T42Lock lock(&cs_);
-	if (subscriber_)
-	{
-		subscriber_->SendSnapshotRequest(snapReply);
-	}
+    // should lock this to avoid shutdown issues
+    T42Lock lock(&cs_);
+    if (subscriber_)
+    {
+        subscriber_->SendSnapshotRequest(snapReply);
+    }
 }
+

@@ -34,82 +34,135 @@ const unsigned int NumStreamIds = 0x40000; // 256k for the moment
 
 inline RsslUInt32 Index2StreamId(RsslUInt32 Index)
 {
-	return Index+StartStreamID;
+    return Index+StartStreamID;
 }
 
 inline RsslUInt32 StreamId2Index( RsslUInt32 streamId)
 {
-	return streamId - StartStreamID;
+    return streamId - StartStreamID;
+}
+
+void* UPAStreamManager::Track(void* p)
+{
+    UPAStreamManager* s = (UPAStreamManager*) p;
+    StatisticsLogger_ptr_t statsLogger_ = StatisticsLogger::GetStatisticsLogger();
+    while (true)
+    {
+        sleep(10);
+
+        int inactive = 0;
+        int live = 0;
+        int ing = 0;
+        int stale = 0;
+        int other = 0;
+        long sum = 0;
+        {
+            T42Lock lock(&s->streamLock_);
+            pending_items_t::iterator it = s->pendingItems_.begin();
+            while (s->pendingItems_.end() != it)
+            {
+                UPASubscription* sub = *it++;
+                sum += (long) sub;
+                UPASubscription::UPASubscriptionState state = sub->GetSubscriptionState();
+                if (state == UPASubscription::SubscriptionStateSubscribing) ing++;
+                else if (state == UPASubscription::SubscriptionStateInactive) inactive++;
+                else if (state == UPASubscription::SubscriptionStateLive) live++;
+                else if (state == UPASubscription::SubscriptionStateStale) stale++;
+                else
+                {
+                    fprintf(stderr, "### state=%d\n", state);    // debug code only
+                    other++;
+                }
+            }
+        }
+        fprintf(stderr, "PENDING: o=%d q=%d wait=%d live=%d inactive=%d subscribing=%d stale=%d other=%d sum=%ld\n",
+            s->openItems_, statsLogger_->GetRequestQueueLength(), s->pendingItems_.size(), live, inactive, ing, stale, other, sum);
+    }
+    return NULL;
 }
 
 UPAStreamManager::UPAStreamManager()
-	: pendingItems_(0)
+    : pendingItems_(0)
    , openItems_(0)
    , pendingCloses_(0)
 {
+    ItemArray_ = new UPAItem_ptr_t [NumStreamIds]; 
+    ::memset(ItemArray_, 0, sizeof(UPAItem_ptr_t *)*NumStreamIds);
 
-	ItemArray_ = new UPAItem_ptr_t [NumStreamIds]; 
-	::memset(ItemArray_, 0, sizeof(UPAItem_ptr_t *)*NumStreamIds);
+    nextIndex_ = 0;
+    nextPubIndex_ = 1;
 
-	nextIndex_ = 0;
-	nextPubIndex_ = 1;
+    // wthread_t tid;
+    // wthread_create(&tid, 0, &UPAStreamManager::Track, this);
 }
 
 
 UPAStreamManager::~UPAStreamManager(void)
 {
-	delete [] ItemArray_;
+    delete [] ItemArray_;
 }
 
 RsslUInt32 UPAStreamManager::AddItem( UPASubscription_ptr_t sub )
 {
-	RsslUInt32 index;
-	if (nextIndex_ >= NumStreamIds)
-	{
-		// first check to see if there is a free slot in the free list
-		if (freeStreamIds_.size() > 0)
-		{
-			// grab the front of the list
-			index = freeStreamIds_.front();
-			freeStreamIds_.pop_front();
-		}
-		else
-		{
-			t42log_warn("!No more streamIDs\n");
-			return 0;
-		}
-	}
-	else
-	{
-		 index = nextIndex_++;
-	}
+    T42Lock lock(&streamLock_);
 
-	RsslUInt32 streamId = Index2StreamId(index);
-	UPAItem_ptr_t newItem = UPAItem_ptr_t(new UPAItem(streamId, sub));
-	ItemArray_[index] = newItem;
-	return streamId;
+    RsslUInt32 index;
+    static bool firstUseOfQueue = true;
+
+    if (nextIndex_ >= NumStreamIds)
+    {
+        if (firstUseOfQueue)
+        {
+            firstUseOfQueue = false;
+            t42log_info("Begin using the StreamManager queue, MaxStreamIds=%d", NumStreamIds);
+        }
+
+        // first check to see if there is a free slot in the free list
+        if (freeStreamIds_.size() > 0)
+        {
+            // grab the front of the list
+            index = freeStreamIds_.front();
+            freeStreamIds_.pop();
+        }
+        else
+        {
+            t42log_warn("!No more streamIDs\n");
+            return 0;
+        }
+    }
+    else
+    {
+         index = nextIndex_++;
+    }
+
+    RsslUInt32 streamId = Index2StreamId(index);
+    UPAItem_ptr_t newItem = UPAItem_ptr_t(new UPAItem(streamId, sub));
+    ItemArray_[index] = newItem;
+    return streamId;
 }
 
 UPAItem_ptr_t UPAStreamManager::GetItem( RsslUInt32 streamId )
 {
-	RsslUInt32 index = StreamId2Index(streamId);
-	return ItemArray_[index];
+    RsslUInt32 index = StreamId2Index(streamId);
+    return ItemArray_[index];
 }
 
 bool UPAStreamManager::ReleaseStreamId( RsslUInt32 streamId )
 {
-	RsslUInt32 index = StreamId2Index(streamId);
-	ItemArray_[index].reset();
+    T42Lock lock(&streamLock_);
 
-	// add the index to the free list
-	freeStreamIds_.push_back(index);
-	return true;
+    RsslUInt32 index = StreamId2Index(streamId);
+    ItemArray_[index].reset();
+
+    // add the index to the free list
+    freeStreamIds_.push(index);
+    return true;
 }
 
 
 
 UPAItem::UPAItem(RsslUInt32 streamId, UPASubscription_ptr_t sub )
-	: sub_(sub), itemName_(sub->Symbol()), streamId_(streamId)
+    : sub_(sub), itemName_(sub->Symbol()), streamId_(streamId)
 {
 
 }

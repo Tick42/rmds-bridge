@@ -31,7 +31,7 @@
 
 /** 
  * @brief Creates a back off reconnection pattern to iterate on for each reconnect event
- *	      The connection retries are defined as a comma separated list of delays(in seconds) and the number of retires at each delay
+ *          The connection retries are defined as a comma separated list of delays(in seconds) and the number of retires at each delay
  *        The default schedule is 0,3(3),10(3),30(6)
  *        would retry both hosts immediately then 3 times with a 3s delay, 3 times with a 10s delay then 6 times with a 30s delay
  */
@@ -43,72 +43,72 @@ typedef std::vector<utils::parse::retrysched_t> retrysched_vector_t;
 class RMDSConnectionConfig
 {
 public:
-	/** 
-	 * @brief Constructor initializes the hosts and retry-schedule 
-	 * @hosts get a CSV string of the following syntax <string>{:number}. example localhost:4,192.168.1.2
-	 * @retrysched get a CSV string of the following syntax <number>{(number)}. example: 5(2),3(4),5,6(2),7 the last optional number in braket, in case given, will be practically ignore.
-	 */
-	RMDSConnectionConfig(const std::string &hosts, const std::string &retrysched);
-	/** 
-	 * @brief states whether the object is valid or not
-	 */
-	inline bool Valid() {return valid_;}
+    /** 
+     * @brief Constructor initializes the hosts and retry-schedule 
+     * @hosts get a CSV string of the following syntax <string>{:number}. example localhost:4,192.168.1.2
+     * @retrysched get a CSV string of the following syntax <number>{(number)}. example: 5(2),3(4),5,6(2),7 the last optional number in braket, in case given, will be practically ignore.
+     */
+    RMDSConnectionConfig(const std::string &hosts, const std::string &retrysched);
+    /** 
+     * @brief states whether the object is valid or not
+     */
+    inline bool Valid() {return valid_;}
 
-	/** 
-	 * @brief Set next reconnection configuration
-	 */
-	void Next();
+    /** 
+     * @brief Set next reconnection configuration
+     */
+    void Next();
 
-	/** 
-	 * @brief Configured host address to connect to
-	 */
-	inline std::string Host() const
-	{
-		return itCurrHost_->host;
-	}
+    /** 
+     * @brief Configured host address to connect to
+     */
+    inline std::string Host() const
+    {
+        return itCurrHost_->host;
+    }
 
-	/** 
-	 * @brief Configured port number to connect to
-	 */
-	inline std::string Port() const
-	{
-		return itCurrHost_->port;
-	}
+    /** 
+     * @brief Configured port number to connect to
+     */
+    inline std::string Port() const
+    {
+        return itCurrHost_->port;
+    }
 
-	/** 
-	 * @brief Delay in seconds
-	 */
-	inline unsigned int Delay() const
-	{
-		return itCurrRetrysched_->delay;
-	}
-
-
-	/** 
-	 * @brief Set default values for retrysched (retry schedule) which are: 0,3(3),10(3),30(6)
-	 */
-	void SetDefaultRetryschedValues();
+    /** 
+     * @brief Delay in seconds
+     */
+    inline unsigned int Delay() const
+    {
+        return itCurrRetrysched_->delay;
+    }
 
 
+    /** 
+     * @brief Set default values for retrysched (retry schedule) which are: 0,3(3),10(3),30(6)
+     */
+    void SetDefaultRetryschedValues();
 
-	unsigned int NumHosts() const
-	{
-		return (unsigned int)hosts_.size();
-	}
+
+
+    unsigned int NumHosts() const
+    {
+        return (unsigned int)hosts_.size();
+    }
 
 private:
 
-	host_vector_t CreateHostVector(const std::string &hosts);
-	retrysched_vector_t CreateRetryschedVector(const std::string &retrysched);
+    host_vector_t CreateHostVector(const std::string &hosts);
+    retrysched_vector_t CreateRetryschedVector(const std::string &retrysched);
 
 
-	host_vector_t hosts_; // hosts configuration vector
-	retrysched_vector_t retryscheds_; // retry-schedule configuration vector
-	host_vector_t::const_iterator itCurrHost_; //Current host configuration
-	retrysched_vector_t ::const_iterator itCurrRetrysched_; //Current retry-schedule configuration
+    host_vector_t hosts_; // hosts configuration vector
+    retrysched_vector_t retryscheds_; // retry-schedule configuration vector
+    host_vector_t::const_iterator itCurrHost_; //Current host configuration
+    retrysched_vector_t ::const_iterator itCurrRetrysched_; //Current retry-schedule configuration
 
-	unsigned int retries_; //holds how many times should stick to the current retry-schedule configuration
-	bool valid_; //states whether the object is valid or not
+    unsigned int retries_; //holds how many times should stick to the current retry-schedule configuration
+    bool valid_; //states whether the object is valid or not
 
 };
 

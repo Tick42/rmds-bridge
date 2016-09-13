@@ -2,7 +2,24 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
-  <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
+
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='90' ">
+    <PlatformVersionExt>9.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='100' ">
+    <PlatformVersionExt>10.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='110' ">
+    <PlatformVersionExt>11.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='120' ">
+    <PlatformVersionExt>12.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='140' ">
+    <PlatformVersionExt>14.0</PlatformVersionExt>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup Condition="'$(TICK42_BOOST)'!='' And '$(Platform)'=='Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(TICK42_BOOST);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -14,8 +31,7 @@
     </Lib>
   </ItemDefinitionGroup>
 
-
-  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+  <ItemDefinitionGroup Condition="'$(TICK42_BOOST64)'!='' And '$(Platform)'=='x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(TICK42_BOOST64);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
@@ -24,6 +40,18 @@
     </Link>
     <Lib>
       <AdditionalLibraryDirectories>$(TICK42_BOOST64)\lib;$(TICK42_BOOST64)\stage\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Lib>
+  </ItemDefinitionGroup>
+  
+  <ItemDefinitionGroup Condition="'$(TICK42_BOOST_PREBUILT)'!='' And '$(TICK42_BOOST)'==''">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(TICK42_BOOST_PREBUILT)\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(TICK42_BOOST_PREBUILT)\lib$(PlatformArchitecture)-msvc-$(PlatformVersionExt)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <Lib>
+      <AdditionalLibraryDirectories>$(TICK42_BOOST_PREBUILT)\lib$(PlatformArchitecture)-msvc-$(PlatformVersionExt)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
 </Project>

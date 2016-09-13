@@ -34,43 +34,43 @@
 
 struct BookFields
 {
-	MamaField_t OrderTone;		// 3886|ORDER_TONE
-	MamaField_t wNumLevels;		// 651|wNumLevels
-	MamaField_t wPlAction;		// 652|wPlAction
-	MamaField_t wPlPrice;		// 653|wPlPrice
-	MamaField_t wPlSide;		// 654|wPlSide
-	MamaField_t wPlSize;		// 655|wPlSize
-	MamaField_t wPlSizeChange;	// 656|wPlSizeChange
-	MamaField_t wPlNumEntries;	// 657|wPlNumEntries
-	MamaField_t wPlTime;		// 658|wPlTime
-	MamaField_t wPlNumAttach;	// 659|wPlNumAttach
-	MamaField_t wBookTime;		// 671|wBookTime
-	MamaField_t wEntryId;		// 681|wEntryId
-	MamaField_t wEntrySize;		// 682|wEntrySize
-	MamaField_t wEntryAction;	// 683|wEntryAction
-	MamaField_t wEntryReason;	// 684|wEntryReason
-	MamaField_t wEntryTime;		// 685|wEntryTime
-	MamaField_t wEntryStatus;	// 686|wEntryStatus
-	MamaField_t wPriceLevels;	// 699|wPriceLevels
-	MamaField_t wPlEntries;		// 700|wPlEntries
+    MamaField_t OrderTone;        // 3886|ORDER_TONE
+    MamaField_t wNumLevels;        // 651|wNumLevels
+    MamaField_t wPlAction;        // 652|wPlAction
+    MamaField_t wPlPrice;        // 653|wPlPrice
+    MamaField_t wPlSide;        // 654|wPlSide
+    MamaField_t wPlSize;        // 655|wPlSize
+    MamaField_t wPlSizeChange;    // 656|wPlSizeChange
+    MamaField_t wPlNumEntries;    // 657|wPlNumEntries
+    MamaField_t wPlTime;        // 658|wPlTime
+    MamaField_t wPlNumAttach;    // 659|wPlNumAttach
+    MamaField_t wBookTime;        // 671|wBookTime
+    MamaField_t wEntryId;        // 681|wEntryId
+    MamaField_t wEntrySize;        // 682|wEntrySize
+    MamaField_t wEntryAction;    // 683|wEntryAction
+    MamaField_t wEntryReason;    // 684|wEntryReason
+    MamaField_t wEntryTime;        // 685|wEntryTime
+    MamaField_t wEntryStatus;    // 686|wEntryStatus
+    MamaField_t wPriceLevels;    // 699|wPriceLevels
+    MamaField_t wPlEntries;        // 700|wPlEntries
 
-	MamaField_t wBookType;		// 4714|wBookType
-	MamaField_t TIMACT_MS;
+    MamaField_t wBookType;        // 4714|wBookType
+    MamaField_t TIMACT_MS;
 
 
 };
 
 struct CommonFields
 {
-	MamaField_t wSymbol;		// 470
-	MamaField_t wIssueSymbol;	// 305
-	MamaField_t wIndexSymbol;	// 293
-	MamaField_t wPartId;		// 429
-	MamaField_t wSeqNum;		// 498
-	MamaField_t wSrcTime;		// 465
-	MamaField_t wLineTime;		// 1174
-	MamaField_t wActivityTime;	// 102
-	MamaField_t wPubId;			//495
+    MamaField_t wSymbol;        // 470
+    MamaField_t wIssueSymbol;    // 305
+    MamaField_t wIndexSymbol;    // 293
+    MamaField_t wPartId;        // 429
+    MamaField_t wSeqNum;        // 498
+    MamaField_t wSrcTime;        // 465
+    MamaField_t wLineTime;        // 1174
+    MamaField_t wActivityTime;    // 102
+    MamaField_t wPubId;            //495
 };
 
 class UpaMamaCommonFields

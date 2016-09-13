@@ -40,8 +40,8 @@ using namespace utils::thread;
 //
 RMDSSources::RMDSSources()
 #ifdef ENABLE_TICK42_ENHANCED
-	// Additional functionality provided by the enhanced bridge is available as part of a a support package
-	// please contact support@tick42.com
+    // Additional functionality provided by the enhanced bridge is available as part of a a support package
+    // please contact support@tick42.com
    : enhancedTag_(0)
 #endif // ENABLE_TICK42_ENHANCED
 {
@@ -60,53 +60,53 @@ RMDSSource_ptr_t RMDSSources::DefaultFactory(RsslUInt64 keyId, string keyName, U
 //
 RMDSSource_ptr_t RMDSSources::UpdateOrCreate(RsslUInt64 keyId, string keyName, ServiceState value, SourceFactory Creator)
 {
-	// No check is done if keyName is already exists for a  different keyId, since it is guaranteed that in one session or running the numbers won't change.
-	// However in case of such error the new keyId is mapped to the keyName and the old one is overridden.
+    // No check is done if keyName is already exists for a  different keyId, since it is guaranteed that in one session or running the numbers won't change.
+    // However in case of such error the new keyId is mapped to the keyName and the old one is overridden.
 
-	RMDSSource_ptr_t s;
-	if (!Find(keyId, s))
-	{
-		// we don't already have a service on this id so create it
-		s = Creator(keyId, keyName, consumer_);
-		servicesMap_[keyId] = s;
-		serviceNameMap_[keyName] = keyId;
-	}
+    RMDSSource_ptr_t s;
+    if (!Find(keyId, s))
+    {
+        // we don't already have a service on this id so create it
+        s = Creator(keyId, keyName, consumer_);
+        servicesMap_[keyId] = s;
+        serviceNameMap_[keyName] = keyId;
+    }
 
-	// and set the state
-	s->SetState(value);
+    // and set the state
+    s->SetState(value);
    return s;
 }
 
 bool RMDSSources::Find(RsslUInt64 keyId, RMDSSource_ptr_t &value) const
 {
-	services_t::const_iterator it = servicesMap_.find(keyId);
-	if (it != servicesMap_.end()) 
-		value = it->second;
-	return it != servicesMap_.end();
+    services_t::const_iterator it = servicesMap_.find(keyId);
+    if (it != servicesMap_.end()) 
+        value = it->second;
+    return it != servicesMap_.end();
 }
 
 
 bool RMDSSources::Find(string keyName, RMDSSource_ptr_t &value) const 
-	{
-		ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
-		if (itId == serviceNameMap_.end()) 
-			return false;
-		return Find(itId->second, value);
-	}
+    {
+        ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
+        if (itId == serviceNameMap_.end()) 
+            return false;
+        return Find(itId->second, value);
+    }
 
 
 bool RMDSSources::Exists(RsslUInt64 keyId) const
 {
-	services_t::const_iterator it = servicesMap_.find(keyId);
-	return it != servicesMap_.end();
+    services_t::const_iterator it = servicesMap_.find(keyId);
+    return it != servicesMap_.end();
 }
 
 bool RMDSSources::Exists(string keyName) const 
 {
-	ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
-	if (itId == serviceNameMap_.end()) 
-		return false;
-	return Exists(itId->second);
+    ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
+    if (itId == serviceNameMap_.end()) 
+        return false;
+    return Exists(itId->second);
 }
 
 void RMDSSources::Initialise(UPAConsumer_ptr_t consumer)
@@ -125,8 +125,8 @@ void RMDSSources::Shutdown()
 {
 #ifdef ENABLE_TICK42_ENHANCED
    // Shutdown the enhanced library
-	// Additional functionality provided by the enhanced bridge is available as part of a a support package
-	// please contact support@tick42.com
+    // Additional functionality provided by the enhanced bridge is available as part of a a support package
+    // please contact support@tick42.com
    if (0 != enhancedTag_)
    {
       T42Enhanced::shutdown(enhancedTag_);
@@ -136,29 +136,29 @@ void RMDSSources::Shutdown()
 
 bool RMDSSources::SetAllStale()
 {
-	services_t::const_iterator itSources = servicesMap_.begin();
+    services_t::const_iterator itSources = servicesMap_.begin();
 
-	while(itSources != servicesMap_.end())
-	{
-		itSources->second->SetStale();
-		++itSources;
-	}
+    while(itSources != servicesMap_.end())
+    {
+        itSources->second->SetStale();
+        ++itSources;
+    }
 
-	return true;
+    return true;
 
 }
 
 bool RMDSSources::ResubscribeAll()
 {
-	services_t::const_iterator itSources = servicesMap_.begin();
+    services_t::const_iterator itSources = servicesMap_.begin();
 
-	while(itSources != servicesMap_.end())
-	{
-		itSources->second->ReSubscribe();
-		++itSources;
-	}
+    while(itSources != servicesMap_.end())
+    {
+        itSources->second->ReSubscribe();
+        ++itSources;
+    }
 
-	return true;
+    return true;
 }
 
 //////////////////////////////////////////////////////////////////////////

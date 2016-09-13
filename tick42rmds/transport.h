@@ -106,8 +106,8 @@ private:
    std::string name_;
    boost::shared_ptr<DictionaryReply_t> DictionaryReply_;
 public:
-	void setDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply);
-	void SendSnapshotRequest(SnapshotReply_ptr_t snapReply);
+    void setDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply);
+    void SendSnapshotRequest(SnapshotReply_ptr_t snapReply);
 
 };
 

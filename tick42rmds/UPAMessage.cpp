@@ -31,77 +31,86 @@
 
 extern "C"
 {
-	extern	fd_set wrtfds; /* located in application */
+    extern    fd_set wrtfds; /* located in application */
+}
+
+RsslRet SendUPAMessage(RsslChannel* UPAChannel, RsslBuffer* msgBuffer)
+{
+    std::string errorText;
+    return SendUPAMessageWithErrorText(UPAChannel, msgBuffer, errorText);
 }
 
 // Send a message on a channel
-RsslRet SendUPAMessage(RsslChannel* UPAChannel, RsslBuffer* msgBuffer)
+RsslRet SendUPAMessageWithErrorText(RsslChannel* UPAChannel, RsslBuffer* msgBuffer, std::string& errorText)
 {
-	RsslError error;
-	RsslRet	retval = 0;
-	RsslUInt32 bytesWritten = 0;
-	RsslUInt32 uncompressedBytesWritten = 0;
-	RsslUInt8 writeFlags = RSSL_WRITE_NO_FLAGS;
+    RsslError error;
+    RsslRet    retval = 0;
+    RsslUInt32 bytesWritten = 0;
+    RsslUInt32 uncompressedBytesWritten = 0;
+    RsslUInt8 writeFlags = RSSL_WRITE_NO_FLAGS;
 
-	/* send the request */
-	if ((retval = rsslWrite(UPAChannel, msgBuffer, RSSL_HIGH_PRIORITY, writeFlags, &bytesWritten, &uncompressedBytesWritten, &error)) > RSSL_RET_FAILURE)
-	{
-		// set write fd if there's still data queued 
-		// flush is done by application 
-		if (retval > RSSL_RET_SUCCESS)
-		{
-			FD_SET(UPAChannel->socketId, &wrtfds);
-		}
-	}
-	else
-	{
-		if (retval == RSSL_RET_WRITE_CALL_AGAIN)
-		{
-			 // call flush and write again 
-			while (retval == RSSL_RET_WRITE_CALL_AGAIN)
-			{
-				if ((retval = rsslFlush(UPAChannel, &error)) < RSSL_RET_SUCCESS)
-				{
-					t42log_error("rsslFlush() failed with return code %d - <%s>\n", retval, error.text);
-				}
-				retval = rsslWrite(UPAChannel, msgBuffer, RSSL_HIGH_PRIORITY, writeFlags, &bytesWritten, &uncompressedBytesWritten, &error);
-			}
-			 //set write fd if there's still data queued 
-			 //flush is done by application 
-			if (retval > RSSL_RET_SUCCESS)
-			{
-				FD_SET(UPAChannel->socketId, &wrtfds);
-			}
-		}
-		else if (retval == RSSL_RET_WRITE_FLUSH_FAILED && UPAChannel->state != RSSL_CH_STATE_CLOSED)
-		{
-			// set write fd if flush failed 
-			// flush is done by application 
-			FD_SET(UPAChannel->socketId, &wrtfds);
-		}
-		else	// close the connection and return
-		{
-			// rsslWrite failed, release buffer 
-			t42log_error("rsslWrite() failed with return code %d - <%s>\n", retval, error.text);
-			rsslReleaseBuffer(msgBuffer, &error);
-			return RSSL_RET_FAILURE;
-		}
-	}
+    /* send the request */
+    if ((retval = rsslWrite(UPAChannel, msgBuffer, RSSL_HIGH_PRIORITY, writeFlags, &bytesWritten, &uncompressedBytesWritten, &error)) > RSSL_RET_FAILURE)
+    {
+        // set write fd if there's still data queued 
+        // flush is done by application 
+        if (retval > RSSL_RET_SUCCESS)
+        {
+            FD_SET(UPAChannel->socketId, &wrtfds);
+        }
+    }
+    else
+    {
+        if (retval == RSSL_RET_WRITE_CALL_AGAIN)
+        {
+             // call flush and write again 
+            while (retval == RSSL_RET_WRITE_CALL_AGAIN)
+            {
+                if ((retval = rsslFlush(UPAChannel, &error)) < RSSL_RET_SUCCESS)
+                {
+                    t42log_error("rsslFlush() failed with return code %d - <%s>\n", retval, error.text);
+                }
+                retval = rsslWrite(UPAChannel, msgBuffer, RSSL_HIGH_PRIORITY, writeFlags, &bytesWritten, &uncompressedBytesWritten, &error);
+            }
+             //set write fd if there's still data queued 
+             //flush is done by application 
+            if (retval > RSSL_RET_SUCCESS)
+            {
+                FD_SET(UPAChannel->socketId, &wrtfds);
+            }
+        }
+        else if (retval == RSSL_RET_WRITE_FLUSH_FAILED && UPAChannel->state != RSSL_CH_STATE_CLOSED)
+        {
+            // set write fd if flush failed 
+            // flush is done by application 
+            FD_SET(UPAChannel->socketId, &wrtfds);
+        }
+        else    // close the connection and return
+        {
+            // rsslWrite failed, release buffer 
+            t42log_error("rsslWrite() failed with return code %d - <%s>\n", retval, error.text);
+            errorText.assign(error.text);
+            rsslReleaseBuffer(msgBuffer, &error);
+            return RSSL_RET_FAILURE;
+        }
+    }
 
-	t42log_debug("SendMessage - %lu bytes written, %lu bytes uncompressed \n", bytesWritten, uncompressedBytesWritten);
+    t42log_debug("SendMessage - %lu bytes written, %lu bytes uncompressed \n", bytesWritten, uncompressedBytesWritten);
 
-	if ((retval = rsslFlush(UPAChannel, &error)) < RSSL_RET_SUCCESS)
-	{
-		//printf("rsslFlush() failed with return code %d - <%s>\n", retval, error.text);
-	}
-	else if (retval == RSSL_RET_SUCCESS)
-	{
-		 //clear write fd 
-		FD_CLR(UPAChannel->socketId, &wrtfds);
-	}
+    if ((retval = rsslFlush(UPAChannel, &error)) < RSSL_RET_SUCCESS)
+    {
+        //printf("rsslFlush() failed with return code %d - <%s>\n", retval, error.text);
+        errorText.assign(error.text);
+
+    }
+    else if (retval == RSSL_RET_SUCCESS)
+    {
+         //clear write fd 
+        FD_CLR(UPAChannel->socketId, &wrtfds);
+    }
 
 
-	return RSSL_RET_SUCCESS;
+    return RSSL_RET_SUCCESS;
 }
 
 
@@ -111,23 +120,23 @@ RsslRet SendUPAMessage(RsslChannel* UPAChannel, RsslBuffer* msgBuffer)
  //
 RsslRet SendPing(RsslChannel* UPAChannel)
 {
-	RsslError error;
-	RsslRet ret = 0;
+    RsslError error;
+    RsslRet ret = 0;
 
-	if ((ret = rsslPing(UPAChannel, &error)) < RSSL_RET_SUCCESS)
-	{
-		t42log_error("rsslPing(): Failed on fd=%d with code %d\n", UPAChannel->socketId, ret);
-		return ret;
-	}
-	else if (ret > RSSL_RET_SUCCESS)
-	{
-		 //set write fd if there's still data queued 
-		 //flush is done by application 
-		FD_SET(UPAChannel->socketId, &wrtfds);
-	}
+    if ((ret = rsslPing(UPAChannel, &error)) < RSSL_RET_SUCCESS)
+    {
+        t42log_error("rsslPing(): Failed on fd=%d with code %d\n", UPAChannel->socketId, ret);
+        return ret;
+    }
+    else if (ret > RSSL_RET_SUCCESS)
+    {
+         //set write fd if there's still data queued 
+         //flush is done by application 
+        FD_SET(UPAChannel->socketId, &wrtfds);
+    }
 
-	//printf("sent ping\n");
+    //printf("sent ping\n");
 
-	return RSSL_RET_SUCCESS;
+    return RSSL_RET_SUCCESS;
 }
 

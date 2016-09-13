@@ -28,6 +28,7 @@
 #define __FIELDENCODER_H__
 
 #include "UPAMamaFieldMap.h"
+#include <utils/namespacedefines.h>
 
 // Encodes an entire mama message into an rssl field list
 
@@ -54,7 +55,7 @@ private:
     RsslDataDictionary * rmdsDictionary_;
     bool encodeFail_;
 
-    static std::unordered_set<int> suppressBadEnumWarnings_;
+    static utils::collection::unordered_set<int> suppressBadEnumWarnings_;
 };
 
 #endif // __FIELDENCODER_H__

@@ -30,48 +30,48 @@
 
 MamaMsgWrapper::MamaMsgWrapper(mamaMsg msg)
 {
-	mamaMsg_ = msg; 
+    mamaMsg_ = msg; 
 }
 
 MamaMsgWrapper::~MamaMsgWrapper(void)
 {
-	mamaMsg_destroy(mamaMsg_); 
+    mamaMsg_destroy(mamaMsg_); 
 }
 
 mamaMsg MamaMsgWrapper::getMamaMsg() const
 {
-	return mamaMsg_;
+    return mamaMsg_;
 }
 
 MamaMsgPayloadWrapper::MamaMsgPayloadWrapper( msgPayload msgPayload )
 {
-	msgPayload_ = msgPayload;
+    msgPayload_ = msgPayload;
 }
 
 MamaMsgPayloadWrapper::~MamaMsgPayloadWrapper(void)
 {
-	msgPayload_destroy((void*)msgPayload_);
+    msgPayload_destroy((void*)msgPayload_);
 }
 
 msgPayload MamaMsgPayloadWrapper::getMamaMsgPayload() const
 {
-	return msgPayload_;
+    return msgPayload_;
 }
 
 MamaMsgVectorWrapper::~MamaMsgVectorWrapper()
 {
-	for(int i = 0; i < (int)length_; i++)
-	{
-		msgPayload p = payloadvector_[i];
+    for(int i = 0; i < (int)length_; i++)
+    {
+        msgPayload p = payloadvector_[i];
 
 
-		//// we've had to take the payload out of the message here but need to destroy the parent otherwise it wont ever get destroyed
-		//UpaPayload* payload = reinterpret_cast<UpaPayload*>(p);
-		//mamaMsg m = payload->getParent();
-		//mamaMsg_destroy(m);
+        //// we've had to take the payload out of the message here but need to destroy the parent otherwise it wont ever get destroyed
+        //UpaPayload* payload = reinterpret_cast<UpaPayload*>(p);
+        //mamaMsg m = payload->getParent();
+        //mamaMsg_destroy(m);
 
 
-		//tick42rmdsmsgPayload_destroy(msgPayload(p)); 
-	}
+        //tick42rmdsmsgPayload_destroy(msgPayload(p)); 
+    }
 
 }

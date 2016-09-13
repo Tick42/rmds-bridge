@@ -27,11 +27,13 @@
 
 
 #include <string>
+#include <utils/t42log.h>
 
 #include "upavaluetype.h"
 #include "MamaPriceWrapper.h"
 #include "MamaDateTimeWrapper.h"
 #include "MamaMsgWrapper.h"
+#include "MamaOpaqueWrapper.h"
 
 typedef unsigned char  mama_price_hints_t;
 typedef struct mama_price_t_
@@ -139,6 +141,12 @@ struct MamaFieldType<MamaPriceWrapper_ptr_t>
    static const mamaFieldType Value = MAMA_FIELD_TYPE_PRICE;
 };
 
+template <>
+struct MamaFieldType<MamaOpaqueWrapper_ptr_t>
+{
+    static const mamaFieldType Value = MAMA_FIELD_TYPE_OPAQUE;
+};
+
 /*
 * @brief get type from mamaFieldType type tag
 */
@@ -147,22 +155,23 @@ template <mamaFieldType Tag> struct TypeFromTag
    typedef void* Type;
 };
 
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I8>		{typedef int8_t  Type;};			
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U8>		{typedef uint8_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I16>		{typedef int16_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U16>		{typedef uint16_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I32>		{typedef int32_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U32>		{typedef uint32_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I64>		{typedef int64_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U64>		{typedef uint64_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_F32>		{typedef float  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_F64>		{typedef double  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_TIME>		{typedef MamaDateTimeWrapper_ptr_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_PRICE>	{typedef MamaPriceWrapper_ptr_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_STRING>	{typedef std::string  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_BOOL>		{typedef bool  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_CHAR>		{typedef char  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_VECTOR_MSG>		{typedef MamaMsgVectorWrapper_ptr_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I8>        {typedef int8_t  Type;};            
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U8>        {typedef uint8_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I16>        {typedef int16_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U16>        {typedef uint16_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I32>        {typedef int32_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U32>        {typedef uint32_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I64>        {typedef int64_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U64>        {typedef uint64_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_F32>        {typedef float  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_F64>        {typedef double  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_TIME>        {typedef MamaDateTimeWrapper_ptr_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_PRICE>    {typedef MamaPriceWrapper_ptr_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_STRING>    {typedef std::string  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_BOOL>        {typedef bool  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_CHAR>        {typedef char  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_VECTOR_MSG>        {typedef MamaMsgVectorWrapper_ptr_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_OPAQUE>        {typedef MamaOpaqueWrapper_ptr_t  Type;};
 
 struct UpaFieldPayload
 {
@@ -191,7 +200,7 @@ struct UpaFieldPayload
    {}
 
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const char* value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_STRING)
       , data_ (std::string(value))
@@ -199,13 +208,13 @@ struct UpaFieldPayload
    {}
 
    //UpaFieldPayload(const mama_fid_t fid, const std::string &name, const mama_datetime & value) 
-   //	: fid_	(fid)
-   //	, name_ (name)
-   //	, type_ (MAMA_FIELD_TYPE_TIME)
-   //	, data_ (value)
+   //    : fid_    (fid)
+   //    , name_ (name)
+   //    , type_ (MAMA_FIELD_TYPE_TIME)
+   //    , data_ (value)
    //{}
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaDateTimeWrapper_ptr_t value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_TIME)
       , data_ (value)
@@ -213,7 +222,7 @@ struct UpaFieldPayload
    {}
 
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaPriceWrapper_ptr_t value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_PRICE)
       , data_ (value)
@@ -221,15 +230,23 @@ struct UpaFieldPayload
    {}
 
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaMsgPayloadWrapper_ptr_t value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_MSG)
       , data_ (value)
       //, /*dirty_*/(true)
    {}
 
+   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaOpaqueWrapper_ptr_t value) 
+       : fid_    (fid)
+       , name_ (name)
+       , type_ (MAMA_FIELD_TYPE_OPAQUE)
+       , data_ (value)
+       //, /*dirty_*/(true)
+   {}
+
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaMsgVectorWrapper_ptr_t value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_VECTOR_MSG)
       , data_ (value)
@@ -237,7 +254,7 @@ struct UpaFieldPayload
    {}
 
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const char *value[], size_t numElements) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_VECTOR_STRING)
       , data_()
@@ -258,7 +275,7 @@ struct UpaFieldPayload
 
    template<typename T>
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, const T value[], size_t numElements) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<T>::Value)
       , data_()
@@ -270,7 +287,7 @@ struct UpaFieldPayload
 
    template <typename T>
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, T value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<T>::Value)
       , data_ (value)
@@ -278,21 +295,21 @@ struct UpaFieldPayload
    {}
 
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, bool value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<bool>::Value)
       , data_ (value)
       //, /*dirty_*/(true)
-   {		
+   {        
    }
 
    UpaFieldPayload(const mama_fid_t fid, const std::string &name, char value) 
-      : fid_	(fid)
+      : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<char>::Value)
       , data_ (value)
      // , /*dirty_*/(true)
-   {		
+   {        
    }
 
    //This macro is undef-ed later on
@@ -703,8 +720,8 @@ struct UpaFieldPayload
          case MAMA_FIELD_TYPE_BOOL:
             return MAMA_STATUS_WRONG_FIELD_TYPE;
          case MAMA_FIELD_TYPE_CHAR:
-			 value = (int32_t)boost::get<TypeFromTag<MAMA_FIELD_TYPE_CHAR>::Type>(data_);
-			 return MAMA_STATUS_OK;
+             value = (int32_t)boost::get<TypeFromTag<MAMA_FIELD_TYPE_CHAR>::Type>(data_);
+             return MAMA_STATUS_OK;
 
          default:
             return MAMA_STATUS_WRONG_FIELD_TYPE;
@@ -1055,58 +1072,58 @@ struct UpaFieldPayload
 
    mama_status getChar(char & value) const
    {
-	   CHECK_UPA_FIELD_PAYLOAD;
-	   try {
-		   switch(type_)
-		   {
-		   case MAMA_FIELD_TYPE_I8:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I8>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_I16:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I16>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_I32:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I32>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_I64:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I64>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_U8:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U8>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_U16:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U16>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_U32:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U32>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_U64:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U64>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   case MAMA_FIELD_TYPE_F32:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   case MAMA_FIELD_TYPE_F64:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   case MAMA_FIELD_TYPE_TIME:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   case MAMA_FIELD_TYPE_PRICE:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   case MAMA_FIELD_TYPE_STRING:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   case MAMA_FIELD_TYPE_BOOL:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   case MAMA_FIELD_TYPE_CHAR:
-			   value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_CHAR>::Type>(data_);
-			   return MAMA_STATUS_OK;
-		   default:
-			   return MAMA_STATUS_WRONG_FIELD_TYPE;
-		   }
-	   }
-	   catch (boost::bad_get&)
-	   {
-		   return MAMA_STATUS_WRONG_FIELD_TYPE;
-	   }
-	   return MAMA_STATUS_WRONG_FIELD_TYPE;
+       CHECK_UPA_FIELD_PAYLOAD;
+       try {
+           switch(type_)
+           {
+           case MAMA_FIELD_TYPE_I8:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I8>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_I16:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I16>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_I32:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I32>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_I64:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_I64>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_U8:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U8>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_U16:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U16>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_U32:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U32>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_U64:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_U64>::Type>(data_);
+               return MAMA_STATUS_OK;
+           case MAMA_FIELD_TYPE_F32:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           case MAMA_FIELD_TYPE_F64:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           case MAMA_FIELD_TYPE_TIME:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           case MAMA_FIELD_TYPE_PRICE:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           case MAMA_FIELD_TYPE_STRING:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           case MAMA_FIELD_TYPE_BOOL:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           case MAMA_FIELD_TYPE_CHAR:
+               value = (char)boost::get<TypeFromTag<MAMA_FIELD_TYPE_CHAR>::Type>(data_);
+               return MAMA_STATUS_OK;
+           default:
+               return MAMA_STATUS_WRONG_FIELD_TYPE;
+           }
+       }
+       catch (boost::bad_get&)
+       {
+           return MAMA_STATUS_WRONG_FIELD_TYPE;
+       }
+       return MAMA_STATUS_WRONG_FIELD_TYPE;
    }
 
 
@@ -1185,7 +1202,7 @@ struct UpaFieldPayload
          switch(type_)
          {
          case MAMA_FIELD_TYPE_U64:
-			 //Time will be given in microseconds
+             //Time will be given in microseconds
             mamaDateTime_setEpochTimeMicroseconds(value, boost::get<uint64_t>(data_));
             return MAMA_STATUS_OK;
          case MAMA_FIELD_TYPE_TIME:
@@ -1194,10 +1211,10 @@ struct UpaFieldPayload
                mamaDateTime_copy(value, p);
             }
             return MAMA_STATUS_OK;
-		 case MAMA_FIELD_TYPE_F64:
-			 //Time will given in seconds!
-			 mamaDateTime_setEpochTimeF64(value, boost::get<TypeFromTag<MAMA_FIELD_TYPE_F64>::Type>(data_));
-			 return MAMA_STATUS_OK;
+         case MAMA_FIELD_TYPE_F64:
+             //Time will given in seconds!
+             mamaDateTime_setEpochTimeF64(value, boost::get<TypeFromTag<MAMA_FIELD_TYPE_F64>::Type>(data_));
+             return MAMA_STATUS_OK;
          case MAMA_FIELD_TYPE_STRING:
              {
                  const char *asString = boost::get<std::string>(data_).c_str();
@@ -1244,6 +1261,21 @@ struct UpaFieldPayload
       return MAMA_STATUS_WRONG_FIELD_TYPE;
    }
 
+   mama_status getOpaque(const void ** data, size_t * length) const
+   {
+
+       if (data_.which() == 17)
+       {
+           MamaOpaqueWrapper_ptr_t p = boost::get<MamaOpaqueWrapper_ptr_t>(data_);
+           *length = p->Length();
+           *data = p->Data();
+           return MAMA_STATUS_OK;
+       }
+
+       return MAMA_STATUS_WRONG_FIELD_TYPE;
+
+   }
+
    mama_status getVectorMsg(const msgPayload** value, size_t* resultLen) const
    {
       mama_status ret = MAMA_STATUS_OK;
@@ -1251,8 +1283,8 @@ struct UpaFieldPayload
 
       // todo - need to change the vector wrapper so that it is a vector of msgPayLoad not the payliad wrppaer class
       MamaMsgVectorWrapper_ptr_t msgVec = (MamaMsgVectorWrapper_ptr_t)boost::get<MamaMsgVectorWrapper_ptr_t>(data_);
-      *value = msgVec->GetVector();
       *resultLen = msgVec->getVectorLength();
+      *value = msgVec->GetVector();
 
       return ret;
    }
@@ -1288,8 +1320,22 @@ struct UpaFieldPayload
    {
       CHECK_UPA_FIELD_PAYLOAD;
 
-      *result = const_cast<const char **>(&((*stringVector2_)[0]));
+      // There is a problem with the MAMA .Net layer
+      // where the size parameter is declared as a uint and this
+      // is always a 32-bit quantity. As a result, this causes the
+      // adjacent object on the heap to be overwritten in a 64-bit
+      // environment, because sizeof(mama_size_t) is 64-bits.
+      //
+      // Our experiments have shown that the adjacent object in this
+      // particular case appears to be the "result" value.
+      // The problem should, and will, be fixed in a future version 
+      // of Open MAMA but, in the meantime, provided these two
+      // assignments are executed in this order, the "size"-assignment
+      // does not appear to corrupt the "result" value.
+      //
+
       *size = stringVector2_->size();
+      *result = const_cast<const char **>(&((*stringVector2_)[0]));
       return MAMA_STATUS_OK;
    }
 

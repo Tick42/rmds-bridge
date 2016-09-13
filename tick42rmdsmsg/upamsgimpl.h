@@ -41,7 +41,7 @@ extern "C" {
 
 
 // fid lookup
-	void InitFidMap();
+    void InitFidMap();
 
 typedef struct upaPayload
 {
@@ -407,18 +407,18 @@ upaMsg_getDateTime(
 
 
 //mama_status
-//	upaMsg_setDateTime(
-//	const msgPayload    msg,
-//	const char*         name,
-//	mama_fid_t          fid,
-//	const mamaDateTime  value);
+//    upaMsg_setDateTime(
+//    const msgPayload    msg,
+//    const char*         name,
+//    mama_fid_t          fid,
+//    const mamaDateTime  value);
 
 mama_status
-	upaMsg_setDateTime(
-	const msgPayload    msg,
-	const char*         name,
-	mama_fid_t          fid,
-	const MamaDateTimeWrapper_ptr_t  value);
+    upaMsg_setDateTime(
+    const msgPayload    msg,
+    const char*         name,
+    mama_fid_t          fid,
+    const MamaDateTimeWrapper_ptr_t  value);
 
 mama_status
 upaMsg_getVectorDateTime (

@@ -38,8 +38,8 @@
                         mamaIo      parent,
                         void*       closure)
  {
-	 //return MAMA_STATUS_NOT_IMPLEMENTED;
-	 return MAMA_STATUS_UNSUPPORTED_IO_TYPE;
+     //return MAMA_STATUS_NOT_IMPLEMENTED;
+     return MAMA_STATUS_UNSUPPORTED_IO_TYPE;
  }
  
  

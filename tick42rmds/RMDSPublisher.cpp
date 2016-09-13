@@ -47,7 +47,8 @@
 using namespace std;
 
 RMDSPublisher::RMDSPublisher(UPATransportNotifier &notify)
-    : RMDSPublisherBase(notify)
+    : RMDSPublisherBase(notify),
+      connected_(false)
 {
 }
 
@@ -71,7 +72,7 @@ bool RMDSPublisher::Initialize(mamaBridge bridge, mamaTransport transport, const
         return false;
     }
 
-    mamaQueue_setQueueName (upaPublisherQueue_,	"UPA_PUBLISHER_QUEUE");
+    mamaQueue_setQueueName (upaPublisherQueue_,    "UPA_PUBLISHER_QUEUE");
 
     // Build a field map
     if (!createUpaMamaFieldMap())
@@ -114,7 +115,7 @@ static void * threadFuncPublisher(void * p)
     RMDSPublisher * pOwner = (RMDSPublisher *) p;
     pOwner->Provider()->Run();
 
-    return 0;		
+    return 0;        
 }
 
 bool RMDSPublisher::Start()
@@ -160,6 +161,7 @@ bool RMDSPublisher::Start()
 #else
     provider_ = UPAProvider_ptr_t(new UPAProvider(this));
 #endif
+    provider_->AddListener(this);
 
     bool result = wthread_create( &hProviderThread_, 0, threadFuncPublisher, this ) == 0;
     if (result)
@@ -213,11 +215,14 @@ void RMDSPublisher::SentLoginResponse()
 bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool refresh )
 {
     // get hold of the subscription for new items
-	/// and build a new item reuqest message
+    /// and build a new item reuqest message
     mamaSubscription sub;
-    subscriber_->GetNewItemSubscription(source, &sub);
+    if (!subscriber_->GetNewItemSubscription(source, &sub))
+    {
+        return false;
+    }
 
-    mamaMsg msg;	
+    mamaMsg msg;    
     mamaMsg_createForPayload(&msg, MAMA_PAYLOAD_TICK42RMDS);
 
     mamaMsgReplyImpl reply;
@@ -245,7 +250,7 @@ bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool re
     }
     catch (...)
     {
-        mamaMsg_destroy(msg);	
+        mamaMsg_destroy(msg);    
         t42log_error("RMDSPublisher::RequestItem - caught exception calling mamaSubscription_processMsg for %s\n",symbol.c_str());
     }
 
@@ -261,7 +266,10 @@ bool RMDSPublisher::CloseItem(std::string source, std::string symbol)
 
     // get hold of the subscription for new items
     mamaSubscription sub;
-    subscriber_->GetNewItemSubscription(source, &sub);
+    if (!subscriber_->GetNewItemSubscription(source, &sub))
+    {
+        return false;
+    }
 
     mamaMsg_addI32(msg, MamaFieldSubscriptionType.mName, MamaFieldSubscriptionType.mFid, MAMA_SUBSC_TYPE_NORMAL );
     mamaMsg_addString(msg, MamaFieldSubscSymbol.mName, MamaFieldSubscSymbol.mFid, symbol.c_str());
@@ -274,7 +282,7 @@ bool RMDSPublisher::CloseItem(std::string source, std::string symbol)
     }
     catch (...)
     {
-        mamaMsg_destroy(msg);	
+        mamaMsg_destroy(msg);    
         t42log_error("RMDSPublisher::RequestItem - caught exception calling mamaSubscription_processMsg for %s\n",symbol.c_str());
     }
 
@@ -377,4 +385,38 @@ bool RMDSPublisherBase::createUpaMamaFieldMap()
     t42log_warn( "Could not create field map!"); //<- should never come here!
     }
     return result;
+}
+
+void RMDSPublisher::ConnectionNotification( bool connected, const char* extraInfo )
+{
+    // connection notification from the upa thread
+    t42log_debug("Connected = %s", connected ? "true" : "false");
+
+    bool wasConnected = connected_;
+    connected_ = connected;
+
+    if (connected_)
+    {
+        // if it was connected then recover
+        if (!wasConnected)
+        {
+            publisherState_ = connecting;
+            notify_.onConnectionComplete(extraInfo);
+        }
+    }
+    else
+    {
+        // if it was connected then recover
+        if (wasConnected)
+        {
+            publisherState_ = connecting;
+            notify_.onConnectionDisconnect("disconnected from RMDS");
+        }
+        else
+        {
+            publisherState_ = unconnected;
+            notify_.onConnectionFailed(extraInfo);
+        }
+    }
+
 }

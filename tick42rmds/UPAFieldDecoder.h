@@ -27,54 +27,64 @@
 
 #include "UPAMamaFieldMap.h"
 #include "UPABookMessage.h"
-
+#include "UPASubscription.h"
+#include "RMDSSubscriber.h"
 
 // decodes a field from a rssl message and inserts it into a mama message
 
 class UPAFieldDecoder
 {
 public:
-	UPAFieldDecoder(RsslDataDictionary* dictionary, UpaMamaFieldMap_ptr_t fieldmap, const std::string & SourceName, const std::string & Symbol)
-		:dictionary_(dictionary), fieldmap_(fieldmap), sourceName_(SourceName), symbol_(Symbol)
-	{
+    UPAFieldDecoder(UPAConsumer_ptr_t consumer, UpaMamaFieldMap_ptr_t fieldmap, const std::string & SourceName, const std::string & Symbol)
+        :consumer_(consumer), fieldmap_(fieldmap), sourceName_(SourceName), symbol_(Symbol)
+    {
+        dictionary_ = consumer_->RsslDictionary()->RsslDictionary();
 
-	}
+        string transportName = consumer->GetOwner()->GetTransportName();
+        boost::shared_ptr<TransportConfig_t> enhancedConfig_ = boost::make_shared<TransportConfig_t>(transportName);
+        string dateAsString = enhancedConfig_->getString("returnDateAndTimeAsString");
+        string ansiAsOpaque = enhancedConfig_->getString("returnAnsiAsOpaque");
+    
+        returnDateTimeAsString_ = (dateAsString == "true");
+        returnAnsiAsOpaque_ = (ansiAsOpaque == "true");
+    }
 
+    RsslRet DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIterator *dIter, mamaMsg msg);
 
-	RsslRet DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIterator *dIter, mamaMsg msg);
-
-	RsslRet DecodeBookFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIterator *dIter, UPABookEntry_ptr_t entry);
-
+    RsslRet DecodeBookFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIterator *dIter, UPABookEntry_ptr_t entry);
 
 protected:
 
-	// set of functions to add rssl fields to mama messages using the mama type from the field map
-	//
-	// The functions provide a basic "take the decoded field and insert it into the mama message with type specified in the field map"
-	// They can be over-ridden if more complex logic is required
-	virtual mama_status AddRsslUintToMsg(mamaMsg msg, MamaField_t & mamaField, RsslUInt64 UIntVal, RsslFieldId fid);
-	virtual mama_status AddRsslIntToMsg(mamaMsg msg, MamaField_t & mamaField, RsslInt64 IntVal,RsslFieldId fid);
-	virtual mama_status AddRsslFloatToMsg(mamaMsg msg, MamaField_t & mamaField, RsslFloat floatVal, RsslFieldId fid);
-	virtual mama_status AddRsslDoubleToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDouble dblVal, RsslUInt8 hint, RsslFieldId fid);
-	virtual mama_status AddRsslDateToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateVal, RsslFieldId fid, bool isBlank = false);
-	virtual mama_status AddRsslTimeToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime timeVal, RsslFieldId fid, bool isBlank = false);
-	virtual mama_status AddRsslDateTimeToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateTimeVal, RsslFieldId fid, bool isBlank = false);
-	virtual mama_status AddRsslStringToMsg(mamaMsg msg, MamaField_t & mamaField, std::string strVal, RsslFieldId fid);
+    // set of functions to add rssl fields to mama messages using the mama type from the field map
+    //
+    // The functions provide a basic "take the decoded field and insert it into the mama message with type specified in the field map"
+    // They can be over-ridden if more complex logic is required
+    virtual mama_status AddRsslUintToMsg(mamaMsg msg, MamaField_t & mamaField, RsslUInt64 UIntVal, RsslFieldId fid);
+    virtual mama_status AddRsslIntToMsg(mamaMsg msg, MamaField_t & mamaField, RsslInt64 IntVal,RsslFieldId fid);
+    virtual mama_status AddRsslFloatToMsg(mamaMsg msg, MamaField_t & mamaField, RsslFloat floatVal, RsslFieldId fid);
+    virtual mama_status AddRsslDoubleToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDouble dblVal, RsslUInt8 hint, RsslFieldId fid);
+    virtual mama_status AddRsslDateToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateVal, RsslFieldId fid, bool isBlank = false);
+    virtual mama_status AddRsslTimeToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime timeVal, RsslFieldId fid, bool isBlank = false);
+    virtual mama_status AddRsslDateTimeToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateTimeVal, RsslFieldId fid, bool isBlank = false);
+    virtual mama_status AddRsslStringToMsg(mamaMsg msg, MamaField_t & mamaField, std::string strVal, RsslFieldId fid);
 
 
 
 
 private:
 
-	// for lookup
-	RsslDataDictionary* dictionary_;
-	UpaMamaFieldMap_ptr_t fieldmap_;
+    // for lookup
+    RsslDataDictionary* dictionary_;
+    UpaMamaFieldMap_ptr_t fieldmap_;
 
-	// for diagnostics
-	const std::string & sourceName_;
-	const std::string & symbol_;
+    // for diagnostics
+    const std::string & sourceName_;
+    const std::string & symbol_;
 
-	mamaPricePrecision RsslHintToMamaPrecisionTo(RsslRealHints p, uint16_t fid);
+    mamaPricePrecision RsslHintToMamaPrecisionTo(RsslRealHints p, uint16_t fid);
 
-
+    UPAConsumer_ptr_t consumer_;
+    bool returnDateTimeAsString_;            // return marketfeed dates and times as string rather than MamaDateTime
+    bool returnAnsiAsOpaque_;                // return ANSI pages as Mama Opaque
 };
+

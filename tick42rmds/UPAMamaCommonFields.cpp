@@ -78,7 +78,7 @@ void UpaMamaCommonFields::initialize()
 
     bookFields_.wEntryId.mama_fid = 681;
     bookFields_.wEntryId.mama_field_name = "wEntryId";
-    bookFields_.wEntryId.mama_field_type = AS_MAMA_FIELD_TYPE_U32;
+    bookFields_.wEntryId.mama_field_type = AS_MAMA_FIELD_TYPE_STRING;
 
     bookFields_.wEntrySize.mama_fid = 682;
     bookFields_.wEntrySize.mama_field_name = "wEntrySize";

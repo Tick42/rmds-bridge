@@ -33,40 +33,40 @@ class StatisticsLogger
 {
 public:
 
-	// static factory
-	static StatisticsLogger_ptr_t GetStatisticsLogger();
+    // static factory
+    static StatisticsLogger_ptr_t GetStatisticsLogger();
 
-	StatisticsLogger();
-	virtual ~StatisticsLogger();
+    StatisticsLogger();
+    virtual ~StatisticsLogger();
 
-	void Initialise();
+    void Initialise();
 
-	bool Start();
+    bool Start();
 
-	bool Stop();
+    bool Stop();
 
-	void Run();
+    void Run();
 
-	// stats interface
-	void IncSubscribed()
-	{
-		++totalSubscriptions_;
-	}
+    // stats interface
+    void IncSubscribed()
+    {
+        ++totalSubscriptions_;
+    }
 
-	void IncSubscriptionsSucceeded()
-	{
-		++totalSubscriptionsSucceeded_;
-	}
+    void IncSubscriptionsSucceeded()
+    {
+        ++totalSubscriptionsSucceeded_;
+    }
 
-	void IncSubscriptionsFailed()
-	{
-		++totalSubscriptionsFailed_;
-	}
+    void IncSubscriptionsFailed()
+    {
+        ++totalSubscriptionsFailed_;
+    }
 
-	void IncIncomingMessageCount()
-	{
-		++incomingMessageCount_;
-	}
+    void IncIncomingMessageCount()
+    {
+        ++incomingMessageCount_;
+    }
 
    void SetPendingOpens(int value)
    {
@@ -83,10 +83,15 @@ public:
       pendingCloses_ = value;
    }
 
-	void SetRequestQueueLength(int value)
-	{
-		requestQueueLength_ = value;
-	}
+    void SetRequestQueueLength(int value)
+    {
+        requestQueueLength_ = value;
+    }
+
+    RsslUInt64 GetRequestQueueLength()
+    {
+        return requestQueueLength_;
+    }
 
    static void PauseUpdates();
    static void ResumeUpdates();
@@ -99,35 +104,35 @@ private:
 
 private:
 
-	bool enabled_;
-	int maxAgeDays_;
-	int interval_;
+    bool enabled_;
+    int maxAgeDays_;
+    int interval_;
 
-	// upa consumer thread
-	wthread_t loggerThread_; 
+    // upa consumer thread
+    wthread_t loggerThread_; 
 
-	volatile bool runThread_;
+    volatile bool runThread_;
 
-	// Pathname arithmetic
-	boost::filesystem::path logFilename_;
+    // Pathname arithmetic
+    boost::filesystem::path logFilename_;
    
-	// manage time intervals
-	RsslUInt64 lastSampleTime_;
-	RsslUInt64 lastMessageCount_;
-	RsslUInt64 lastSubscriptions_;
-	RsslUInt64 lastSubscriptionsSucceeded_;
-	RsslUInt64 lastSubscriptionsFailed_;
+    // manage time intervals
+    RsslUInt64 lastSampleTime_;
+    RsslUInt64 lastMessageCount_;
+    RsslUInt64 lastSubscriptions_;
+    RsslUInt64 lastSubscriptionsSucceeded_;
+    RsslUInt64 lastSubscriptionsFailed_;
 
-	// some basic stats
-	RsslUInt64 incomingMessageCount_;
-	RsslUInt64 totalSubscriptions_;
-	RsslUInt64 totalSubscriptionsSucceeded_;
-	RsslUInt64 totalSubscriptionsFailed_;
+    // some basic stats
+    RsslUInt64 incomingMessageCount_;
+    RsslUInt64 totalSubscriptions_;
+    RsslUInt64 totalSubscriptionsSucceeded_;
+    RsslUInt64 totalSubscriptionsFailed_;
 
-	RsslUInt64 requestQueueLength_;
-	RsslUInt64 pendingOpens_;
-	RsslUInt64 openItems_;
-	RsslUInt64 pendingCloses_;
+    RsslUInt64 requestQueueLength_;
+    RsslUInt64 pendingOpens_;
+    RsslUInt64 openItems_;
+    RsslUInt64 pendingCloses_;
 
 };
 

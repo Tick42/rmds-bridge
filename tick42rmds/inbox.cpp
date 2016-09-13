@@ -32,145 +32,150 @@ static const size_t uuidStringLen = 36;
 
 typedef struct rmdsInboxImpl_t
 {
-	char                      inbox_[MAX_SUBJECT_LENGTH];
-	mamaSubscription          _subscription;
-	void*                     closure_;
-	mamaInboxMsgCallback      msgCB_;
-	mamaInboxErrorCallback    errCB_;
-	mamaInboxDestroyCallback  inboxDestroyCB_;
-	mamaInbox                 parent_;
+    char                      inbox_[MAX_SUBJECT_LENGTH];
+    mamaSubscription          _subscription;
+    void*                     closure_;
+    mamaInboxMsgCallback      msgCB_;
+    mamaInboxErrorCallback    errCB_;
+    mamaInboxDestroyCallback  inboxDestroyCB_;
+    mamaInbox                 parent_;
 } rmdsInboxImpl_t;
 
 
 #define rmdsInbox(inbox) ((rmdsInboxImpl_t*)(inbox))
 #define CHECK_INBOX(inbox) \
-	do {  \
-	if (rmdsInbox(inbox) == 0) return MAMA_STATUS_NULL_ARG; \
-	} while(0)
+    do {  \
+    if (rmdsInbox(inbox) == 0) return MAMA_STATUS_NULL_ARG; \
+    } while(0)
 
 
 static void MAMACALLTYPE
-	rmdsInbox_onMsg(
-	mamaSubscription    subscription,
-	mamaMsg             msg,
-	void*               closure,
-	void*               itemClosure)
+    rmdsInbox_onMsg(
+    mamaSubscription    subscription,
+    mamaMsg             msg,
+    void*               closure,
+    void*               itemClosure)
 {
-	if (!rmdsInbox(closure)) return;
+    if (!rmdsInbox(closure)) return;
 
-	if (rmdsInbox(closure)->msgCB_)
-		(rmdsInbox(closure)->msgCB_)(msg, rmdsInbox(closure)->closure_);
+    if (rmdsInbox(closure)->msgCB_)
+        (rmdsInbox(closure)->msgCB_)(msg, rmdsInbox(closure)->closure_);
 }
 
 static void MAMACALLTYPE
-	rmdsInbox_onCreate(
-	mamaSubscription    subscription,
-	void*               closure)
+    rmdsInbox_onCreate(
+    mamaSubscription    subscription,
+    void*               closure)
 {
 }
 
 static void MAMACALLTYPE
-	rmdsInbox_onDestroy(
-	mamaSubscription    subscription,
-	void*               closure)
+    rmdsInbox_onDestroy(
+    mamaSubscription    subscription,
+    void*               closure)
 {
-	if (!rmdsInbox(closure)) return;
+    if (!rmdsInbox(closure)) return;
 
-	if (rmdsInbox(closure)->inboxDestroyCB_)
-		(rmdsInbox(closure)->inboxDestroyCB_)(rmdsInbox(closure)->parent_, rmdsInbox(closure)->closure_);
+    if (rmdsInbox(closure)->inboxDestroyCB_)
+        (rmdsInbox(closure)->inboxDestroyCB_)(rmdsInbox(closure)->parent_, rmdsInbox(closure)->closure_);
 }
 
 static void MAMACALLTYPE
-	rmdsInbox_onError(
-	mamaSubscription    subscription,
-	mama_status         status,
-	void*               platformError,
-	const char*         subject,
-	void*               closure)
+    rmdsInbox_onError(
+    mamaSubscription    subscription,
+    mama_status         status,
+    void*               platformError,
+    const char*         subject,
+    void*               closure)
 {
-	if (!rmdsInbox(closure)) return;
+    if (!rmdsInbox(closure)) return;
 
-	if (rmdsInbox(closure)->errCB_)
-		(rmdsInbox(closure)->errCB_)(status, rmdsInbox(closure)->closure_);
+    if (rmdsInbox(closure)->errCB_)
+        (rmdsInbox(closure)->errCB_)(status, rmdsInbox(closure)->closure_);
 }
 
 mama_status
-	tick42rmdsBridgeMamaInbox_createByIndex (inboxBridge*           bridge,
-	mamaTransport          transport,
-	int                    tportIndex,
-	mamaQueue              queue,
-	mamaInboxMsgCallback   msgCB,
-	mamaInboxErrorCallback errorCB,
-	mamaInboxDestroyCallback onInboxDestroyed,
-	void*                  closure,
-	mamaInbox              parent)
+    tick42rmdsBridgeMamaInbox_createByIndex (inboxBridge*           bridge,
+    mamaTransport          transport,
+    int                    tportIndex,
+    mamaQueue              queue,
+    mamaInboxMsgCallback   msgCB,
+    mamaInboxErrorCallback errorCB,
+    mamaInboxDestroyCallback onInboxDestroyed,
+    void*                  closure,
+    mamaInbox              parent)
 {
-	rmdsInboxImpl_t* impl = NULL;
-	mama_status status = MAMA_STATUS_OK;
-	if (!bridge || !transport || !queue || !msgCB) return MAMA_STATUS_NULL_ARG;
-	impl = (rmdsInboxImpl_t*)calloc(1, sizeof(rmdsInboxImpl_t));
-	if (!impl)
-		return MAMA_STATUS_NOMEM;
+    rmdsInboxImpl_t* impl = NULL;
+    mama_status status = MAMA_STATUS_OK;
+    if (!bridge || !transport || !queue || !msgCB) return MAMA_STATUS_NULL_ARG;
+    impl = (rmdsInboxImpl_t*)calloc(1, sizeof(rmdsInboxImpl_t));
+    if (!impl)
+        return MAMA_STATUS_NOMEM;
 
-	impl->closure_   = closure;
-	impl->msgCB_     = msgCB;
-	impl->errCB_     = errorCB;
-	impl->parent_    = parent;
-	impl->inboxDestroyCB_ = onInboxDestroyed;
+    impl->closure_   = closure;
+    impl->msgCB_     = msgCB;
+    impl->errCB_     = errorCB;
+    impl->parent_    = parent;
+    impl->inboxDestroyCB_ = onInboxDestroyed;
 
-	*bridge = (inboxBridge) impl;
-	return MAMA_STATUS_OK;
+    *bridge = (inboxBridge) impl;
+    return MAMA_STATUS_OK;
 }
 
 mama_status
-	tick42rmdsBridgeMamaInbox_create (inboxBridge*           bridge,
-	mamaTransport          transport,
-	mamaQueue              queue,
-	mamaInboxMsgCallback   msgCB,
-	mamaInboxErrorCallback errorCB,
-	mamaInboxDestroyCallback onInboxDestroyed,
-	void*                  closure,
-	mamaInbox              parent)
+    tick42rmdsBridgeMamaInbox_create (inboxBridge*           bridge,
+    mamaTransport          transport,
+    mamaQueue              queue,
+    mamaInboxMsgCallback   msgCB,
+    mamaInboxErrorCallback errorCB,
+    mamaInboxDestroyCallback onInboxDestroyed,
+    void*                  closure,
+    mamaInbox              parent)
 {
-	return tick42rmdsBridgeMamaInbox_createByIndex (bridge,
-		transport,
-		0,
-		queue,
-		msgCB,
-		errorCB,
-		onInboxDestroyed,
-		closure,
-		parent);
+    return tick42rmdsBridgeMamaInbox_createByIndex (bridge,
+        transport,
+        0,
+        queue,
+        msgCB,
+        errorCB,
+        onInboxDestroyed,
+        closure,
+        parent);
 }
 
 mama_status
-	tick42rmdsBridgeMamaInbox_destroy (inboxBridge inbox)
+    tick42rmdsBridgeMamaInbox_destroy (inboxBridge inbox)
 {
-	CHECK_INBOX(inbox);
-	mamaSubscription_destroy(rmdsInbox(inbox)->_subscription);
-	mamaSubscription_deallocate(rmdsInbox(inbox)->_subscription);
-	free(rmdsInbox(inbox));
-	return MAMA_STATUS_OK;
+    CHECK_INBOX(inbox);
+    mamaSubscription_destroy(rmdsInbox(inbox)->_subscription);
+    mamaSubscription_deallocate(rmdsInbox(inbox)->_subscription);
+
+    if (rmdsInbox(inbox)->inboxDestroyCB_)
+        (rmdsInbox(inbox)->inboxDestroyCB_)(rmdsInbox(inbox)->parent_, rmdsInbox(inbox)->closure_);
+
+    free(rmdsInbox(inbox));
+
+    return MAMA_STATUS_OK;
 }
 
 
 const char*
-	rmdsInboxImpl_getReplySubject(inboxBridge inbox)
+    rmdsInboxImpl_getReplySubject(inboxBridge inbox)
 {
-	if (!rmdsInbox(inbox))
-		return NULL;
-	return rmdsInbox(inbox)->inbox_;
+    if (!rmdsInbox(inbox))
+        return NULL;
+    return rmdsInbox(inbox)->inbox_;
 }
 
 
 mama_status
-	rmdsMamaInbox_send( mamaInbox inbox, mamaMsg msg )
+    rmdsMamaInbox_send( mamaInbox inbox, mamaMsg msg )
 {
-	if (!rmdsInbox(inbox))
-		return MAMA_STATUS_INVALID_ARG;
+    if (!rmdsInbox(inbox))
+        return MAMA_STATUS_INVALID_ARG;
 
-	inboxBridge ib = mamaInboxImpl_getInboxBridge(inbox);
-	rmdsInbox(ib)->msgCB_(msg, rmdsInbox(ib)->closure_);
+    inboxBridge ib = mamaInboxImpl_getInboxBridge(inbox);
+    rmdsInbox(ib)->msgCB_(msg, rmdsInbox(ib)->closure_);
 
-	return MAMA_STATUS_OK;
+    return MAMA_STATUS_OK;
 }

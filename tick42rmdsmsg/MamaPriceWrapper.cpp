@@ -27,16 +27,16 @@
 
 MamaPriceWrapper::MamaPriceWrapper( mamaPrice p )
 {
-	mamaPrice_ = p;
+    mamaPrice_ = p;
 }
 
 
 MamaPriceWrapper::~MamaPriceWrapper(void)
 {
-	mamaPrice_destroy(mamaPrice_);
+    mamaPrice_destroy(mamaPrice_);
 }
 
 void MamaPriceWrapper::SetValue( double value )
 {
-	mamaPrice_setValue(mamaPrice_, value);
+    mamaPrice_setValue(mamaPrice_, value);
 }

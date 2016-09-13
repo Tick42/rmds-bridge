@@ -30,10 +30,11 @@
 #include <map>
 #include <sstream>
 
-#include <unordered_map>
 #include "upafieldpayload.h"
 #include "upamsgutils.h"
 #include <algorithm>
+#include <utils/namespacedefines.h>
+
 class UpaPayloadFieldIterator;
 
 class UpaPayload
@@ -41,7 +42,7 @@ class UpaPayload
 public:
     friend class UpaPayloadFieldIterator;
     //typedef std::map<mama_fid_t, UpaFieldPayload> FieldsMap_t;
-    typedef std::unordered_map<mama_fid_t, UpaFieldPayload> FieldsMap_t;
+    typedef utils::collection::unordered_map<mama_fid_t, UpaFieldPayload> FieldsMap_t;
     typedef FieldsMap_t::const_iterator FieldIterator_t;
 
     UpaPayload(mamaMsg parent) :
@@ -92,7 +93,7 @@ public:
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;	
+            UpaFieldPayload fld = it->second;    
             if (fld.type_ == MAMA_FIELD_TYPE_PRICE)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -117,7 +118,7 @@ public:
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;	
+            UpaFieldPayload fld = it->second;    
             if (fld.type_ == MAMA_FIELD_TYPE_MSG)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -129,6 +130,7 @@ public:
             fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
         }
     }
+
 
     void setVectorMsg(mama_fid_t fid, const std::string& name, MamaMsgVectorWrapper_ptr_t value)
     {
@@ -143,8 +145,28 @@ public:
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;	
+            UpaFieldPayload fld = it->second;    
             if (fld.type_ == MAMA_FIELD_TYPE_VECTOR_MSG)
+            {
+                //fields_[fid] = UpaFieldPayload(fid, name, value);
+                it->second =  UpaFieldPayload(fid, name, value);
+            }
+        }
+        else
+        {
+            fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
+        }
+    }
+
+    void setOpaque(mama_fid_t fid, const std::string& name, MamaOpaqueWrapper_ptr_t value)
+    {
+
+        FieldsMap_t::iterator it = fields_.find(fid);
+
+        if (it != fields_.end())
+        {
+            UpaFieldPayload fld = it->second;    
+            if (fld.type_ == MAMA_FIELD_TYPE_OPAQUE)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
                 it->second =  UpaFieldPayload(fid, name, value);
@@ -591,7 +613,7 @@ public:
 
         //const_iterator tmp = NextDirty();
         //return tmp;
-		return ++current_;
+        return ++current_;
     }
     /** 
     * @brief predicate: is current item has next item
@@ -719,9 +741,9 @@ private:
 
         //}
 
-		//just check the next one
-		UpaPayload::FieldsMap_t::const_iterator tmp = current_;
-		bool gotNext = ( ++tmp != payloadContext_->fields_.end());
+        //just check the next one
+        UpaPayload::FieldsMap_t::const_iterator tmp = current_;
+        bool gotNext = ( ++tmp != payloadContext_->fields_.end());
 
         return gotNext;
     }

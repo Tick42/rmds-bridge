@@ -32,13 +32,23 @@ namespace utils { namespace os {
    ThreadMonitor::ThreadMonitor(const char *name)
    {
       threadName_ = name;
-      t42log_debug("thread '%s' is starting\n", threadName_.c_str());
+#ifdef _WIN32
+   unsigned int tid =  GetCurrentThreadId() ;
+#else
+   unsigned int tid = pthread_self();
+#endif
+      t42log_info("Thread '%s' is starting %lx", threadName_.c_str(), tid);
       setThreadName(wGetCurrentThreadId(), threadName_.c_str());
    }
 
    ThreadMonitor::~ThreadMonitor()
    {
-      t42log_debug("thread '%s' is exiting\n", threadName_.c_str());
+#ifdef _WIN32
+   unsigned int tid =  GetCurrentThreadId() ;
+#else
+   unsigned int tid = pthread_self();
+#endif
+      t42log_info("Thread '%s' is exiting %lx", threadName_.c_str(), tid);
       threadName_.append("*");
       setThreadName(wGetCurrentThreadId(), threadName_.c_str());
    }

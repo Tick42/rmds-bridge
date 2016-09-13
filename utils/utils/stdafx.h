@@ -29,7 +29,6 @@
 // System headers
 
 #include <string>
-#include <unordered_map>
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 #include <stdio.h>
 
@@ -51,6 +50,8 @@
 #include <mama/log.h>
 #include <property.h>
 #include <mamainternal.h>
+
+#include <utils/namespacedefines.h>
 
 extern "C"
 {

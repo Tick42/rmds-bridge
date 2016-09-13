@@ -27,7 +27,7 @@
 #include <utils/t42log.h>
 
 UPATransportNotifier::UPATransportNotifier( mamaTransport transport )
-	: transport(transport)
+    : transport(transport)
 {
 
 }
@@ -39,68 +39,70 @@ UPATransportNotifier::~UPATransportNotifier(void)
 
 
 // Notify the client that connection failed
-void UPATransportNotifier::onConnectionFailed(std::string extraInfo)
+void UPATransportNotifier::onConnectionFailed(const char* extraInfo)
 {
-
-	t42log_error("Connection failed: %s \n", extraInfo.c_str());
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT_FAILED, 0, extraInfo.c_str());
+    t42log_error("Connection failed: %s \n", extraInfo);
+    // TODO This change is to work around a bug in OpenMAMA C++ code where the MAMA_TRANSPORT_CONNECT_FAILED code is missing
+    //   from the MamaTransportCallback class.
+    // mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT_FAILED, 0, extraInfo.c_str());
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_DISCONNECT, 0, extraInfo);
 }
 
 
 // Notify the client that connection disconnected
-void UPATransportNotifier::onConnectionDisconnect(std::string extraInfo)
+void UPATransportNotifier::onConnectionDisconnect(const char* extraInfo)
 {
 
-	t42log_error("Connection disconnected: %s \n", extraInfo.c_str());
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_DISCONNECT, 0, extraInfo.c_str());
+    t42log_error("Connection disconnected: %s \n", extraInfo);
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_DISCONNECT, 0, extraInfo);
 }
 
 
 // Notify the client that connection reconnected
-void UPATransportNotifier::onConnectionReconnect(std::string extraInfo)
+void UPATransportNotifier::onConnectionReconnect(const char* extraInfo)
 {
 
-	t42log_info("Connection recconnected: %s \n", extraInfo.c_str());
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_RECONNECT, 0, extraInfo.c_str());
+    t42log_info("Connection recconnected: %s \n", extraInfo);
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_RECONNECT, 0, extraInfo);
 }
 
 
 
 // Notify the client that Connection failed
-void UPATransportNotifier::onLoginFailed(std::string extraInfo)
+void UPATransportNotifier::onLoginFailed(const char* extraInfo)
 {
 
-	t42log_error("login failed: %s \n", extraInfo.c_str());
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT_FAILED, 0, extraInfo.c_str()); 
+    t42log_error("login failed: %s \n", extraInfo);
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT_FAILED, 0, extraInfo);
 }
 
 
 // Notify the client the source directory request failed
-void UPATransportNotifier::onSourceDirectoryRequestFailed(std::string extraInfo)
+void UPATransportNotifier::onSourceDirectoryRequestFailed(const char* extraInfo)
 {
 
-	t42log_error("Source directory Request failed: %s \n", extraInfo.c_str());
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_NAMING_SERVICE_DISCONNECT, 0, extraInfo.c_str()); 
+    t42log_error("Source directory Request failed: %s \n", extraInfo);
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_NAMING_SERVICE_DISCONNECT, 0, extraInfo);
 }
 
 // Notify the client the source directory request succeed
-void UPATransportNotifier::onSourceDirectoryRequestConnect(std::string extraInfo)
+void UPATransportNotifier::onSourceDirectoryRequestConnect(const char* extraInfo)
 {
 
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_NAMING_SERVICE_CONNECT, 0, extraInfo.c_str()); 
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_NAMING_SERVICE_CONNECT, 0, extraInfo);
 }
 
 // Notify the dictionary request failed
-void UPATransportNotifier::onDictionaryRequestFailed(std::string extraInfo)
+void UPATransportNotifier::onDictionaryRequestFailed(const char* extraInfo)
 {
-	std::string default_message("Dictionary request failed!");
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT_FAILED, 0, extraInfo.length() == 0 ? default_message.c_str() : extraInfo.c_str()); 
+    const char* default_message = "Dictionary request failed!";
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT_FAILED, 0, strlen(extraInfo) == 0 ? default_message : extraInfo);
 }
 
 
 // Notify the client the connection completed successfully
-void UPATransportNotifier::onConnectionComplete(std::string extraInfo)
+void UPATransportNotifier::onConnectionComplete(const char* extraInfo)
 {
-	mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT, 0, extraInfo.c_str()); 
-	
+    mamaTransportImpl_invokeTransportCallback(transport, MAMA_TRANSPORT_CONNECT, 0, extraInfo);
+    
 }

@@ -35,46 +35,46 @@
 class RMDSSources
 {
 public:
-	RMDSSources();
+    RMDSSources();
 
-	virtual ~RMDSSources()
-	{
+    virtual ~RMDSSources()
+    {
 
-	}
-	void Initialise(UPAConsumer_ptr_t consumer);
-	void Shutdown();
+    }
+    void Initialise(UPAConsumer_ptr_t consumer);
+    void Shutdown();
 
-	// create sources
-	typedef RMDSSource_ptr_t (*SourceFactory)(RsslUInt64 keyId, std::string keyName, UPAConsumer_ptr_t consumer);
-	static RMDSSource_ptr_t DefaultFactory(RsslUInt64 keyId, std::string keyName, UPAConsumer_ptr_t consumer);
-	RMDSSource_ptr_t UpdateOrCreate(RsslUInt64 keyId, std::string keyName, ServiceState value, SourceFactory Creator = DefaultFactory);
+    // create sources
+    typedef RMDSSource_ptr_t (*SourceFactory)(RsslUInt64 keyId, std::string keyName, UPAConsumer_ptr_t consumer);
+    static RMDSSource_ptr_t DefaultFactory(RsslUInt64 keyId, std::string keyName, UPAConsumer_ptr_t consumer);
+    RMDSSource_ptr_t UpdateOrCreate(RsslUInt64 keyId, std::string keyName, ServiceState value, SourceFactory Creator = DefaultFactory);
 
-	// locate sources
-	bool Exists(RsslUInt64 keyId) const;
-	bool Exists(std::string keyName) const ;
-	bool Find(RsslUInt64 keyId, RMDSSource_ptr_t &value) const;
-	bool Find(std::string keyName, RMDSSource_ptr_t &value) const;
+    // locate sources
+    bool Exists(RsslUInt64 keyId) const;
+    bool Exists(std::string keyName) const ;
+    bool Find(RsslUInt64 keyId, RMDSSource_ptr_t &value) const;
+    bool Find(std::string keyName, RMDSSource_ptr_t &value) const;
 
-	// manage state
-	bool SetAllStale();
-	bool ResubscribeAll();
+    // manage state
+    bool SetAllStale();
+    bool ResubscribeAll();
 
-	// We need to stop updates being sent while closing down
-	void PauseUpdates();
-	void ResumeUpdates();
+    // We need to stop updates being sent while closing down
+    void PauseUpdates();
+    void ResumeUpdates();
 
-	UPAConsumer_ptr_t Consumer() { return consumer_; }
-	typedef std::vector< std::pair<std::string, ServiceState> > service_snapshot_t;
-	size_t SnapshotNames(service_snapshot_t &names);
+    UPAConsumer_ptr_t Consumer() { return consumer_; }
+    typedef std::vector< std::pair<std::string, ServiceState> > service_snapshot_t;
+    size_t SnapshotNames(service_snapshot_t &names);
 
 private:
-	typedef std::map<std::string, RsslUInt64> ServiceNameMap;
-	ServiceNameMap serviceNameMap_;
+    typedef std::map<std::string, RsslUInt64> ServiceNameMap;
+    ServiceNameMap serviceNameMap_;
 
    typedef std::map<RsslUInt64, RMDSSource_ptr_t> services_t;
    services_t servicesMap_;
 
-	UPAConsumer_ptr_t consumer_;
+    UPAConsumer_ptr_t consumer_;
 
 #ifdef ENABLE_TICK42_ENHANCED
 // Additional functionality provided by the enhanced bridge is available as part of a a support package
@@ -84,3 +84,4 @@ private:
 };
 
 #endif //__RMDS_SOURCE_H__
+

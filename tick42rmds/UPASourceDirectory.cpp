@@ -142,7 +142,7 @@ RsslRet UPASourceDirectory::ProcessSourceDirectoryResponse(RsslMsg* msg, RsslDec
             return RSSL_RET_FAILURE;
         }
 
-        t42log_info("Received Source Directory Update\n");
+        t42log_debug("Received Source Directory Update\n");
         break;
 
     case RSSL_MC_CLOSE:
@@ -155,7 +155,7 @@ RsslRet UPASourceDirectory::ProcessSourceDirectoryResponse(RsslMsg* msg, RsslDec
         {
             pState = &msg->statusMsg.state;
             rsslStateToString(&tempBuffer, pState);
-            t42log_info("	%s\n\n", tempBuffer.data);
+            t42log_info("    %s\n\n", tempBuffer.data);
         }
         break;
 
@@ -248,6 +248,7 @@ RsslRet UPASourceDirectory::DecodeSourceDirectoryResponse(RsslDecodeIterator *dI
         // clear down the struct
         ResetSourceDirRespInfo(&srcDirRespInfo);
 
+        bool hasStateInfo = false;
         if (ret == RSSL_RET_SUCCESS)
         {
             if (ret != RSSL_RET_SUCCESS && ret != RSSL_RET_BLANK_DATA)
@@ -292,6 +293,7 @@ RsslRet UPASourceDirectory::DecodeSourceDirectoryResponse(RsslDecodeIterator *dI
                             t42log_error("decodeServiceStateInfo() failed with return code: %d\n", ret);
                             return ret;
                         }
+                        hasStateInfo = true;
                         break;
 
                     case RDM_DIRECTORY_SERVICE_GROUP_ID:
@@ -334,7 +336,10 @@ RsslRet UPASourceDirectory::DecodeSourceDirectoryResponse(RsslDecodeIterator *dI
             }
         }
 
-        NotifyListenersUpdate(&srcDirRespInfo, isRefresh);
+        if (hasStateInfo)
+        {
+            NotifyListenersUpdate(&srcDirRespInfo, isRefresh);
+        }
     }
 
     return RSSL_RET_SUCCESS;
@@ -352,11 +357,11 @@ RsslRet UPASourceDirectory::DecodeSourceDirectoryResponse(RsslDecodeIterator *dI
 
 // For more details of the message schema and semantics please refer to the UPA-RDMUsageGuide section 4.3.1.1
 
-RsslRet UPASourceDirectory::DecodeServiceGeneralInfo(RsslServiceGeneralInfo* serviceGeneralInfo, RsslDecodeIterator* dIter,	RsslUInt32 maxCapabilities, RsslUInt32 maxQOS, RsslUInt32 maxDictionaries)
+RsslRet UPASourceDirectory::DecodeServiceGeneralInfo(RsslServiceGeneralInfo* serviceGeneralInfo, RsslDecodeIterator* dIter,    RsslUInt32 maxCapabilities, RsslUInt32 maxQOS, RsslUInt32 maxDictionaries)
 {
     // decode element list from the message
     RsslRet ret = 0;
-    RsslElementList	eltList;
+    RsslElementList    eltList;
     if ((ret = rsslDecodeElementList(dIter, &eltList, NULL)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeElementList() failed with return code: %d\n", ret);
@@ -644,7 +649,7 @@ RsslRet UPASourceDirectory::DecodeServiceStateInfo(RsslServiceStateInfo* service
     RsslRet ret = 0;
 
     // decode element list
-    RsslElementList	eltList;
+    RsslElementList    eltList;
     if ((ret = rsslDecodeElementList(dIter, &eltList, NULL)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeElementList() failed with return code: %d\n", ret);
@@ -714,7 +719,7 @@ RsslRet UPASourceDirectory::DecodeServiceGroupInfo(RsslServiceGroupInfo* service
     RsslRet ret = 0;
 
     // decode element list
-    RsslElementList	eltList;
+    RsslElementList    eltList;
     if ((ret = rsslDecodeElementList(dIter, &eltList, NULL)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeElementList() failed with return code: %d\n", ret);
@@ -790,7 +795,7 @@ RsslRet UPASourceDirectory::DecodeServiceLoadInfo(RsslServiceLoadInfo* serviceLo
     RsslRet ret = 0;
 
     // decode element list
-    RsslElementList	eltList;
+    RsslElementList    eltList;
     if ((ret = rsslDecodeElementList(dIter, &eltList, NULL)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeElementList() failed with return code: %d\n", ret);
@@ -860,7 +865,7 @@ RsslRet UPASourceDirectory::DecodeServiceDataInfo(RsslServiceDataInfo* serviceDa
     RsslRet ret = 0;
 
     /* decode element list */
-    RsslElementList	eltList;
+    RsslElementList    eltList;
     if ((ret = rsslDecodeElementList(dIter, &eltList, NULL)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeElementList() failed with return code: %d\n", ret);
@@ -973,7 +978,7 @@ RsslRet UPASourceDirectory::DecodeServiceLinkInfo(RsslServiceLinkInfo* serviceLi
             }
 
             //decode element list
-            RsslElementList	elementList;
+            RsslElementList    elementList;
 
             if ((ret = rsslDecodeElementList(dIter, &elementList, NULL)) < RSSL_RET_SUCCESS)
             {
@@ -1587,7 +1592,7 @@ RsslRet UPASourceDirectory::EncodeServiceGeneralInfo(RMDSPublisherSource * srcIn
     }
 
     // encode the element list
-    RsslElementList	elementList = RSSL_INIT_ELEMENT_LIST;
+    RsslElementList    elementList = RSSL_INIT_ELEMENT_LIST;
     elementList.flags = RSSL_ELF_HAS_STANDARD_DATA;
     if ((ret = rsslEncodeElementListInit(eIter, &elementList, 0, 0)) < RSSL_RET_SUCCESS)
     {
@@ -1600,7 +1605,7 @@ RsslRet UPASourceDirectory::EncodeServiceGeneralInfo(RMDSPublisherSource * srcIn
     RsslElementEntry element = RSSL_INIT_ELEMENT_ENTRY;
     char temp[256];
     ::strcpy(temp, srcInfo->Name().c_str());
-    //	tempBuffer.data = const_cast<char*>(srcInfo->Name().c_str());
+    //    tempBuffer.data = const_cast<char*>(srcInfo->Name().c_str());
     tempBuffer.data = temp;
     tempBuffer.length = (RsslUInt32)srcInfo->Name().size();
     element.dataType = RSSL_DT_ASCII_STRING;
@@ -1830,7 +1835,7 @@ RsslRet UPASourceDirectory::EncodeServiceStateInfo(RMDSPublisherSource * srcInfo
     }
 
     // encode the element list
-    RsslElementList	elementList = RSSL_INIT_ELEMENT_LIST;
+    RsslElementList    elementList = RSSL_INIT_ELEMENT_LIST;
     elementList.flags = RSSL_ELF_HAS_STANDARD_DATA;
     if ((ret = rsslEncodeElementListInit(eIter, &elementList, 0, 0)) < RSSL_RET_SUCCESS)
     {
@@ -1900,7 +1905,7 @@ RsslRet UPASourceDirectory::EncodeServiceLoadInfo( RMDSPublisherSource * srcInfo
     }
 
     // encode the element list
-    RsslElementList	elementList = RSSL_INIT_ELEMENT_LIST;
+    RsslElementList    elementList = RSSL_INIT_ELEMENT_LIST;
     elementList.flags = RSSL_ELF_HAS_STANDARD_DATA;
     if ((ret = rsslEncodeElementListInit(eIter, &elementList, 0, 0)) < RSSL_RET_SUCCESS)
     {
@@ -1961,7 +1966,7 @@ RsslRet UPASourceDirectory::EncodeServiceLinkInfo(RMDSPublisherSource * srcInfo,
     RsslRet ret = 0;
 
     RsslElementEntry element = RSSL_INIT_ELEMENT_ENTRY;
-    RsslElementList	elementList = RSSL_INIT_ELEMENT_LIST;
+    RsslElementList    elementList = RSSL_INIT_ELEMENT_LIST;
     RsslBuffer tempBuffer;
 
     // encode filter list item

@@ -107,7 +107,7 @@ static const char* gUsageString[]=
 "-S, -source, -SN  The symbol name space for the data.",
 "-s                An individual symbol to subscribe to.",
 "                  Can be passed multiple times.",
-"-shutdown		   The number of seconds that the program will run for, 0 to run indefinitely.",
+"-shutdown           The number of seconds that the program will run for, 0 to run indefinitely.",
 "-threads          The number of threads/queues from which to dispatch data.",
 "                  The subscriptions will be created accross all queues in a",
 "                  round robin fashion.",
@@ -223,7 +223,7 @@ static size_t            gLowWaterMark       = 0;
 /* Contains the amount of time that the example program will run for, if set to 0 then it
  * will run indefinitely.
  */
-static int				 gShutdownTime		 = 0;
+static int                 gShutdownTime         = 0;
 static int gSnapTime = 0;
 
 static mamaSubscription gSnapSubscription = 0;
@@ -311,35 +311,35 @@ lowWaterMarkCallback  (mamaQueue     queue,
 static void MAMACALLTYPE
 shutdownTimerCallback(mamaTimer timer, void *closure)
 {
-	/* Stop dispatching messages. */
-	mama_stop(gMamaBridge);
+    /* Stop dispatching messages. */
+    mama_stop(gMamaBridge);
 }
 
 
 static void MAMACALLTYPE
-	snapTimerCallback(mamaTimer timer, void *closure)
+    snapTimerCallback(mamaTimer timer, void *closure)
 {
-	mama_status status;
+    mama_status status;
 
-	mamaMsgCallbacks callbacks;
-	memset(&callbacks, 0, sizeof(callbacks));
-	callbacks.onCreate  = subscriptionOnCreate;
-	callbacks.onError   = subscriptionOnError;
-	callbacks.onMsg     = subscriptionOnMsg;
-	callbacks.onQuality = subscriptionOnQuality;
-	callbacks.onGap     = NULL;
-	callbacks.onRecapRequest = NULL;
-	callbacks.onDestroy = subscriptionOnDestroy;
+    mamaMsgCallbacks callbacks;
+    memset(&callbacks, 0, sizeof(callbacks));
+    callbacks.onCreate  = subscriptionOnCreate;
+    callbacks.onError   = subscriptionOnError;
+    callbacks.onMsg     = subscriptionOnMsg;
+    callbacks.onQuality = subscriptionOnQuality;
+    callbacks.onGap     = NULL;
+    callbacks.onRecapRequest = NULL;
+    callbacks.onDestroy = subscriptionOnDestroy;
 
-	mamaSubscription_allocate (&gSnapSubscription);
+    mamaSubscription_allocate (&gSnapSubscription);
 
-	mamaSubscription_setTimeout (gSnapSubscription,
-							gTimeout);
+    mamaSubscription_setTimeout (gSnapSubscription,
+                            gTimeout);
 
 
-	/* Create a snapshot subscription */
-	//mamaSubscription_setServiceLevel (gSnapSubscription,
-	//								MAMA_SERVICE_LEVEL_SNAPSHOT,
+    /* Create a snapshot subscription */
+    //mamaSubscription_setServiceLevel (gSnapSubscription,
+    //                                MAMA_SERVICE_LEVEL_SNAPSHOT,
  //                                               0);
 
 
@@ -372,8 +372,8 @@ void usage                 (int                 exitStatus);
 int main (int argc, const char **argv)
 {
     mamaTimer mamatimer;
-	mamaTimer shutdownTimer = NULL;
-	mamaTimer snapTimer = NULL;
+    mamaTimer shutdownTimer = NULL;
+    mamaTimer snapTimer = NULL;
 
     gSymbolList = (const char**)calloc (MAX_SUBSCRIPTIONS, sizeof (char*));
     gFieldList  = (const char**)calloc (MAX_FIELDS,        sizeof (char*));
@@ -408,28 +408,28 @@ int main (int argc, const char **argv)
                           NULL);
     }
 
-	/* Create the shutdown timer. */
-	if (gShutdownTime > 0)
-	{
-		mamaTimer_create(&shutdownTimer, gMamaDefaultQueue, shutdownTimerCallback, gShutdownTime, NULL);
-	}
+    /* Create the shutdown timer. */
+    if (gShutdownTime > 0)
+    {
+        mamaTimer_create(&shutdownTimer, gMamaDefaultQueue, shutdownTimerCallback, gShutdownTime, NULL);
+    }
 
-	/* Create the snapshot timer. */
-	if (gSnapTime > 0)
-	{
-		mamaTimer_create(&snapTimer, gMamaDefaultQueue, snapTimerCallback, gSnapTime, NULL);
-	}
+    /* Create the snapshot timer. */
+    if (gSnapTime > 0)
+    {
+        mamaTimer_create(&snapTimer, gMamaDefaultQueue, snapTimerCallback, gSnapTime, NULL);
+    }
 
     /* Start dispatching on the default event queue, this will block until Ctrl+C is pressed or the shutdown
-	 * timer fires.
-	 */
+     * timer fires.
+     */
     mama_start (gMamaBridge);
 
-	/* Destroy the shutdown timer if it was created. */
-	if (shutdownTimer != NULL)
-	{
-		mamaTimer_destroy(shutdownTimer);
-	}
+    /* Destroy the shutdown timer if it was created. */
+    if (shutdownTimer != NULL)
+    {
+        mamaTimer_destroy(shutdownTimer);
+    }
 
     mamashutdown ();
 
@@ -455,7 +455,7 @@ static void subscribeToSymbols (void)
     callbacks.onError   = subscriptionOnError;
     callbacks.onMsg     = subscriptionOnMsg;
     callbacks.onQuality = subscriptionOnQuality;
-	callbacks.onDestroy = subscriptionOnDestroy;
+    callbacks.onDestroy = subscriptionOnDestroy;
     callbacks.onGap     = NULL;
     callbacks.onRecapRequest = NULL;
     /*
@@ -1278,17 +1278,17 @@ static void parseCommandLine (int argc, const char** argv)
             i+=2;
         }
 
-		else if (strcmp ("-shutdown", argv[i]) == 0)
+        else if (strcmp ("-shutdown", argv[i]) == 0)
         {
             gShutdownTime = atoi (argv[i + 1]);
             i += 2;
         }
 
-		else if (strcmp ("-snap", argv[i]) == 0)
-		{
-			gSnapTime = atoi (argv[i + 1]);
-			i += 2;
-		}
+        else if (strcmp ("-snap", argv[i]) == 0)
+        {
+            gSnapTime = atoi (argv[i + 1]);
+            i += 2;
+        }
 
         else
         {
@@ -1387,7 +1387,7 @@ subscriptionOnQuality (mamaSubscription subsc,
 
 static void MAMACALLTYPE subscriptionOnDestroy(mamaSubscription subscription, void *closure)
 {
-	
+    
 }
 
 void displayFields (mamaMsg msg, mamaSubscription subscription )
@@ -1665,6 +1665,15 @@ void displayField (mamaMsgField field, const mamaMsg msg, int indentLevel)
                 printData (result, "%s\n");
                 break;
             }
+
+         case MAMA_FIELD_TYPE_OPAQUE:
+             {
+                 const void* result = NULL;
+                 size_t len;
+                 mamaMsgField_getOpaque(field, &result, &len);
+                 printData ((char *) result, "%s\n");
+                 break;
+             }
          case MAMA_FIELD_TYPE_VECTOR_STRING:
             {
                 const char** result = NULL;
@@ -1763,7 +1772,7 @@ void displayAllFields (mamaMsg msg, mamaSubscription subscription, int
 {
     mamaMsgField    field       =   NULL;
     mama_status     status      =   MAMA_STATUS_OK;
-	size_t numFields = 0;
+    size_t numFields = 0;
 
     if (gQuietness < 2 && subscription)
     {
@@ -1775,7 +1784,7 @@ void displayAllFields (mamaMsg msg, mamaSubscription subscription, int
         //DP: double-check the msgStatus against fid 2 (because I think that Mama doesn't process it properly)
         mamaMsg_getI32(msg, 0, 2, &stat);
 
-		  mamaMsg_getString(msg, 0, 470, &symbol);
+          mamaMsg_getString(msg, 0, 470, &symbol);
         mamaSubscription_getSource (subscription, &source);
         mamaSubscription_getSymbol (subscription, &symbol);
         mamaMsg_getString (msg, NULL, 305, &issueSymbol);
@@ -1788,8 +1797,8 @@ void displayAllFields (mamaMsg msg, mamaSubscription subscription, int
                 stat);
 
 
-		mamaMsg_getNumFields(msg,&numFields);
-		printf("The message has %d fields \n", numFields);
+        mamaMsg_getNumFields(msg,&numFields);
+        printf("The message has %d fields \n", numFields);
     }
 
     /*
@@ -1807,36 +1816,36 @@ void displayAllFields (mamaMsg msg, mamaSubscription subscription, int
     }
     else
     {
-	if (gNewIterators != 0)
-    	{
-		mamaMsgIterator iterator = NULL;
-        	/*An iterator can be reused for efficiency - however, it cannot
-	  	be shared across all queues*/
-        	mamaMsgIterator_create(&iterator, gDictionary);
+    if (gNewIterators != 0)
+        {
+        mamaMsgIterator iterator = NULL;
+            /*An iterator can be reused for efficiency - however, it cannot
+          be shared across all queues*/
+            mamaMsgIterator_create(&iterator, gDictionary);
 
-        	if (MAMA_STATUS_OK!=(status=mamaMsgIterator_associate(iterator, msg)))
-        	{
-            		fprintf (stderr, "Could not associate iterator "
-                      		"with message. [%s]\n", mamaStatus_stringForStatus (status));
-        	}
-        	else
-        	{
-            		//while ((field = mamaMsgIterator_next(iterator)) != NULL)
-            		//{
-              //  		displayField (field, msg, 0);
-            		//}
+            if (MAMA_STATUS_OK!=(status=mamaMsgIterator_associate(iterator, msg)))
+            {
+                    fprintf (stderr, "Could not associate iterator "
+                              "with message. [%s]\n", mamaStatus_stringForStatus (status));
+            }
+            else
+            {
+                    //while ((field = mamaMsgIterator_next(iterator)) != NULL)
+                    //{
+              //          displayField (field, msg, 0);
+                    //}
 
-				while(mamaMsgIterator_hasNext(iterator))
-				{
-					field = mamaMsgIterator_next(iterator);
-					displayField (field, msg, 0);
-				}
+                while(mamaMsgIterator_hasNext(iterator))
+                {
+                    field = mamaMsgIterator_next(iterator);
+                    displayField (field, msg, 0);
+                }
 
 
-        	}
+            }
 
-		mamaMsgIterator_destroy(iterator);
-    	}
+        mamaMsgIterator_destroy(iterator);
+        }
     }
 }
 

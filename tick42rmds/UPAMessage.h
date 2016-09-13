@@ -35,6 +35,7 @@ extern "C" {
 // Send a message on the channel
 
 RsslRet SendUPAMessage(RsslChannel* chnl, RsslBuffer* msgBuf);
+RsslRet SendUPAMessageWithErrorText(RsslChannel* chnl, RsslBuffer* msgBuf, std::string& errorText);
 RsslRet SendPing(RsslChannel* chnl);
 
 #ifdef __cplusplus

@@ -33,11 +33,11 @@
 class DictionaryReply_t
 {
 public:
-	virtual mama_status Send() =0;
-	virtual ~DictionaryReply_t()
-	{
-		//printf("destructor DictionaryReply_t");
-	} //<- in case there are some bound variables need cleaning.
+    virtual mama_status Send() =0;
+    virtual ~DictionaryReply_t()
+    {
+        //printf("destructor DictionaryReply_t");
+    } //<- in case there are some bound variables need cleaning.
 };
 
 #endif //__DICTIONARYREPLY_H__
