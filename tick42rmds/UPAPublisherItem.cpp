@@ -33,28 +33,27 @@
 
 using namespace std;
 
-const RsslUInt32 pubMsgSize = 4096;
 const RsslUInt32 StateTextLen = 128;
 
 utils::collection::unordered_set<int> suppressBadEnumWarnings_;
 
-UPAPublisherItem::UPAPublisherItem( RsslChannel * chnl, RsslUInt32 streamId, string source, string symbol, RsslUInt32 serviceId )
+UPAPublisherItem::UPAPublisherItem( RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId )
    :  source_(source), symbol_(symbol), serviceId_(serviceId), solicitedMessages_(true)
 {
-    // This gets created in one of 2 contexts - 
+    // This gets created in one of 2 contexts -
     // either (a) handling a RSSL_MC_REQUEST message from the TREP, in which case it has a channel and stream id
     // or (b) because the mama client has chosen to create a publisher where there will be no channel/stream
-    // in case (b) we just go ahead and create without setting up a channel. When eventually we receive a request for the item from 
-    // the TREP 
+    // in case (b) we just go ahead and create without setting up a channel. When eventually we receive a request for the item from
+    // the TREP
     if (chnl != 0)
     {
        // don't have this channel so create one
        UpaChannel_t * upaChannel = new UpaChannel_t();
        upaChannel->channel_ = chnl;
-    
+
        // and insert into the map
        channelMap_[chnl] = upaChannel;
-    
+
        // now add the stream to the refresh list
        upaChannel->refreshStreamList_.push_back(streamId);
     }
@@ -75,10 +74,11 @@ bool UPAPublisherItem::Initialise( UPAPublisherItem_ptr_t ptr,  RMDSPublisherBas
    upaFieldMap_ = publisher->FieldMap();
    mamaDictionary_ = upaFieldMap_->GetCombinedMamaDictionary().get();
    rmdsDictionary_ = publisher->Subscriber()->Consumer()->RsslDictionary()->RsslDictionary();
+   maxMessageSize_ = publisher->MaxMessageSize();
    return true;
 }
 
-UPAPublisherItem_ptr_t UPAPublisherItem::CreatePublisherItem( RsslChannel * chnl, RsslUInt32 streamId, string source, string symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher )
+UPAPublisherItem_ptr_t UPAPublisherItem::CreatePublisherItem( RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher )
 {
    UPAPublisherItem * newItem  = new UPAPublisherItem(chnl, streamId, source, symbol, serviceId);
    UPAPublisherItem_ptr_t ret = UPAPublisherItem_ptr_t(newItem);
@@ -88,20 +88,20 @@ UPAPublisherItem_ptr_t UPAPublisherItem::CreatePublisherItem( RsslChannel * chnl
 }
 
 RsslRet UPAPublisherItem::SendItemRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslUInt8 domainType,
-   RsslStateCodes code, std::string stateText,  RsslBool isPrivateStream)
+   RsslStateCodes code, const std::string& stateText,  RsslBool isPrivateStream, unsigned int maxMessageSize)
 {
    RsslError error;
 
-   // get a buffer for the item request reject status 
+   // get a buffer for the item request reject status
    RsslBuffer* msgBuf = 0;
-   msgBuf = rsslGetBuffer(chnl, 4096, RSSL_FALSE, &error);
+   msgBuf = rsslGetBuffer(chnl, maxMessageSize, RSSL_FALSE, &error);
 
    if (msgBuf != NULL)
    {
       RsslEncodeIterator encodeIter;
 
       RsslStatusMsg msg = RSSL_INIT_STATUS_MSG;
-      // clear encode iterator 
+      // clear encode iterator
       rsslClearEncodeIterator(&encodeIter);
 
       /* set-up message */
@@ -121,7 +121,7 @@ RsslRet UPAPublisherItem::SendItemRequestReject(RsslChannel* chnl, RsslInt32 str
       msg.state.text.data = const_cast<char *>(stateText.c_str());
       msg.state.text.length = (RsslUInt32)stateText.size();
 
-      // encode message 
+      // encode message
       rsslSetEncodeIteratorBuffer(&encodeIter, msgBuf);
       rsslSetEncodeIteratorRWFVersion(&encodeIter, chnl->majorVersion, chnl->minorVersion);
       RsslRet ret = 0;
@@ -138,7 +138,7 @@ RsslRet UPAPublisherItem::SendItemRequestReject(RsslChannel* chnl, RsslInt32 str
 
       t42log_info("Rejecting Item Request with streamId=%d and domain %s.  Reason: %s\n", streamId,  rsslDomainTypeToString(domainType), stateText.c_str());
 
-      // send request reject status 
+      // send request reject status
       if (SendUPAMessage(chnl, msgBuf) != RSSL_RET_SUCCESS)
          return RSSL_RET_FAILURE;
    }
@@ -153,7 +153,7 @@ RsslRet UPAPublisherItem::SendItemRequestReject(RsslChannel* chnl, RsslInt32 str
 
 void UPAPublisherItem::AddChannel( RsslChannel * chnl, RsslUInt32 streamId )
 {
-   // we don't expect a second stream to be added on a channel, but is is possible to configure UPA based components so that 
+   // we don't expect a second stream to be added on a channel, but is is possible to configure UPA based components so that
    // this might happen.
 
     t42log_debug("Publisher item %s added channel 0x%x for stream id %d\n", symbol_.c_str(),  chnl, streamId);
@@ -190,7 +190,7 @@ bool UPAPublisherItem::RemoveChannel( RsslChannel * chnl, RsslUInt32 streamId )
    }
 
    upaChannel = chnlIt->second;
-   // it is possible there is more than one stream on the list 
+   // it is possible there is more than one stream on the list
    if (upaChannel->refreshStreamList_.size() == 0)
    {
       t42log_warn("attempt to remove  channel from %s : %s when there are no streams\n ", source_.c_str(), symbol_.c_str());
@@ -248,7 +248,7 @@ mama_status UPAPublisherItem::PublishMessage( mamaMsg msg, std::string& errorTex
    UpaChannel_t *UpaChannel = it->second;
    RsslChannel *chnl = channelMap_.begin()->second->channel_;
    RsslError err;
-   RsslBuffer *rsslMessageBuffer = rsslGetBuffer(chnl, pubMsgSize, RSSL_FALSE, &err );
+   RsslBuffer *rsslMessageBuffer = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &err );
 
    if (rsslMessageBuffer == 0)
    {
@@ -346,7 +346,7 @@ bool UPAPublisherItem::BuildPublishMessage( UpaChannel_t * chnl, RsslBuffer* rss
       msgBase = &updateMsg.msgBase;
       msgBase->msgClass = RSSL_MC_UPDATE;
 
-       //include msg key in updates for non-interactive provider streams 
+       //include msg key in updates for non-interactive provider streams
       if (streamId < 0)
       {
          updateMsg.flags = RSSL_UPMF_HAS_MSG_KEY;
@@ -364,10 +364,10 @@ bool UPAPublisherItem::BuildPublishMessage( UpaChannel_t * chnl, RsslBuffer* rss
    msgBase->domainType = RSSL_DMT_MARKET_PRICE;
    msgBase->containerType = RSSL_DT_FIELD_LIST;
 
-    //StreamId 
+    //StreamId
    msgBase->streamId = chnl->refreshStreamList_.front();
 
-   // encode the message 
+   // encode the message
    UPAFieldEncoder encoder(mamaDictionary_, upaFieldMap_, rmdsDictionary_, source_, symbol_);
    return encoder.encode(msg, chnl->channel_, rsslMsg, rsslMessageBuffer);
 }

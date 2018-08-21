@@ -31,7 +31,8 @@
 
 const int srcDirStreamId = 2;
 
-UPASourceDirectory::UPASourceDirectory()
+UPASourceDirectory::UPASourceDirectory(unsigned int maxMessageSize) :
+    maxMessageSize_(maxMessageSize)
 {
 }
 
@@ -73,12 +74,12 @@ bool UPASourceDirectory::SendRequest()
         return false;
     }
 
-     //get a buffer for the source directory request 
-    msgBuf = rsslGetBuffer(UPAChannel_, MAX_MSG_SIZE, RSSL_FALSE, &error);
+     //get a buffer for the source directory request
+    msgBuf = rsslGetBuffer(UPAChannel_, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
-         //encode source directory request 
+         //encode source directory request
         if (EncodeSourceDirectoryRequest(msgBuf, srcDirStreamId) != RSSL_RET_SUCCESS)
         {
             rsslReleaseBuffer(msgBuf, &error);
@@ -86,7 +87,7 @@ bool UPASourceDirectory::SendRequest()
             return false;
         }
 
-         //send source directory request 
+         //send source directory request
         if (SendUPAMessage(UPAChannel_, msgBuf) != RSSL_RET_SUCCESS)
             return false;
     }
@@ -175,7 +176,7 @@ RsslRet UPASourceDirectory::CloseSourceDirectoryStream()
     RsslBuffer* msgBuf = 0;
 
     // get a buffer for the source directory close
-    msgBuf = rsslGetBuffer(UPAChannel_, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuf = rsslGetBuffer(UPAChannel_, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
@@ -1275,7 +1276,7 @@ RsslRet UPASourceDirectory::SendSrcDirectoryRequestReject(RsslChannel* chnl, Rss
     RsslBuffer* msgBuf = 0;
 
     // get a buffer for the source directory request reject status
-    msgBuf = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuf = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
@@ -1362,7 +1363,7 @@ RsslRet UPASourceDirectory::SendSourceDirectoryResponse(RsslChannel *chnl, RsslI
     RsslBuffer* msgBuf = 0;
 
     // get a buffer for the source directory response
-    msgBuf = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuf = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf == 0)
     {
@@ -1616,7 +1617,7 @@ RsslRet UPASourceDirectory::EncodeServiceGeneralInfo(RMDSPublisherSource * srcIn
         return ret;
     }
 
-     //Capabilities 
+     //Capabilities
     element.dataType = RSSL_DT_ARRAY;
     element.name = RSSL_ENAME_CAPABILITIES;
     if ((ret = rsslEncodeElementEntryInit(eIter, &element, 0)) < RSSL_RET_SUCCESS)

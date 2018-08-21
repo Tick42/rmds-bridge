@@ -80,9 +80,9 @@ bool UPASubscription::Open( UPAConsumer_ptr_t consumer )
     bookByPriceMessage_.Fieldmap(fieldmap_);
     bookByOrderMessage_.Fieldmap(fieldmap_);
 
-    string transportName = consumer->GetOwner()->GetTransportName();
+    std::string transportName = consumer->GetOwner()->GetTransportName();
     boost::shared_ptr<TransportConfig_t> config_ = boost::make_shared<TransportConfig_t>(transportName);
-    string sendDup = config_->getString("sendRecapOnDuplicate");
+    std::string sendDup = config_->getString("sendRecapOnDuplicate");
     sendRecap_ = (sendDup == "" || sendDup == "true");
     useCallbacks_ = config_->getBool("use-callbacks", Default_useCallbacks);
     sendAckMessages_ = config_->getBool("send-ack-messages", Default_sendAckMessage);
@@ -234,7 +234,7 @@ bool UPASubscription::SendOpenRequest( bool isSnapshot )
     RsslChannel * UPAChannel = consumer_->RsslConsumerChannel();
 
     // get a buffer for the item request
-    msgBuf = rsslGetBuffer(UPAChannel, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuf = rsslGetBuffer(UPAChannel, consumer_->MaxMessageSize(), RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
@@ -569,11 +569,33 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
     case RSSL_MC_STATUS:
         if (msg->statusMsg.flags & RSSL_STMF_HAS_STATE)
         {
+            //rsslStateToString(&stateBuffer, &msg->statusMsg.state);
+            //t42log_debug("%s    %s", Symbol().c_str(), stateBuffer.data);
+
+            //// and set the new state for the subscription
+            //SetRsslState(&msg->statusMsg.state);
             rsslStateToString(&stateBuffer, &msg->statusMsg.state);
-            t42log_debug("%s    %s", Symbol().c_str(), stateBuffer.data);
+            t42log_debug("%s %s", Symbol().c_str(), stateBuffer.data);
 
             // and set the new state for the subscription
-            SetRsslState(&msg->statusMsg.state);
+            if (isSnapshot_)
+            {
+                // this is just a regular snapshot
+                t42log_debug("Calling OnMessage() method for a snapshot for MAMA_MSG_STATUS_NOT_FOUND state");
+                mamaMsg_addI32(msg_, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, MAMA_MSG_STATUS_NOT_FOUND);
+
+                if(0 != snapShot_)
+                {
+                    t42log_debug("Calling OnMessage() method for a snapshot for MAMA_MSG_STATUS_NOT_FOUND state");
+                    snapShot_->OnMessage(msg_);
+                    // now we have sent the message we dont need the reply any more
+                    snapShot_.reset();
+                }
+             }
+            else
+            {
+                SetRsslState(&msg->statusMsg.state);
+            }
         }
         break;
 
@@ -584,12 +606,12 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
 
         {
             UPABridgePoster_ptr_t poster;
-            PublisherPostMessageReply * reply = 0;
+            PublisherPostMessageReply_ptr_t reply;
 
             RsslUInt32 id = msg->ackMsg.ackId;
             if (consumer_->PostManager().RemovePost(id, poster, reply))
             {
-                poster->ProcessAck(msg, dIter, reply);
+                poster->ProcessAck(msg, dIter, reply.get());
             }
             else
             {
@@ -944,7 +966,7 @@ RsslRet UPASubscription::CloseStream(RsslChannel* UPAChannel, RsslInt32 streamId
     RsslBuffer* msgBuff = 0;
 
     // get a buffer for the item close
-    msgBuff = rsslGetBuffer(UPAChannel, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuff = rsslGetBuffer(UPAChannel, consumer_->MaxMessageSize(), RSSL_FALSE, &error);
 
     if (msgBuff != NULL)
     {
@@ -1321,7 +1343,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
 
                         // each entry in the map corresponds to an order
                         //
-                        string orderId(mapKey.data,  mapKey.length);
+                        std::string orderId(mapKey.data,  mapKey.length);
                         entry->Orderid(orderId);
 
                         // only have a field list when the type is not a delete
@@ -1647,7 +1669,7 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                 RsslBuffer mapKey = RSSL_INIT_BUFFER;
                 while ((ret = rsslDecodeMapEntry(dIter, &mapEntry, &mapKey)) != RSSL_RET_END_OF_CONTAINER)
                 {
-                    string pricePointKey(mapKey.data, mapKey.length);
+                    std::string pricePointKey(mapKey.data, mapKey.length);
                     if (ret == RSSL_RET_SUCCESS)
                     {
 

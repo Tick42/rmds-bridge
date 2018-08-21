@@ -37,14 +37,14 @@
 
 using namespace utils::thread;
 
-RMDSSource::RMDSSource( const string & serviceName, const RsslUInt64 serviceId, UPAConsumer_ptr_t consumer )
+RMDSSource::RMDSSource( const std::string & serviceName, const RsslUInt64 serviceId, UPAConsumer_ptr_t consumer )
     : serviceName_(serviceName)
    , serviceId_(serviceId)
    , consumer_(consumer)
    , pausedUpdates_(false)
 {
     // sort out the default domain for this service
-    string configDomain = consumer_->GetOwner()->Config()->getServicePropertyString(serviceName,"domain","any");
+    std::string configDomain = consumer_->GetOwner()->Config()->getServicePropertyString(serviceName,"domain","any");
 
     // so we need to look at the property value ane set the enum type accordingly
 
@@ -90,7 +90,7 @@ UPASubscription_ptr_t RMDSSource::CreateSubscription(const std::string &symbol, 
 #ifdef ENABLE_TICK42_ENHANCED
    return UPASubscription_ptr_t(new T42Enh_UPASubscription(ServiceName(), symbol, logRmdsValues));
 #else
-    return UPASubscription_ptr_t(new UPASubscription(ServiceName(), symbol, logRmdsValues));    
+    return UPASubscription_ptr_t(new UPASubscription(ServiceName(), symbol, logRmdsValues));
 #endif
 }
 
@@ -123,7 +123,7 @@ bool RMDSSource::FindSubscription(const std::string & symbol, UPASubscription_pt
     return true;
 }
 
-bool RMDSSource::RemoveSubscription( const string & symbol )
+bool RMDSSource::RemoveSubscription( const std::string & symbol )
 {
     // just look up on the symbol name and remove
     T42Lock lock(&subscriptionMapLock_);
@@ -132,7 +132,7 @@ bool RMDSSource::RemoveSubscription( const string & symbol )
 
     if (it != subscriptions_.end())
     {
-        //printf("remove RMDSBridgeSubscription from source %s, 0x%x\n", symbol.c_str(), it->second.get());        
+        //printf("remove RMDSBridgeSubscription from source %s, 0x%x\n", symbol.c_str(), it->second.get());
         it->second->Close();
         subscriptions_.erase(it);
 
@@ -181,7 +181,7 @@ void RMDSSource::SetState( ServiceState newState )
 {
     bool oldState = state_.state;
 
-    state_ = newState;    
+    state_ = newState;
 
     if (oldState && !newState.state)
     // was up and now down

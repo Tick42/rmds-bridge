@@ -29,6 +29,7 @@
 #include "UPAMessage.h"
 #include "rmdsBridgeTypes.h"
 #include "UPADictionaryWrapper.h"
+#include "transportconfig.h"
 
 class DictionaryResponseListener;
 
@@ -56,10 +57,10 @@ public:
     bool SendRequest();
 
     bool IsComplete();
-    
+
     void NotifyComplete();
 
-    void LoadDictionaryFromFile();
+    void LoadDictionaryFromFile(const TransportConfig_t& config);
     RsslChannel* UPAChannel() const { return UPAChannel_; }
     void UPAChannel(RsslChannel* val) { UPAChannel_ = val; }
 
@@ -93,7 +94,7 @@ private:
     RsslRet EncodeDictionaryRequest( RsslBuffer* msgBuf, const char *dictionaryName, RsslInt32 streamId);
 
 
-    RsslInt32 fieldDictionaryStreamId_; 
+    RsslInt32 fieldDictionaryStreamId_;
     RsslInt32 enumDictionaryStreamId_;
 
     RsslRet CloseDictionaryStream( RsslInt32 streamId);
@@ -106,9 +107,8 @@ private:
     // wrapper on the underlying dictionary
     UPADictionaryWrapper_ptr_t rsslDictionary_;
 
-
     std::string transport_name_;
-
+    unsigned int maxMessageSize_;
 };
 
 class DictionaryResponseListener

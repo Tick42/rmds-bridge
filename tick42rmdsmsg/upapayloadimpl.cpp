@@ -169,13 +169,13 @@ mama_status
 }
 
 mama_status
-    tick42rmdsmsgPayload_createFromByteBuffer(msgPayload* msg, 
-    mamaPayloadBridge bridge, 
+    tick42rmdsmsgPayload_createFromByteBuffer(msgPayload* msg,
+    mamaPayloadBridge bridge,
     const void* buffer, mama_size_t bufferLength)
 {
-    if (!msg)  
+    if (!msg)
         return MAMA_STATUS_NULL_ARG;
-    if (!bufferLength) 
+    if (!bufferLength)
         return MAMA_STATUS_INVALID_ARG;
 
     CHECK_BUFFER(buffer, bufferLength); //todo: CHECK_BUFFER should be rewrite
@@ -196,7 +196,7 @@ mama_status
     const UpaPayload* payload = reinterpret_cast<UpaPayload*>(msg);
     UpaPayload* newPayload = reinterpret_cast<UpaPayload*>(*copy);
 
-    if (!newPayload) 
+    if (!newPayload)
     {
         newPayload = new (std::nothrow) UpaPayload(*payload);
         if (!newPayload)
@@ -264,7 +264,7 @@ mama_status
 }
 
 mama_status
-    tick42rmdsmsgPayload_setParent (msgPayload          msg,                           
+    tick42rmdsmsgPayload_setParent (msgPayload          msg,
     const mamaMsg       parent)
 {
 
@@ -324,7 +324,7 @@ mama_status
     mama_size_t         bufferLength)
 {
     //CHECK_PAYLOAD(msg);
-    //if (!bridge) 
+    //if (!bridge)
     //    return MAMA_STATUS_NULL_ARG;
     //CHECK_BUFFER(buffer, bufferLength);
     return MAMA_STATUS_NOT_IMPLEMENTED;
@@ -364,7 +364,7 @@ struct toStringClosure_t
 * @param field - the current field to work with. it is given by the iteration function.
 * @param closure - a closure of type toStringClosure_t.
 * @return a dynamically created buffer which should be release by the caller using free or NULL if msg is NULL
-*/ 
+*/
 void MAMACALLTYPE FieldToStringCb (const mamaMsg msg, const mamaMsgField  field, void* closure)
 {
     if (!field || !closure)
@@ -394,10 +394,10 @@ void MAMACALLTYPE FieldToStringCb (const mamaMsg msg, const mamaMsgField  field,
 }
 
 /*
-* Returns a string representation of the message 
+* Returns a string representation of the message
 * @param msg
 * @return a dynamically created buffer which should be release by the caller using free or NULL if msg is NULL
-*/ 
+*/
 const char*
     tick42rmdsmsgPayload_toString          (const msgPayload    msg)
 {
@@ -430,7 +430,7 @@ const char*
     closure.str += "}";
 
     // Copy a dynamic buffer of the message to the caller as a result
-    char *buf = (char*)malloc(closure.str.size()+1); 
+    char *buf = (char*)malloc(closure.str.size()+1);
     memset(buf, 0, closure.str.size()+1);
     strcpy(buf,closure.str.c_str());
 
@@ -449,7 +449,7 @@ mama_status
     CHECK_PAYLOAD(msg);
 
     //Check for invalid parent
-    if (!parent) return MAMA_STATUS_NULL_ARG; 
+    if (!parent) return MAMA_STATUS_NULL_ARG;
 
     const UpaPayload* payload = reinterpret_cast<UpaPayload*>(msg);
     if (!payload)
@@ -686,7 +686,7 @@ mama_status
 {
     CHECK_PAYLOAD(msg);
     CHECK_NAME(name,fid);
-    if (!value) 
+    if (!value)
         return MAMA_STATUS_NULL_ARG;
     return upaMsg_setString(upaPayload(msg), name, fid, value);
 }
@@ -700,7 +700,7 @@ mama_status
 {
     CHECK_PAYLOAD(msg);
     CHECK_NAME(name,fid);
-    if (!value) 
+    if (!value)
         return MAMA_STATUS_NULL_ARG;
     return upaMsg_setOpaque(upaPayload(msg), name, fid, value, size);
 }
@@ -1861,7 +1861,7 @@ mama_bool_t
     tick42rmdsmsgPayloadIter_hasNext       (msgPayloadIter iter,
     msgPayload     msg)
 {
-    if (!iter || !msg) 
+    if (!iter || !msg)
         return 0;
     const UpaPayloadFieldIterator* it = reinterpret_cast<UpaPayloadFieldIterator*>(iter);
 
@@ -1943,7 +1943,7 @@ mama_status
 
     const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
 
-    *result = fieldPayload->name_.c_str();
+    *result = fieldPayload->name_;
 
 
     if (!*result)
@@ -2282,7 +2282,7 @@ mama_status
     //    return MAMA_STATUS_INVALID_ARG;
     const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
     CHECK_FIELD(field);
-    return fieldPayload->getOpaque(result, size); 
+    return fieldPayload->getOpaque(result, size);
 }
 
 
@@ -2292,7 +2292,7 @@ mama_status
 {
     const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
     CHECK_FIELD(field);
-    return fieldPayload->get(result); //fixme - should change to get?
+    return fieldPayload->getDateTime(result);
 }
 
 
@@ -2302,7 +2302,7 @@ mama_status
 {
     const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
     CHECK_FIELD(field);
-    return fieldPayload->get(result); //fixme - should change to get?
+    return fieldPayload->getPrice(result);
 }
 
 mama_status
@@ -2311,7 +2311,7 @@ mama_status
 {
     const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
     CHECK_FIELD(field);
-    return fieldPayload->getMsg(mamaMsg(result)); //fixme - should change to get?
+    return fieldPayload->getMsg(mamaMsg(result));
 }
 
 mama_status
@@ -2488,7 +2488,7 @@ mama_status
     CHECK_FIELD(field);
     const UpaFieldPayload* fieldPayload = reinterpret_cast<const UpaFieldPayload*>(field);
     mama_fid_t fid = fieldPayload->fid_;
-    const char* name = fieldPayload->name_.c_str();
+    const char* name = fieldPayload->name_;
     return tick42rmdsmsgPayload_getFieldAsString(msg, name, fid, buf, len);
 
 }

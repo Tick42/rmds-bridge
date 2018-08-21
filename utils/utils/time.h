@@ -32,7 +32,7 @@
 #include <Windows.h>
 #else
 #include <sys/timeb.h>
-#endif 
+#endif
 
 
 namespace utils { namespace time {
@@ -89,6 +89,8 @@ inline int32_t GetMilliSpan( int32_t now, int32_t start)
     span += 0x100000 * 1000;
     return span;
 }
+
+time_t GetSeconds(uint32_t year, uint32_t month, uint32_t day);
 
 } /*namespace utils*/ } /*namespace time*/
 #endif //__UTILS_TIME_H__

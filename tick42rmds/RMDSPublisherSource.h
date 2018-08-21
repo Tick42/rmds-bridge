@@ -19,7 +19,7 @@ public:
     RsslUInt32 ServiceId() const { return serviceId_; }
     void ServiceId(RsslUInt32 val) { serviceId_ = val; }
 
-    std::string Name() const {return name_;}
+    const std::string& Name() const {return name_;}
 
     RsslUInt64 GetCapability(int index) const
     {
@@ -81,8 +81,8 @@ public:
     // add and remove items
     UPAPublisherItem_ptr_t GetItem(std::string symbol);
 
-    UPAPublisherItem_ptr_t AddItem(RsslChannel * chnl, RsslUInt32 streamID, std::string source,
-        std::string symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher, bool & isNew);
+    UPAPublisherItem_ptr_t AddItem(RsslChannel * chnl, RsslUInt32 streamID, const std::string& source,
+        const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher, bool & isNew);
 
     void RemoveItem(std::string symbol);
     bool HasItem(std::string symbol);

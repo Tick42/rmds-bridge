@@ -119,7 +119,7 @@ bool RMDSSubscriber::Start(const char* interfaceName, RsslConnectionTypes connTy
 
    // initialise from config
    connType_ = connType;
- 
+
    consumer_ = UPAConsumer_ptr_t(new UPAConsumer(this));
    if (consumer_->IsConnectionConfigValid() || ! consumer_->RequiresConnection())
    {
@@ -147,12 +147,7 @@ bool RMDSSubscriber::Start(const char* interfaceName, RsslConnectionTypes connTy
 bool RMDSSubscriber::Stop()
 {
    // Stop the consumer thread
-   t42log_info("RMDSSubscriber stop Consumer thread %p", hConsumerThread_);
-   if (0 != hConsumerThread_)
-   {
-      consumer_->JoinThread(hConsumerThread_);
-      hConsumerThread_ = 0;
-   }
+   consumer_->Stop();
 
    if (sources_)
    {
@@ -161,6 +156,18 @@ bool RMDSSubscriber::Stop()
 
    subscriberState_ = unconnected;
    return true;
+}
+
+bool RMDSSubscriber::Done()
+{
+    t42log_info("RMDSSubscriber stop Consumer thread %p", hConsumerThread_);
+    if (0 != hConsumerThread_)
+    {
+       consumer_->JoinThread(hConsumerThread_);
+       hConsumerThread_ = 0;
+    }
+
+    return true;
 }
 
 // Will create string representation of the important part of RsslLoginResponseInfo
@@ -217,7 +224,6 @@ void RMDSSubscriber::ConnectionNotification(bool connected, const char* extraInf
 
    if (connected_)
    {
-
       if (!consumer_->RequestLogin(upaRequestQueue_))
       {
          subscriberState_ = unconnected;
@@ -294,31 +300,27 @@ bool RMDSSubscriber::CreateUpaMamaFieldMap()
 
    if (config_->exists("fidsoffset"))
    {
-      boost::shared_ptr<UpaMamaFieldMapHandler_t> upaMamaFieldMapTmp(
-         new UpaMamaFieldMapHandler_t(
-         config_->getString("fieldmap", Default_Fieldmap),
-         config_->getUint16("fidsoffset", Default_FieldOffset),
-         config_->getBool("unmapdfld", Default_PassUnmappedFields),
-         config_->getString("mama_dict")
-         ));
-      UpaMamaFieldMap_ = upaMamaFieldMapTmp;
+       UpaMamaFieldMap_.reset(new UpaMamaFieldMapHandler_t(config_->getString("fieldmap", Default_Fieldmap),
+                                                           config_->getUint16("fidsoffset", Default_FieldOffset),
+                                                           config_->getBool("unmapdfld", Default_PassUnmappedFields),
+                                                           config_->getString("mama_dict")
+                                                           ));
    }
    else
    {
-      boost::shared_ptr<UpaMamaFieldMapHandler_t> upaMamaFieldMapTmp (
-         new UpaMamaFieldMapHandler_t(
-         config_->getString("fieldmap", Default_Fieldmap),
-         config_->getBool("unmapdfld", Default_PassUnmappedFields),
-         config_->getString("mama_dict")
-         ));
-      UpaMamaFieldMap_ = upaMamaFieldMapTmp;
+       UpaMamaFieldMap_.reset( new UpaMamaFieldMapHandler_t(config_->getString("fieldmap", Default_Fieldmap),
+                                                            config_->getBool("unmapdfld", Default_PassUnmappedFields),
+                                                            config_->getString("mama_dict")
+                                                            ));
    }
 
-
-   result = UpaMamaFieldMap_ ? true : false;
+   result = UpaMamaFieldMap_  ?  true : false;
 
    if (!result)
-      t42log_warn( "Could not create field map!"); //<- should never come here!
+   {
+       t42log_warn( "Could not create field map!"); //<- should never come here!
+   }
+
    return result;
 };
 
@@ -397,7 +399,7 @@ bool RMDSSubscriber::AddSubscription( subscriptionBridge* subscriber, const char
 
    // trim the source name
    if (source == NULL) source = "";
-   string strSource(source);
+   std::string strSource(source);
    boost::algorithm::trim(strSource);
 
    // if the subscription has no symbol it will be a "special" internal one
@@ -421,7 +423,7 @@ bool RMDSSubscriber::AddSubscription( subscriptionBridge* subscriber, const char
    }
 
    //now trim the symbol
-   string strSymbol(symbol);
+   std::string strSymbol(symbol);
    boost::algorithm::trim(strSymbol);
 
 
@@ -611,7 +613,7 @@ bool RMDSSubscriber::RemoveSubscription( RMDSBridgeSubscription * pSubscription 
       return false;
    }
 
-   string symbol = pSubscription->Symbol();
+   std::string symbol = pSubscription->Symbol();
 
    sub->RemoveListener(pSubscription);
    if (sub->ListenerCount() == 0)
@@ -638,7 +640,7 @@ void RMDSSubscriber::SetDictionaryReply(boost::shared_ptr<DictionaryReply_t> dic
 
 
 
-bool RMDSSubscriber::FindSubscription( const string & source, const string & symbol, UPASubscription_ptr_t & sub )
+bool RMDSSubscriber::FindSubscription( const std::string & source, const std::string & symbol, UPASubscription_ptr_t & sub )
 {
    RMDSSource_ptr_t src;
    if (!sources_->Find(source, src))
@@ -659,7 +661,7 @@ bool RMDSSubscriber::FindSubscription( const string & source, const string & sym
 }
 
 
-RsslUInt32 RMDSSubscriber::GetServiceId(const string & sourceName) const
+RsslUInt32 RMDSSubscriber::GetServiceId(const std::string & sourceName) const
 {
    RsslUInt32 ret = 0;
 

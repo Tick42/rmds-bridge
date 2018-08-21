@@ -24,7 +24,7 @@
 */
 #pragma once
 //#ifndef __UPASOURCEDIRECTORY_H__
-//#define __UPASOURCEDIRECTORY_H__ 
+//#define __UPASOURCEDIRECTORY_H__
 
 #include "UPAMessage.h"
 
@@ -44,7 +44,7 @@ class SourceDirectoryResponseListener;
 class UPASourceDirectory
 {
 public:
-    UPASourceDirectory();
+    UPASourceDirectory(unsigned int maxMessageSize);
     ~UPASourceDirectory(void);
 
 
@@ -81,6 +81,7 @@ private:
     listener_t listeners_;
 
     RsslChannel* UPAChannel_;
+    unsigned int maxMessageSize_;
 
     // encode the request;
     RsslRet EncodeSourceDirectoryRequest(RsslBuffer* msgBuf, RsslInt32 streamId);

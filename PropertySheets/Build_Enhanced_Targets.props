@@ -2,12 +2,14 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+
   <PropertyGroup>
-    <OutDir>$(SolutionDir)VS_$(VisualStudioVersion)\$(Platform)_Enhanced\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)build_VS_$(PlatformVersionExt)\$(Platform)_Enhanced\$(Configuration)\Solution\</OutDir>
   </PropertyGroup>
   <PropertyGroup>
-    <IntDir>VS_$(VisualStudioVersion)\$(Platform)_Enhanced\$(Configuration)\</IntDir>
+    <IntDir>$(SolutionDir)build_VS_$(PlatformVersionExt)\$(Platform)_Enhanced\$(Configuration)\$(TargetName)\</IntDir>
   </PropertyGroup>
+    
   <ItemDefinitionGroup />
   <ItemGroup />
 </Project>

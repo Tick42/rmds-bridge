@@ -1,0 +1,10 @@
+Release note, version 1.5.7:
+- added support of OpenMAMA 6.2.1 and upper according Extended MAMA Date Time;
+- added configuration for the message buffer size, based on transport settings; the default value is the used before 4096;
+- added configuration for the time waiting on select, based on transport settings; the default value is 100000;
+- fixed error notifications returned bby the function UPAFieldEncoder::encodeField;
+- fixed dead-lock when mama_stop and mamaTransport_destroy are called from different threads;
+- added check is the subscription going shutdown before onQuality callback;
+- added checks for valid (not NULL) arguments passed to the bridge functions;
+- fixed function call in order to optimize call-stack usage;
+- midified some of the build scripts - cmake scripts for the Linux builds, and MSBuild scripts for the Windows builds.

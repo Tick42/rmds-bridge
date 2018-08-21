@@ -37,11 +37,11 @@
 #include "RMDSPublisherSource.h"
 #include "UPAMessage.h"
 
-// this is a timout for the select loop 
+// this is a timout for the select loop
 // In the reuters provider sample they use this to limit the update rate - wait for this period
 // to see if anything to read then if something read or timeout expires publish some stuff
 // Thats too crude for what we want to do here. we will be queing updates from the mama thread and
-// applying a throttle to that. So, for the moment just hard code a 1ms timeout but consider making it 
+// applying a throttle to that. So, for the moment just hard code a 1ms timeout but consider making it
 // configurable
 const int selTimeoutSec = 0;
 const int selTimeoutUSec = 1000;
@@ -154,13 +154,13 @@ void UPAProvider::Run()
         mama_status status = mamaQueue_getEventCount(requestQueue_, &numEvents);
         if ((status == MAMA_STATUS_OK) && (numEvents > 0))
         {
-            // although we only really want to throttle subscriptions, for simplicity throttle everything here.  
+            // although we only really want to throttle subscriptions, for simplicity throttle everything here.
             size_t eventsDispatched = 0;
 
             // so keep dispatching while there are events on the queue, we haven t hit the mac per cycle and we havent hit the max pending limit
             while (numEvents > eventsDispatched && eventsDispatched < maxDispatchesPerCycle )
             {
-                mamaQueue_dispatchEvent(requestQueue_);    
+                mamaQueue_dispatchEvent(requestQueue_);
                 ++eventsDispatched;
             }
 
@@ -195,8 +195,8 @@ void UPAProvider::Run()
                     }
 
                     // The UPA provider sample ties these 2 conditions together but the problem then is that the
-                    // ping initialization does happen until there is something to write (the write fd is set) and 
-                    // there is no guarantee when that will happen. So here we check for active state on the channel 
+                    // ping initialization does happen until there is something to write (the write fd is set) and
+                    // there is no guarantee when that will happen. So here we check for active state on the channel
                     // and whether the ping settings have been initialized before we check the write fd. Seems safer.
                     if (clientConnections_[index].clientChannel != NULL && clientConnections_[index].clientChannel->state == RSSL_CH_STATE_ACTIVE)
                     {
@@ -205,7 +205,7 @@ void UPAProvider::Run()
                         {
                             InitChannelPingTimes(&clientConnections_[index]);
                             t42log_debug("Using %d as pingTimeout for Channel %d\n", clientConnections_[index].clientChannel->pingTimeout,clientConnections_[index].clientChannel->socketId);
-                        }                        
+                        }
                         // if there is something to write and the channel is active thne flush the write socket
                         if (clientConnections_[index].clientChannel != NULL &&    FD_ISSET(clientConnections_[index].clientChannel->socketId, &useWrt))
                         {
@@ -285,7 +285,7 @@ void UPAProvider::Run()
 
 void UPAProvider::CreateNewClientConnection()
 {
-    // find the first free client session 
+    // find the first free client session
     int nextIndex = -1;
     for(int index = 0; index < maxClientConnections; index ++)
     {
@@ -355,7 +355,7 @@ void UPAProvider::ReadFromChannel(RsslChannel* chnl)
             t42log_warn("sessionInactive fd=%d <%s>\n", chnl->socketId,error.text);
             RemoveChannelConnection(chnl);
         }
-        else 
+        else
         {
             switch (retval)
             {
@@ -382,7 +382,7 @@ void UPAProvider::ReadFromChannel(RsslChannel* chnl)
 
                     t42log_info("Client Channel fd=%d is now ACTIVE\n" ,chnl->socketId);
 #ifdef _WIN32
-                    // WINDOWS: change size of send/receive buffer since it's small by default 
+                    // WINDOWS: change size of send/receive buffer since it's small by default
                     int rcvBfrSize = 65535;
                     int sendBfrSize = 65535;
 
@@ -396,9 +396,9 @@ void UPAProvider::ReadFromChannel(RsslChannel* chnl)
                     }
 #endif
 
-                    /* if device we connect to supports connected component versioning, 
+                    /* if device we connect to supports connected component versioning,
                     * also display the product version of what this connection is to */
-                    RsslChannelInfo chanInfo;    
+                    RsslChannelInfo chanInfo;
                     if ((retval = rsslGetChannelInfo(chnl, &chanInfo, &error)) >= RSSL_RET_SUCCESS)
                     {
                         RsslUInt32 i;
@@ -450,12 +450,12 @@ void UPAProvider::ReadFromChannel(RsslChannel* chnl)
                 case RSSL_RET_PACKET_GAP_DETECTED:
                     if (chnl->state != RSSL_CH_STATE_CLOSED)
                     {
-                        // disconnectOnGaps must be false.  Connection is not closed 
+                        // disconnectOnGaps must be false.  Connection is not closed
                         t42log_warn("Read Error: %s <%d>\n", error.text, readret);
                         /* break out of switch */
                         break;
                     }
-                    /// if channel is closed, we want to fall through 
+                    /// if channel is closed, we want to fall through
                 case RSSL_RET_FAILURE:
                     {
                         t42log_info("channelInactive fd=%d <%s>\n",
@@ -473,7 +473,7 @@ void UPAProvider::ReadFromChannel(RsslChannel* chnl)
                         FD_SET(chnl->socketId, &exceptfds_);
                     }
                     break;
-                case RSSL_RET_READ_PING: 
+                case RSSL_RET_READ_PING:
                     {
                         /* set flag for client message received */
                         SetChannelReceivedClientMsg(chnl);
@@ -531,7 +531,7 @@ void UPAProvider::ShutdownChannel(RsslChannel * chnl)
     RsslError error;
     RsslRet ret;
 
-    // clean up the socket fds 
+    // clean up the socket fds
     FD_CLR(chnl->socketId, &readfds_);
     FD_CLR(chnl->socketId, &exceptfds_);
     if (FD_ISSET(chnl->socketId, &wrtfds_))
@@ -620,7 +620,7 @@ void UPAProvider::HandlePings()
         // get the current time
         time(&currentTime);
 
-        // now walk the array of connections  and check each for whether we need to do anything 
+        // now walk the array of connections  and check each for whether we need to do anything
         for( int index = 0; index < maxClientConnections; index++)
         {
             if ((clientConnections_[index].clientChannel != NULL) && (clientConnections_[index].clientChannel->socketId != -1))
@@ -704,7 +704,7 @@ RsslRet UPAProvider::ProcessRequest(RsslChannel* chnl, RsslBuffer* buffer)
     // and attach it top the message buffer
     rsslSetDecodeIteratorBuffer(&dIter, buffer);
 
-    ret = rsslDecodeMsg(&dIter, &msg);                
+    ret = rsslDecodeMsg(&dIter, &msg);
     if (ret != RSSL_RET_SUCCESS)
     {
         t42log_error("UPAProvider::ProcessRequest - rsslDecodeMsg(): Error %d on channel fd=%d  Size %d \n", ret, chnl->socketId, buffer->length);
@@ -783,11 +783,11 @@ RsslRet UPAProvider::ProcessLoginRequest( RsslChannel* chnl, RsslMsg* msg, RsslD
     switch(msg->msgBase.msgClass)
     {
     case RSSL_MC_REQUEST:
-         //get key 
+         //get key
         key = (RsslMsgKey *)rsslGetMsgKey(msg);
 
-         //check if key has user name 
-         //user name is only login user type accepted by this application (user name is the default type) 
+         //check if key has user name
+         //user name is only login user type accepted by this application (user name is the default type)
         if (!(key->flags & RSSL_MKF_HAS_NAME) || ((key->flags & RSSL_MKF_HAS_NAME_TYPE) && (key->nameType != RDM_LOGIN_USER_NAME)))
         {
             login_.SendLoginRequestReject(chnl, msg->msgBase.streamId, UPALogin::NoUserName);
@@ -795,7 +795,7 @@ RsslRet UPAProvider::ProcessLoginRequest( RsslChannel* chnl, RsslMsg* msg, RsslD
         }
 
 
-        // decode the login request 
+        // decode the login request
         if (login_.DecodeLoginRequest(&loginRequestInfo, msg, dIter, key) != RSSL_RET_SUCCESS)
         {
             t42log_warn("UPAProvider::ProcessLoginRequest - decodeLoginRequest() failed\n");
@@ -814,20 +814,20 @@ RsslRet UPAProvider::ProcessLoginRequest( RsslChannel* chnl, RsslMsg* msg, RsslD
         memset((void*)&loginRespInfo, 0, sizeof(UPALogin::RsslLoginResponseInfo));
 
         loginRespInfo.StreamId = loginRequestInfo.StreamId;
-         //Username 
+         //Username
         snprintf(loginRespInfo.Username, 128, "%s", loginRequestInfo.Username);
-         //ApplicationId 
+         //ApplicationId
         snprintf(loginRespInfo.ApplicationId, 128, "%s", "255");
-         //ApplicationName 
+         //ApplicationName
         snprintf(loginRespInfo.ApplicationName, 128, "%s", "Bridge");
-         //Position 
+         //Position
         snprintf(loginRespInfo.Position, 128, "%s", loginRequestInfo.Position);
 
         loginRespInfo.SingleOpen = 0;                /* this provider does not support SingleOpen behavior */
         loginRespInfo.SupportBatchRequests = 0;        /* this provider supports batch requests */
         loginRespInfo.SupportOMMPost = acceptsPosts_ ? 1 : 0;
 
-        // send login response 
+        // send login response
         if (login_.SendLoginResponse(chnl, &loginRespInfo) != RSSL_RET_SUCCESS)
             return RSSL_RET_FAILURE;
 
@@ -864,7 +864,7 @@ RsslRet UPAProvider::ProcessSourceDirectoryRequest( RsslChannel* chnl, RsslMsg* 
     // (c) add a map entry for each of the services - the upa sample only supports a single service but we potentially support many
 
 
-    UPASourceDirectory srcDir;
+    UPASourceDirectory srcDir(owner_->MaxMessageSize());
 
     switch(msg->msgBase.msgClass)
     {
@@ -872,7 +872,7 @@ RsslRet UPAProvider::ProcessSourceDirectoryRequest( RsslChannel* chnl, RsslMsg* 
         {
             RsslMsgKey* key = 0;
             key = (RsslMsgKey *)rsslGetMsgKey(msg);
-            if (!((key->flags & RSSL_MKF_HAS_FILTER) && (key->filter & RDM_DIRECTORY_SERVICE_INFO_FILTER) 
+            if (!((key->flags & RSSL_MKF_HAS_FILTER) && (key->filter & RDM_DIRECTORY_SERVICE_INFO_FILTER)
                 &&    (key->filter & RDM_DIRECTORY_SERVICE_STATE_FILTER) && (key->filter & RDM_DIRECTORY_SERVICE_GROUP_FILTER)))
             {
                 if (srcDir.SendSrcDirectoryRequestReject(chnl, msg->msgBase.streamId, UPASourceDirectory::IncorrectFilterFlags) != RSSL_RET_SUCCESS)
@@ -927,7 +927,7 @@ RsslRet UPAProvider::ProcessItemRequest(RsslChannel* chnl, RsslMsg* msg, RsslDec
     switch(msg->msgBase.msgClass)
     {
     case RSSL_MC_REQUEST:
-        // get key 
+        // get key
         {
             key = (RsslMsgKey *)rsslGetMsgKey(msg);
 
@@ -937,7 +937,7 @@ RsslRet UPAProvider::ProcessItemRequest(RsslChannel* chnl, RsslMsg* msg, RsslDec
             // insert the sourcename into the new item request as we cant get it from the servioce id
             if ( source == 0)
             {
-                if (UPAPublisherItem::SendItemRequestReject(chnl, streamId, domainType, RSSL_SC_USAGE_ERROR, "Invalid service id",  isPrivateStream) != RSSL_RET_SUCCESS)
+                if (UPAPublisherItem::SendItemRequestReject(chnl, streamId, domainType, RSSL_SC_USAGE_ERROR, "Invalid service id",  isPrivateStream, owner_->MaxMessageSize()) != RSSL_RET_SUCCESS)
                     return RSSL_RET_FAILURE;
                 break;
             }
@@ -945,14 +945,14 @@ RsslRet UPAProvider::ProcessItemRequest(RsslChannel* chnl, RsslMsg* msg, RsslDec
 
             bool isNew;
 
-            UPAPublisherItem_ptr_t newPubItem = source->AddItem(chnl, streamId, source->Name(), string(key->name.data, key->name.length), key->serviceId, owner_, isNew);
+            UPAPublisherItem_ptr_t newPubItem = source->AddItem(chnl, streamId, source->Name(), std::string(key->name.data, key->name.length), key->serviceId, owner_, isNew);
 
             // now need to add this item to our channel dictionary so we can find it again when we get a close
             ChannelDictionaryItem_t * dictItem = 0;
             ChannelDictionary_t::iterator it = channelDictionary_.find(chnl);
             if (it == channelDictionary_.end())
             {
-                t42log_error("received item request for %s : %s on unknown channel (%d)\n", source->Name().c_str(), string(key->name.data, key->name.length).c_str(), chnl);
+                t42log_error("received item request for %s : %s on unknown channel (%d)\n", source->Name().c_str(), std::string(key->name.data, key->name.length).c_str(), chnl);
                 break;
             }
 
@@ -963,8 +963,8 @@ RsslRet UPAProvider::ProcessItemRequest(RsslChannel* chnl, RsslMsg* msg, RsslDec
             // request a new item. Send a message to the client
             //
             // if its not a new item we want to request a recap, that will be send on the new channel / stream
-            owner_->RequestItem(source->Name(), string(key->name.data, key->name.length), !isNew);
-        } 
+            owner_->RequestItem(source->Name(), std::string(key->name.data, key->name.length), !isNew);
+        }
         break;
 
 
@@ -1041,7 +1041,7 @@ RsslRet UPAProvider::SendAck(RsslChannel *chnl, RsslPostMsg *postMsg, RsslUInt8 
     // send an ack if it was requested
     if (postMsg->flags & RSSL_PSMF_ACK)
     {
-        if ((ackBuf = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &error)) == NULL)
+        if ((ackBuf = rsslGetBuffer(chnl, owner_->MaxMessageSize(), RSSL_FALSE, &error)) == NULL)
         {
             t42log_error(" UPAProvider::SendAc - rsslGetBuffer() Failed (rsslErrorId = %d)\n", error.rsslErrorId);
             return RSSL_RET_FAILURE;
@@ -1049,7 +1049,7 @@ RsslRet UPAProvider::SendAck(RsslChannel *chnl, RsslPostMsg *postMsg, RsslUInt8 
 
         if ((ret = EncodeAck(chnl, ackBuf, postMsg, nakCode, errText)) < RSSL_RET_SUCCESS)
         {
-            rsslReleaseBuffer(ackBuf, &error); 
+            rsslReleaseBuffer(ackBuf, &error);
             t42log_error(" UPAProvider::SendAck - encodeAck() Failed (ret = %d)\n", ret);
             return RSSL_RET_FAILURE;
         }
@@ -1086,7 +1086,7 @@ RsslRet UPAProvider::EncodeAck(RsslChannel* chnl, RsslBuffer* ackBuf, RsslPostMs
     if (postMsg->flags & RSSL_PSMF_HAS_SEQ_NUM)
         ackMsg.flags |= RSSL_AKMF_HAS_SEQ_NUM;
 
-    if (text != NULL) 
+    if (text != NULL)
     {
         ackMsg.flags |= RSSL_AKMF_HAS_TEXT;
         ackMsg.text.data = text;
@@ -1109,7 +1109,7 @@ RsslRet UPAProvider::EncodeAck(RsslChannel* chnl, RsslBuffer* ackBuf, RsslPostMs
 
 void UPAProvider::NotifyListeners( bool connected, const char* extraInfo )
 {
-    vector<ConnectionListener*>::iterator it = listeners_.begin();
+    std::vector<ConnectionListener*>::iterator it = listeners_.begin();
 
     while(it != listeners_.end() )
     {

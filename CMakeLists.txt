@@ -172,7 +172,9 @@ endif ()
 
 #add_subdirectory(utils)
 add_subdirectory(tick42rmds)
-add_subdirectory("UPA Samples/Examples/rsslProvider")
+if (EXISTS "UPA Samples/Examples/rsslProvider")
+    add_subdirectory("UPA Samples/Examples/rsslProvider")
+endif ()
 add_subdirectory(tick42rmdsmsg)
 add_subdirectory(mamaClient)
 

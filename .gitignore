@@ -42,5 +42,15 @@ tick42rmds/RCa05828
 tick42rmdsmsg/VS_11.0/Win32/Release/RCa03232
 *.ipch
 *.exp
-docs/
 temp save/
+*.tlog
+*.lastbuildstate
+*.idb
+*.res
+VS_110/Win32/Debug/
+VS_110/Win32_Enhanced/Debug/
+VS_110/x64/Debug/enumtype.def
+VS_110/x64/Debug/
+VS_110/x64/Release/
+VS_110/x64_Enhanced/Debug/
+VS_110/x64_Enhanced/Release/

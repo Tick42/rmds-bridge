@@ -56,7 +56,7 @@ public:
         reconnecting
 
     } PublisherState_t;
-    
+
     UPAProvider_ptr_t Provider()
     {
         return provider_;
@@ -107,10 +107,10 @@ private:
     virtual void ConnectionNotification(bool connected, const char* extraInfo);
 
     // UPA provider thread
-    wthread_t hProviderThread_; 
+    wthread_t hProviderThread_;
 
     // sources
-    int InitialiseSource(const std::string sourceList);
+    int InitialiseSource(const std::string& sourceList);
 
     // this is where recap messages get sent
     static void MAMACALLTYPE InboxOnMessageCB(mamaMsg msg, void *closure);

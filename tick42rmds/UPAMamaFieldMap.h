@@ -32,7 +32,7 @@
 #include "UPAAsMamaFieldType.h"
 #include "UPADictionaryWrapper.h"
 #include "rmdsBridgeTypes.h"
-#include <utils/namespacedefines.h>
+#include "utils/namespacedefines.h"
 
 typedef RsslFieldId source_key_t;
 
@@ -59,12 +59,12 @@ typedef std::vector<RsslInt32> MamaUPAFieldsMap_t;
 class UpaMamaFieldMapHandler_t;
 typedef boost::shared_ptr<UpaMamaFieldMapHandler_t> UpaMamaFieldMap_ptr_t;
 
+typedef std::pair<bool, const MamaField_t&> FindFieldResult;
 
 class UpaMamaFieldMapHandler_t
 {
 
 public:
-
     /**
      * @brief Constructor
      *
@@ -106,21 +106,24 @@ public:
      * @param value: value with information to what type and fid to translate.
      * @return: true on success
      */
-    inline bool FindField(const RsslFieldId &fid, MamaField_t &value) const
+    FindFieldResult FindField(const RsslFieldId& fid) const
     {
         uint32_t index = fid2Index(fid);
-        if (index >= map_.size())
+        if (index >= fieldsMap_.size())
         {
             t42log_warn("attempt to look up fid %d failed - out of range", fid);
-            return false;
-        }
-        if (map_[index].mama_fid    == 0)
-        {
-            return false;
+
+            static MamaField_t emptyField;
+            return FindFieldResult(false, emptyField);
         }
 
-        value = map_[index];
-        return true;
+        if (fieldsMap_[index].mama_fid == 0)
+        {
+            static MamaField_t emptyField;
+            return FindFieldResult(false, emptyField);
+        }
+
+        return FindFieldResult(true, fieldsMap_[index]);
     }
     /**
      * @brief Gives translation information (client FID, client field name and client type) for a given FID that comes from the RMDS source
@@ -129,54 +132,54 @@ public:
      * @param value: value with information to what type and fid to translate.
      * @return: true on success
      */
-    inline bool GetTranslatedField(source_key_t key, MamaField_t &value)
+    FindFieldResult GetTranslatedField(source_key_t key)
     {
-        if (FindField(key, value))
+        FindFieldResult findFieldResult = FindField(key);
+        if (findFieldResult.first)
         {
-            return true;
+            return findFieldResult;
         }
         else if (ShouldPassNonTranslated_)
         {
             uint32_t index = fid2Index(key);
-            if (index >= map_.size())
+            if (index >= fieldsMap_.size())
             {
                 t42log_warn("attempt to look up fid %d failed - out of range", key);
-                return false;
+                return findFieldResult;
             }
             MamaField_t newValue;
             newValue.mama_fid = ++NonTranslatedFieldFid_CurrentValue_;
             const RsslDictionaryEntry *rsslDictionaryEntry = spUPADictionaryHandler_->GetDictionaryEntry(key);
-         if ((rsslDictionaryEntry == NULL) || (rsslDictionaryEntry->acronym.data == NULL))
-         {
-            t42log_warn("attempt to look up fid %d failed - dictionary entry is NULL", key);
-            return false;
-         }
-         newValue.mama_field_name = rsslDictionaryEntry->acronym.data;
+            if ((rsslDictionaryEntry == NULL) || (rsslDictionaryEntry->acronym.data == NULL))
+            {
+                t42log_warn("attempt to look up fid %d failed - dictionary entry is NULL", key);
+                return findFieldResult;
+            }
+            newValue.mama_field_name = rsslDictionaryEntry->acronym.data;
             UpaAsMamaFieldType targetType;
             UpaToMamaFieldType(rsslDictionaryEntry->rwfType, rsslDictionaryEntry->fieldType, targetType);
             newValue.mama_field_type = targetType;
-            map_[index] = newValue;
-            value = newValue;
+            fieldsMap_[index] = newValue;
 
             // add to the mama to upa lookup
             // note that the mama fields start at 0 so no fid to index offset
             mama2rmdsMap_[newValue.mama_fid] = key;
-            return true;
+            return FindFieldResult(true, fieldsMap_[index]);
         }
-        return false;
+        return findFieldResult;
     }
 
     inline RsslInt32 GetRMDSFidFromMAMAFid(mama_fid_t mamaFid)
     {
-      RsslInt32 mappedFid = (mama2rmdsMap_.size() > mamaFid) ? mama2rmdsMap_[mamaFid] : 0;
-      if (0 == mappedFid)
-      {
-         static std::set<mama_fid_t> warned;
-         if (warned.insert(mamaFid).second)
-         {
-            t42log_error("Mama fid %d has no equivalent in RMDS\n", mamaFid);
-         }
-      }
+        RsslInt32 mappedFid = (mama2rmdsMap_.size() > mamaFid) ? mama2rmdsMap_[mamaFid] : 0;
+        if (0 == mappedFid)
+        {
+            static std::set<mama_fid_t> warned;
+            if (warned.insert(mamaFid).second)
+            {
+                t42log_error("Mama fid %d has no equivalent in RMDS\n", mamaFid);
+            }
+        }
         return mappedFid;
     }
 
@@ -284,17 +287,16 @@ private:
     /*
      * This one holds all the fields whose names are the same but have different FIDs on both the MAMA dictionary (mamaDictionary_) and and the fields map (map_)
      */
-    std::set<std::string> mamaFieldMapConflictingFields_;
+    utils::collection::unordered_set<std::string> mamaFieldMapConflictingFields_;
     /**
      * The raw translation map_, maybe used in order to traverse all over it when the whole dictionary is needed
      */
 
     // this one maps rmds fids to mama
-    UpaMamaFieldsMap_t map_;
+    UpaMamaFieldsMap_t fieldsMap_;
 
     // and this maps mama fids to rmds
     MamaUPAFieldsMap_t mama2rmdsMap_ ;
-
 };
 
 

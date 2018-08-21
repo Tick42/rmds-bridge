@@ -48,6 +48,7 @@ set (${PROJECT_NAME}_SOURCES
 	utils/properties.cpp
 	utils/t42log.cpp
 	utils/parse.cpp
+	utils/time.cpp
 	
 	${${PROJECT_NAME}_HEADERS}
 	

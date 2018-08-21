@@ -34,10 +34,8 @@ class LoginResponseListener;
 
 const int MAX_LOGIN_INFO_STRLEN = 128;
 
-using namespace std;
-
-// wrapper around the rssl login message. 
-// Encodes a login request (for a subscriber) and decodes it (for a publisher). 
+// wrapper around the rssl login message.
+// Encodes a login request (for a subscriber) and decodes it (for a publisher).
 // Decodes a login response (for a subscriber) and encodes it for a publisher
 class UPALogin
 {
@@ -54,7 +52,7 @@ public:
     UPALogin(bool provider);
     ~UPALogin(void);
 
-    void ConfigureEntitlements(TransportConfig_t * pConfig);
+    void ConfigureEntitlements(const TransportConfig_t& pConfig);
     void AddListener(LoginResponseListener * pListener);
     bool SendLoginRequest();
 
@@ -96,7 +94,7 @@ public:
 
     RsslRet SendLoginRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslLoginRejectReason reason);
 
-     //login response information 
+     //login response information
 typedef struct
 {
     RsslInt32    StreamId;
@@ -117,7 +115,7 @@ typedef struct
     RsslBool    isSolicited;
 } RsslLoginResponseInfo;
 
-     //login request information 
+     //login request information
 typedef struct
 {
     RsslInt32    StreamId;
@@ -155,20 +153,21 @@ UPALogin::RsslLoginRequestInfo * LoginRequestInfo()
 }
 
 private:
-    string userName_;
-    string appName_; // Identifies the application sending the Login request or    response message. When present, the application    name in the Login request identifies the OMM Consumer,
-    string appID_;    // DACS application ID
-    string password_;
+    std::string userName_;
+    std::string appName_; // Identifies the application sending the Login request or    response message. When present, the application    name in the Login request identifies the OMM Consumer,
+    std::string appID_;    // DACS application ID
+    std::string password_;
+    unsigned int maxMessageSize_;
 
    static std::string hostName_;
 
-    // todo decide whether these should be bools or Rssl integer types - for the moment lets stick with bool 
+    // todo decide whether these should be bools or Rssl integer types - for the moment lets stick with bool
 
     bool providePermissionProfile_; //When specified on a Login Request, indicates that a consumer desires the permission profile. The permission profile can be used by an application to perform proxy permissioning.
     bool providePermissionExpressions_; //If specified on the Login Request, this indicates a consumer wants permission expression information to be sent with responses. Permission expressions    allow for items to be proxy permissioned by
     bool singleOpen_ ; // Indicates the consumer application wants the provider to drive stream recovery. 0 Indicates that the consumer application will drive stream recovery.
     bool allowSuspectData_; //  Indicates that the consumer application allows for suspect streamState information. 0: Indicates that the consumer application prefers any suspect data result in the stream being closed with an RSSL_STREAM_
-    string instanceId_; // InstanceId can be used to differentiate applications running on the same machine.
+    std::string instanceId_; // InstanceId can be used to differentiate applications running on the same machine.
     bool downloadConnectionConfig_; //  Indicates the user wants to download connection configuration information. 0 (or if absent): Indicates that no connection
     RsslUInt64 role_; // consumer or provider RDM_LOGIN_ROLE_CONS == 0,    RDM_LOGIN_ROLE_PROV == 1. Will always be consumer
 
@@ -192,7 +191,7 @@ private:
 
     RsslRet EncodeLoginResponse(RsslChannel* chnl, RsslLoginResponseInfo* loginRespInfo, RsslBuffer* msgBuf);
 
-    vector<LoginResponseListener*> listeners_;
+    std::vector<LoginResponseListener*> listeners_;
 
     void NotifyListeners(RsslLoginResponseInfo *pResponseInfo, bool loginSucceeded, const char* extraInfo);
 

@@ -55,7 +55,7 @@ UPANIProvider::UPANIProvider(RMDSNIPublisher * owner)
     login_ = new UPALogin(false);
 
     TransportConfig_t config(owner_->GetTransportName());
-    login_->ConfigureEntitlements(&config);
+    login_->ConfigureEntitlements(config);
 
     // initialise the login
     login_->AddListener(owner_);
@@ -127,7 +127,7 @@ void UPANIProvider::Run()
             if (rsslNIProviderChannel_ != NULL && rsslNIProviderChannel_->state == RSSL_CH_STATE_ACTIVE)
                 shouldRecoverConnection_ = RSSL_FALSE;
 
-            //Wait for channel to become active. 
+            //Wait for channel to become active.
             while (rsslNIProviderChannel_ != NULL && rsslNIProviderChannel_->state != RSSL_CH_STATE_ACTIVE && runThread_)
             {
                 useRead = readfds_;
@@ -140,7 +140,7 @@ void UPANIProvider::Run()
 
                 selRet = select(FD_SETSIZE, &useRead, &useWrt, &useExcept, &time_interval);
 
-                // select has timed out, close the channel and attempt to reconnect 
+                // select has timed out, close the channel and attempt to reconnect
                 if (selRet == 0)
                 {
                     t42log_warn("Channel initialization has timed out, attempting to reconnect...\n");
@@ -155,7 +155,7 @@ void UPANIProvider::Run()
                     RecoverConnection();
                 }
                 else
-                    // Received a response from the provider. 
+                    // Received a response from the provider.
                     if (rsslNIProviderChannel_ && selRet > 0 && (FD_ISSET(rsslNIProviderChannel_->socketId, &useRead) || FD_ISSET(rsslNIProviderChannel_->socketId, &useWrt) || FD_ISSET(rsslNIProviderChannel_->socketId, &useExcept)))
                     {
                         if (rsslNIProviderChannel_->state == RSSL_CH_STATE_INITIALIZING)
@@ -168,9 +168,9 @@ void UPANIProvider::Run()
                                 t42log_warn("channelInactive fd=%d <%s>\n",
                                     rsslNIProviderChannel_->socketId,error.text);
                                 RecoverConnection();
-                                break; 
+                                break;
                             }
-                            else 
+                            else
                             {
                                 switch ((int)retval)
                                 {
@@ -246,7 +246,7 @@ void UPANIProvider::Run()
             }
         }
 
-        //  WINDOWS: change size of send/receive buffer since it's small by default 
+        //  WINDOWS: change size of send/receive buffer since it's small by default
 #ifdef _WIN32
         if (rsslNIProviderChannel_ && rsslIoctl(rsslNIProviderChannel_, RSSL_SYSTEM_WRITE_BUFFERS, &sendBfrSize, &error) != RSSL_RET_SUCCESS)
         {
@@ -258,12 +258,12 @@ void UPANIProvider::Run()
         }
 #endif
 
-         //Initialize ping handler 
-        if (rsslNIProviderChannel_) 
+         //Initialize ping handler
+        if (rsslNIProviderChannel_)
             InitPingHandler(rsslNIProviderChannel_);
 
         int64_t queueCount = 0;
-         //this is the message processing loop 
+         //this is the message processing loop
         while(runThread_)
         {
             // first dispatch some events off the event queue
@@ -280,7 +280,7 @@ void UPANIProvider::Run()
                 &useWrt,&useExcept,&time_interval);
 
 
-            if (selRet < 0) // no messages received, continue 
+            if (selRet < 0) // no messages received, continue
             {
 #ifdef _WIN32
                 if (WSAGetLastError() == WSAEINTR)
@@ -324,7 +324,7 @@ void UPANIProvider::Run()
                 }
             }
 
-            // break out of message processing loop if should recover connection 
+            // break out of message processing loop if should recover connection
             if (shouldRecoverConnection_ == RSSL_TRUE)
             {
                 LogReconnection();
@@ -352,7 +352,7 @@ RsslChannel* UPANIProvider::ConnectToRsslServer( const std::string &hostname, co
 
     // add implementation of relaible multicast options
     RsslChannel* chnl;
-    RsslConnectOptions connectOpts;// = RSSL_INIT_CONNECT_OPTS;        
+    RsslConnectOptions connectOpts;// = RSSL_INIT_CONNECT_OPTS;
     //manual initialization for connectOpts based on RSSL_INIT_CONNECT_OPTS - only values that are different than zero
     memset(&connectOpts,0,sizeof(connectOpts));
     connectOpts.pingTimeout=60;
@@ -378,7 +378,7 @@ RsslChannel* UPANIProvider::ConnectToRsslServer( const std::string &hostname, co
 
         t42log_info("Channel IPC descriptor = %d\n", chnl->socketId);
         if (!connectOpts.blocking)
-        {    
+        {
             if (!FD_ISSET(chnl->socketId,&wrtfds_))
                 FD_SET(chnl->socketId,&wrtfds_);
         }
@@ -422,13 +422,13 @@ void UPANIProvider::PumpQueueEvents()
     if ((status == MAMA_STATUS_OK) && (numEvents > 0))
     {
 
-        // although we only really want to throttle subscriptions, for simplicity throttle everything here.  
+        // although we only really want to throttle subscriptions, for simplicity throttle everything here.
         size_t eventsDispatched = 0;
 
         // unlike the consumer there is no max pending opens throttle, so just throttle on max events per cycle
         while (numEvents > eventsDispatched && eventsDispatched < maxDispatchesPerCycle )
         {
-            mamaQueue_dispatchEvent(requestQueue_);    
+            mamaQueue_dispatchEvent(requestQueue_);
             ++eventsDispatched;
         }
 
@@ -440,10 +440,10 @@ void UPANIProvider::InitPingHandler( RsslChannel* chnl )
 {
     time_t currentTime = 0;
 
-    // get the current time 
+    // get the current time
     time(&currentTime);
 
-    // set the ping timeout for client and server 
+    // set the ping timeout for client and server
     if ((chnl != NULL) && (chnl->socketId != -1))
     {
         pingTimeoutClient_ = chnl->pingTimeout/3;
@@ -455,10 +455,10 @@ void UPANIProvider::InitPingHandler( RsslChannel* chnl )
         pingTimeoutServer_ = 60;
     }
 
-    // set time to send next ping from client 
+    // set time to send next ping from client
     nextSendPingTime_ = currentTime + (time_t)pingTimeoutClient_;
 
-    // set time client should receive next message/ping from server 
+    // set time client should receive next message/ping from server
     nextReceivePingTime_ = currentTime + (time_t)pingTimeoutServer_;
 }
 
@@ -499,7 +499,7 @@ void UPANIProvider::RemoveChannel( RsslChannel* chnl )
 
 void UPANIProvider::NotifyListeners(bool connected, const char* extraInfo )
 {
-    vector<ConnectionListener*>::iterator it = listeners_.begin();
+    std::vector<ConnectionListener*>::iterator it = listeners_.begin();
 
     while(it != listeners_.end() )
     {
@@ -526,7 +526,7 @@ RsslRet UPANIProvider::ReadFromChannel( RsslChannel* chnl )
         {
             if ((msgBuf = rsslRead(chnl,&readret,&error)) != 0)
             {
-                if (ProcessResponse(chnl, msgBuf) == RSSL_RET_SUCCESS)    
+                if (ProcessResponse(chnl, msgBuf) == RSSL_RET_SUCCESS)
                 {
                     /* set flag for server message received */
                     receivedServerMsg_ = RSSL_TRUE;
@@ -547,7 +547,7 @@ RsslRet UPANIProvider::ReadFromChannel( RsslChannel* chnl )
                     {
                         if (chnl->state != RSSL_CH_STATE_CLOSED)
                         {
-                            // disconnectOnGaps must be false.  Connection is not closed 
+                            // disconnectOnGaps must be false.  Connection is not closed
                             t42log_error("Read Error: %s <%d>\n", error.text, readret);
                             break;
                         }
@@ -569,9 +569,9 @@ RsslRet UPANIProvider::ReadFromChannel( RsslChannel* chnl )
                         FD_SET(chnl->socketId, &exceptfds_);
                     }
                     break;
-                case RSSL_RET_READ_PING: 
+                case RSSL_RET_READ_PING:
                     {
-                        //set flag for server message received 
+                        //set flag for server message received
                         receivedServerMsg_ = RSSL_TRUE;
                     }
                     break;
@@ -599,7 +599,7 @@ void UPANIProvider::ProcessPings( RsslChannel* chnl )
 {
     time_t currentTime = 0;
 
-    // get current time 
+    // get current time
     time(&currentTime);
 
     // time to send a ping
@@ -619,7 +619,7 @@ void UPANIProvider::ProcessPings( RsslChannel* chnl )
     // time to check if we received anything
     if (currentTime >= nextReceivePingTime_)
     {
-        //  check if client received message from server since last time 
+        //  check if client received message from server since last time
         if (receivedServerMsg_)
         {
             // reset flag/
@@ -650,7 +650,7 @@ RsslRet UPANIProvider::ProcessResponse( RsslChannel* chnl, RsslBuffer* buffer )
     // reset the decode iterator
     rsslClearDecodeIterator(&dIter);
 
-    // set version info 
+    // set version info
     rsslSetDecodeIteratorRWFVersion(&dIter, chnl->majorVersion, chnl->minorVersion);
 
     if ((ret = rsslSetDecodeIteratorBuffer(&dIter, buffer)) != RSSL_RET_SUCCESS)
@@ -660,7 +660,7 @@ RsslRet UPANIProvider::ProcessResponse( RsslChannel* chnl, RsslBuffer* buffer )
     }
 
     // Decode the message - note this only decode the outer parts of the message
-    ret = rsslDecodeMsg(&dIter, &msg);                
+    ret = rsslDecodeMsg(&dIter, &msg);
     if (ret != RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeMsg(): Error %d on SessionData fd=%d  Size %d \n", ret, chnl->socketId, buffer->length);
@@ -738,7 +738,7 @@ void MAMACALLTYPE UPANIProvider::LoginRequestCb( mamaQueue queue,void *closure )
 
 bool UPANIProvider::SendSourceDirectory( mamaQueue requestQueue )
 {
-    UPASourceDirectory srcDir;
+    UPASourceDirectory srcDir(owner_->MaxMessageSize());
 
     // we send the source directory unsolicited for the NI Provider
 

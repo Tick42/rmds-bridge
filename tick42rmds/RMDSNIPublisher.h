@@ -51,7 +51,7 @@ public:
     RsslConnectionTypes ConnType() {return connType_;}
 
     std::string GetTransportName() {return transportName_;}
-    
+
     // Listener functions
     virtual void LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, bool loginSucceeded, const char* extraInfo);
 
@@ -63,7 +63,7 @@ public:
     }
 
     // unsolicited messages for NI publishers
-    virtual bool SolicitedMessages()
+    virtual bool SolicitedMessages() const
     {
         return false;
     }
@@ -90,7 +90,7 @@ private:
 
     // UPA Thread
     // upa consumer thread
-    wthread_t NIProviderThread_; 
+    wthread_t NIProviderThread_;
 
     UPANIProvider_ptr_t niProvider_;
 

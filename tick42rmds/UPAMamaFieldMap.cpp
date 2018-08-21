@@ -155,11 +155,11 @@ bool UpaMamaFieldMapHandler_t::LoadPredefinedUpaMamaFieldsMap( std::ifstream &in
 
         // logged_items - items used later on for logging needs.
         struct {
-            string                source_field_fid;
-            string                source_field_acronym;
-            string                mama_field_name;
-            string                  mama_fid;
-            string                 mama_field_type;
+            string				source_field_fid;
+            string				source_field_acronym;
+            string				mama_field_name;
+            string		  		mama_fid;
+            string		 		mama_field_type;
             void clear() {source_field_fid.clear(); source_field_acronym.clear(); mama_field_name.clear(); mama_fid.clear(); mama_field_type.clear(); }
         } logged_items;
 
@@ -338,12 +338,12 @@ bool UpaMamaFieldMapHandler_t::LoadPredefinedUpaMamaFieldsMap( std::ifstream &in
 
             // if everything is OK so far, then add field to the map
             uint32_t index = fid2Index(key);
-            if (index >= map_.size())
+            if (index >= fieldsMap_.size())
             {
                 t42log_warn("attempt to insert fid %d failed - out of range", key);
             }
 
-            map_[index] = mama_field;
+            fieldsMap_[index] = mama_field;
 
             // and add to the mama to rmds map too
             mama2rmdsMap_[mama_field.mama_fid] = key;
@@ -356,7 +356,6 @@ bool UpaMamaFieldMapHandler_t::LoadPredefinedUpaMamaFieldsMap( std::ifstream &in
         mama_log (MAMA_LOG_LEVEL_WARN, "loadPredefinedUpaMamaFieldsMap couldn't translate line [%d]", line_offset);
     }
     return true;
-
 }
 
 bool UpaMamaFieldMapHandler_t::CreateFieldMap(std::string path)
@@ -368,17 +367,16 @@ bool UpaMamaFieldMapHandler_t::CreateFieldMap(std::string path)
     // initialise the vector
     offset_ = fieldMapSize / 2;
 
-    map_.resize(fieldMapSize);
+    fieldsMap_.resize(fieldMapSize);
 
     // fill with empty values
     for(size_t index = 0; index < fieldMapSize ; index ++)
     {
-        MamaField_t newValue;
+        MamaField_t& newValue = fieldsMap_[index];
         newValue.mama_fid = 0;
         newValue.mama_field_name = string("");
         newValue.mama_field_type = AS_MAMA_FIELD_TYPE_UNKNOWN;
         newValue.has_no_mama_fid = true;
-        map_[index] = newValue;
     }
 
     // and initialise the mama to rmdslookup too
@@ -584,8 +582,6 @@ bool UpaMamaFieldMapHandler_t::ToUpaAsMamaFieldTypeByFid(source_key_t key, const
 UpaMamaFieldMapHandler_t::DictionaryMap_ptr_t UpaMamaFieldMapHandler_t::CombineDictionaries()
 {
     // merge both dictionaries into one merged_dictionary and then create combined dictionary.
-
-
     DictionaryMap_ptr_t merged_dictionary(new DictionaryMap);
     DictionaryNameSet nameSet;
 
@@ -627,7 +623,7 @@ UpaMamaFieldMapHandler_t::DictionaryMap_ptr_t UpaMamaFieldMapHandler_t::CombineD
                 {
                     // if its not in the map then add it
                     int mapIndex = fid2Index(fid);
-                    if (map_[mapIndex].has_no_mama_fid)
+                    if (fieldsMap_[mapIndex].has_no_mama_fid)
                     {
                         // this fid is not mapped yet, so add it to the map...
                         //
@@ -642,7 +638,7 @@ UpaMamaFieldMapHandler_t::DictionaryMap_ptr_t UpaMamaFieldMapHandler_t::CombineD
                         mamafld.has_no_mama_fid = false;
 
                         // and map it for both directions
-                        map_[mapIndex] = mamafld;
+                        fieldsMap_[mapIndex] = mamafld;
                         mama2rmdsMap_[mamafld.mama_fid] = fid;
                     }
 
@@ -657,7 +653,7 @@ UpaMamaFieldMapHandler_t::DictionaryMap_ptr_t UpaMamaFieldMapHandler_t::CombineD
 
     }
 
-    for(UpaMamaFieldsMap_t::const_iterator cit = map_.begin(); cit != map_.end(); ++cit)
+    for(UpaMamaFieldsMap_t::const_iterator cit = fieldsMap_.begin(); cit != fieldsMap_.end(); ++cit)
     {
         if (!(*cit).has_no_mama_fid)
         {
@@ -724,10 +720,10 @@ utils::mama::mamaDictionaryWrapper UpaMamaFieldMapHandler_t::GetCombinedMamaDict
  */
 mama_fid_t UpaMamaFieldMapHandler_t::GetMamaFid(string mamaFieldName)
 {
-    size_t len = map_.size();
+    size_t len = fieldsMap_.size();
     for (size_t i = 0; i < len; ++i)
     {
-        MamaField_t v = map_[i];
+        MamaField_t v = fieldsMap_[i];
         if (mamaFieldName == v.mama_field_name)
         {
             return v.mama_fid;
@@ -878,7 +874,8 @@ bool UpaMamaFieldMapHandler_t::AddReservedFields( mamaDictionaryWrapper dict )
         foundErrors = true;
     }
 
-    if (MAMA_STATUS_OK != mamaDictionary_createFieldDescriptor(dict.get(), commonFields.wSrcTime.mama_fid, commonFields.wSrcTime.mama_field_name.c_str(),  (mamaFieldType)commonFields.wSrcTime.mama_field_type, 0))    {
+    if (MAMA_STATUS_OK != mamaDictionary_createFieldDescriptor(dict.get(), commonFields.wSrcTime.mama_fid, commonFields.wSrcTime.mama_field_name.c_str(),  (mamaFieldType)commonFields.wSrcTime.mama_field_type, 0))
+    {
         t42log_warn("Failed to add reserved field %s to mama dictionary\n","wSrcTime");
         foundErrors = true;
     }

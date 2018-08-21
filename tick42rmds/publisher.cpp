@@ -85,7 +85,7 @@ mama_status
     const char*       root,
     mamaPublisher     parent)
 {
-    string strTopic;
+    std::string strTopic;
     if (topic != 0)
     {
         strTopic = topic;
@@ -100,7 +100,7 @@ mama_status
 
     RMDSBridgeImpl*      rmdsBridge = NULL;
     mama_status status;
-    if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge))) 
+    if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge)))
     {
         mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeCreateDictionary(): Could not get rmds bridge object");
         return status;
@@ -113,7 +113,7 @@ mama_status
 
     if (bridge.get() != 0)
     {
-        string name = bridge->Name();
+        std::string name = bridge->Name();
         TransportConfig_t config(name);
         if (!dictSubjectSet)
         {
@@ -142,13 +142,13 @@ mama_status
         else
         {
             // if we need a source its everything to the left of the "." in the topic
-            string topicStr(topic);
+            std::string topicStr(topic);
             size_t pos = topicStr.find_first_of(".");
 
-            if (pos != string::npos)
+            if (pos != std::string::npos)
             {
-                srcName = string(topic,pos);
-                topicName = string(topic).substr(pos+1,string::npos);
+                srcName = std::string(topic,pos);
+                topicName = std::string(topic).substr(pos+1, std::string::npos);
             }
         }
 
@@ -158,7 +158,7 @@ mama_status
         if (root == NULL)
         {
             utils::properties pubconfig;
-            std::string sourcePropBase = "mama.tick42rmds.transport." + string(tportName) + "." + srcName;
+            std::string sourcePropBase = "mama.tick42rmds.transport." + std::string(tportName) + "." + srcName;
             std::string pubType = pubconfig.get(sourcePropBase + ".pubtype", "post");
 
             if (::strcasecmp(MAMA_CM_TOPIC, topic) == 0)
@@ -242,13 +242,11 @@ mama_status
         const char *diagMsg = mamaMsg_toString(msg);
         t42log_debug ("tick42rmdsBridgeMamaPublisher_send(): "
             "Send message. %s\n", diagMsg);
-
-        mamaMsg_freeString(msg, diagMsg);
     }
 
     // extract descriptive stuff from the message
     mama_i32_t msgType = MAMA_MSG_TYPE_UNKNOWN;
-    mama_i32_t subscType = -1; 
+    mama_i32_t subscType = -1;
     mama_i32_t subscMsgType = -1;
 
     mamaMsg_getI32(msg, MamaFieldMsgType.mName, MamaFieldMsgType.mFid,&msgType);
@@ -283,12 +281,12 @@ mama_status
 /**
 * tick42rmdsBridgeMamaPublisher_getDictionaryMessage
 * Get the underlying message for the data dictionary.
-* 
+*
 *
 * @param transport The transport that holds internal dictionary
 * @param msg The address of the mamaMsg where the result is to be written
 */
-static mama_status 
+static mama_status
     tick42rmdsBridgeMamaPublisher_getDictionaryMessage(
     mamaTransport  transport,
     mamaMsg         *msg)
@@ -303,12 +301,12 @@ static mama_status
     }
 
     RMDSBridgeImpl*      rmdsBridge = NULL;
-    if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge))) 
+    if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge)))
     {
         mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeCreateDictionary(): Could not get rmds bridge object");
         return status;
     }
-    if (rmdsBridge->hasTransportBridge()) 
+    if (rmdsBridge->hasTransportBridge())
     {
         mamaDictionary  dictionary= NULL;
 
@@ -321,7 +319,7 @@ static mama_status
 
         if (subscriber)
         {
-            boost::shared_ptr<UpaMamaFieldMapHandler_t> upaMamaMap = subscriber->FieldMap();
+            const UpaMamaFieldMap_ptr_t& upaMamaMap = subscriber->FieldMap();
             if (upaMamaMap)
             {
                 utils::mama::mamaDictionaryWrapper d = upaMamaMap->GetCombinedMamaDictionary();
@@ -329,7 +327,7 @@ static mama_status
             }
         }
 
-        // Prepare the OpenMAMA dictionary part of the message 
+        // Prepare the OpenMAMA dictionary part of the message
         mamaMsg dictMsg=NULL;
         mama_status res = mamaDictionary_getDictionaryMessage (dictionary, &dictMsg);
 
@@ -383,9 +381,9 @@ mama_status
 {
 
     UPABridgePublisher * pub = (UPABridgePublisher *)publisher;
-    pub->Shutdown(); // just force it to drop its own shared ptr reference
-
     pub->raiseOnDestroy();
+
+    pub->Shutdown(); // just force it to drop its own shared ptr reference
 
     return MAMA_STATUS_OK;
 }
@@ -525,16 +523,16 @@ mama_status
         }
 
         RMDSBridgeImpl*      rmdsBridge = NULL;
-        if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge))) 
+        if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge)))
         {
             mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaPublisher_sendFromInboxByIndex(): Could not get rmds bridge object");
             return status;
         }
-        if (rmdsBridge->hasTransportBridge()) 
+        if (rmdsBridge->hasTransportBridge())
         {
             boost::shared_ptr<RMDSTransportBridge> bridge = rmdsBridge->getTransportBridge(upaPublisherBridge->Transport());
 
-            TransportConfigSptr config = boost::make_shared<TransportConfig_t>(bridge->Name());
+            TransportConfig_ptr_t config = boost::make_shared<TransportConfig_t>(bridge->Name());
             bool queudictionary = config->getBool("queuedictionary", Default_queuedictionary);
             bridge->setDictionaryReply(boost::make_shared<PublisherDictionaryReply>(upaPublisherBridge, publisher, replyAddr, inbox,  queudictionary));
         }
@@ -562,10 +560,10 @@ mama_status
         // first extract the source
         //we have to unwind the stuff that that the mama infrastructure has built into the subrciption message
         // work on the basis that either will be Root.Source or just Root
-        vector<string> splitVector;
+        std::vector<std::string> splitVector;
         boost::algorithm::split(splitVector, subject, boost::algorithm::is_any_of(".") );
 
-        string source;
+        std::string source;
         if (splitVector.size() == 1)
         {
             source = splitVector[0];
@@ -589,12 +587,12 @@ mama_status
             return MAMA_STATUS_PLATFORM;
         }
         RMDSBridgeImpl*      rmdsBridge = NULL;
-        if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge))) 
+        if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &rmdsBridge)))
         {
             mama_log (MAMA_LOG_LEVEL_ERROR, "tick42rmdsBridgeMamaPublisher_sendFromInboxByIndex(): Could not get rmds bridge object");
             return status;
         }
-        if (rmdsBridge->hasTransportBridge()) 
+        if (rmdsBridge->hasTransportBridge())
         {
             boost::shared_ptr<RMDSTransportBridge> transport = rmdsBridge->getTransportBridge(upaPublisherBridge->Transport());
 

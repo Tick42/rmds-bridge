@@ -27,7 +27,8 @@
 
 
 #include <string>
-#include <utils/t42log.h>
+#include "utils/t42log.h"
+#include "utils/time.h"
 
 #include "upavaluetype.h"
 #include "MamaPriceWrapper.h"
@@ -150,12 +151,12 @@ struct MamaFieldType<MamaOpaqueWrapper_ptr_t>
 /*
 * @brief get type from mamaFieldType type tag
 */
-template <mamaFieldType Tag> struct TypeFromTag 
+template <mamaFieldType Tag> struct TypeFromTag
 {
    typedef void* Type;
 };
 
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I8>        {typedef int8_t  Type;};            
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I8>        {typedef int8_t  Type;};
 template<> struct TypeFromTag<MAMA_FIELD_TYPE_U8>        {typedef uint8_t  Type;};
 template<> struct TypeFromTag<MAMA_FIELD_TYPE_I16>        {typedef int16_t  Type;};
 template<> struct TypeFromTag<MAMA_FIELD_TYPE_U16>        {typedef uint16_t  Type;};
@@ -176,7 +177,7 @@ template<> struct TypeFromTag<MAMA_FIELD_TYPE_OPAQUE>        {typedef MamaOpaque
 struct UpaFieldPayload
 {
    mama_fid_t fid_;
-   std::string name_;
+   const char* name_;
    mamaFieldType type_;
    ValueType_t data_;
 
@@ -191,7 +192,7 @@ struct UpaFieldPayload
    {
    }
 
-   UpaFieldPayload() 
+   UpaFieldPayload()
       : fid_(0)
       , name_ ()
       , type_ (MAMA_FIELD_TYPE_UNKNOWN)
@@ -199,7 +200,7 @@ struct UpaFieldPayload
       //, dirty_(false)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const char* value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const char* value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_STRING)
@@ -207,13 +208,13 @@ struct UpaFieldPayload
       //, /*dirty_*/(true)
    {}
 
-   //UpaFieldPayload(const mama_fid_t fid, const std::string &name, const mama_datetime & value) 
+   //UpaFieldPayload(const mama_fid_t fid, const std::string &name, const mama_datetime & value)
    //    : fid_    (fid)
    //    , name_ (name)
    //    , type_ (MAMA_FIELD_TYPE_TIME)
    //    , data_ (value)
    //{}
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaDateTimeWrapper_ptr_t value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaDateTimeWrapper_ptr_t value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_TIME)
@@ -221,7 +222,7 @@ struct UpaFieldPayload
      // , /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaPriceWrapper_ptr_t value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaPriceWrapper_ptr_t value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_PRICE)
@@ -229,7 +230,7 @@ struct UpaFieldPayload
      // , /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaMsgPayloadWrapper_ptr_t value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaMsgPayloadWrapper_ptr_t value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_MSG)
@@ -237,7 +238,7 @@ struct UpaFieldPayload
       //, /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaOpaqueWrapper_ptr_t value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaOpaqueWrapper_ptr_t value)
        : fid_    (fid)
        , name_ (name)
        , type_ (MAMA_FIELD_TYPE_OPAQUE)
@@ -245,7 +246,7 @@ struct UpaFieldPayload
        //, /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const MamaMsgVectorWrapper_ptr_t value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaMsgVectorWrapper_ptr_t value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_VECTOR_MSG)
@@ -253,7 +254,7 @@ struct UpaFieldPayload
      // , /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const char *value[], size_t numElements) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const char *value[], size_t numElements)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_VECTOR_STRING)
@@ -274,7 +275,7 @@ struct UpaFieldPayload
    }
 
    template<typename T>
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, const T value[], size_t numElements) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const T value[], size_t numElements)
       : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<T>::Value)
@@ -286,7 +287,7 @@ struct UpaFieldPayload
    }
 
    template <typename T>
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, T value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, T value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<T>::Value)
@@ -294,22 +295,22 @@ struct UpaFieldPayload
       //, /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, bool value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, bool value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<bool>::Value)
       , data_ (value)
       //, /*dirty_*/(true)
-   {        
+   {
    }
 
-   UpaFieldPayload(const mama_fid_t fid, const std::string &name, char value) 
+   UpaFieldPayload(const mama_fid_t fid, const char* name, char value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MamaFieldType<char>::Value)
       , data_ (value)
      // , /*dirty_*/(true)
-   {        
+   {
    }
 
    //This macro is undef-ed later on
@@ -323,7 +324,7 @@ struct UpaFieldPayload
       mama_status ret = MAMA_STATUS_OK;
       CHECK_UPA_FIELD_PAYLOAD;
 
-      try 
+      try
       {
          value = boost::get<std::string>(data_).c_str();
       }
@@ -338,7 +339,7 @@ struct UpaFieldPayload
    /**
    * Get the field value, converted if possible.
    */
-   mama_status get(int8_t & value) const 
+   mama_status get(int8_t & value) const
    {
       CHECK_UPA_FIELD_PAYLOAD;
       try {
@@ -404,7 +405,7 @@ struct UpaFieldPayload
    /**
    * Get the field value, converted if possible.
    */
-   mama_status get(uint8_t & value) const 
+   mama_status get(uint8_t & value) const
    {
       CHECK_UPA_FIELD_PAYLOAD;
       try {
@@ -470,7 +471,7 @@ struct UpaFieldPayload
    /**
    * Get the field value, converted if possible. a special boolean conversion for mama_bool_t
    */
-   mama_status getMamaBool(mama_bool_t & value) const 
+   mama_status getMamaBool(mama_bool_t & value) const
    {
       CHECK_UPA_FIELD_PAYLOAD;
       try {
@@ -514,7 +515,7 @@ struct UpaFieldPayload
                // Currently properties_GetPropertyValueAsBoolean is the API that shows what OpenMAMA considers as boolean representation of string. so it is used for consistency.
                // mama_bool_t is int8_t which is physically compatible with char when it comes to boolean values
                std::string str = boost::get<TypeFromTag<MAMA_FIELD_TYPE_STRING>::Type>(data_);
-               value = (mama_bool_t)properties_GetPropertyValueAsBoolean(str.c_str()); 
+               value = (mama_bool_t)properties_GetPropertyValueAsBoolean(str.c_str());
             }
             return MAMA_STATUS_OK;
          case MAMA_FIELD_TYPE_BOOL:
@@ -906,7 +907,7 @@ struct UpaFieldPayload
          case MAMA_FIELD_TYPE_F64:
             value = (uint64_t)boost::get<TypeFromTag<MAMA_FIELD_TYPE_F64>::Type>(data_);
             return MAMA_STATUS_OK;
-         case MAMA_FIELD_TYPE_TIME: 
+         case MAMA_FIELD_TYPE_TIME:
             {
                mamaDateTime p = boost::get<MamaDateTimeWrapper_ptr_t>(data_)->getMamaDateTime();
                mamaDateTime_getEpochTimeMicroseconds(p, &value);
@@ -1130,7 +1131,7 @@ struct UpaFieldPayload
    /**
    * Get the field value, converted if possible.
    */
-   mama_status get(mamaPrice value) const
+   mama_status getPrice(mamaPrice value) const
    {
       CHECK_UPA_FIELD_PAYLOAD;
       try {
@@ -1195,7 +1196,7 @@ struct UpaFieldPayload
    * Get the field value, converted if possible.
    * The mamaDateTime value from int64_t field is always in microseconds without TimeZone.
    */
-   mama_status get(mamaDateTime value) const
+   mama_status getDateTime(mamaDateTime value) const
    {
       CHECK_UPA_FIELD_PAYLOAD;
       try {
@@ -1218,11 +1219,16 @@ struct UpaFieldPayload
          case MAMA_FIELD_TYPE_STRING:
              {
                  const char *asString = boost::get<std::string>(data_).c_str();
-                 mamaDateTime_setDate(value
-                     , atoi(&asString[0])
-                     , atoi(&asString[5]) - 1
-                     , atoi(&asString[8]) - 1
-                     );
+                 uint32_t year = atoi(&asString[0]);
+                 uint32_t month = atoi(&asString[5]) - 1;
+                 uint32_t day = atoi(&asString[8]) - 1;
+                 if (year != 0 && month != 0 && day != 0)
+                 {
+                     mamaDateTime_setEpochTimeExt(value,
+                                                  utils::time::GetSeconds(year, month, day),
+                                                  0);
+                     mamaDateTime_setHints(value, MAMA_DATE_TIME_HAS_DATE);
+                 }
                  mamaDateTime_setTime(value
                      , atoi(&asString[11])
                      , atoi(&asString[14])
@@ -1295,7 +1301,7 @@ struct UpaFieldPayload
       mama_status ret = MAMA_STATUS_OK;
       CHECK_UPA_FIELD_PAYLOAD;
 
-      try 
+      try
       {
          value = boost::get<T>(data_);
       }
@@ -1328,7 +1334,7 @@ struct UpaFieldPayload
       //
       // Our experiments have shown that the adjacent object in this
       // particular case appears to be the "result" value.
-      // The problem should, and will, be fixed in a future version 
+      // The problem should, and will, be fixed in a future version
       // of Open MAMA but, in the meantime, provided these two
       // assignments are executed in this order, the "size"-assignment
       // does not appear to corrupt the "result" value.
@@ -1344,9 +1350,9 @@ struct UpaFieldPayload
    template <typename T>
    mama_status set(T value)
    {
-      if (MamaFieldType<T>::Value !=  type_ && type_ != MAMA_FIELD_TYPE_UNKNOWN ) 
+      if (MamaFieldType<T>::Value !=  type_ && type_ != MAMA_FIELD_TYPE_UNKNOWN )
          return MAMA_STATUS_WRONG_FIELD_TYPE;
-      if (type_ == MAMA_FIELD_TYPE_UNKNOWN) 
+      if (type_ == MAMA_FIELD_TYPE_UNKNOWN)
          type_ = MamaFieldType<T>::Value;
       data_ = value;
       return MAMA_STATUS_OK;

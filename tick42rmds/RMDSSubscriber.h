@@ -45,8 +45,9 @@
 
 #include "UPASubscription.h"
 #include "RMDSBridgeSubscription.h"
+#include "rmdsBridgeTypes.h"
 #include "transportconfig.h"
-#include <utils/thread/lock.h>
+#include "utils/thread/lock.h"
 #include "inbox.h"
 
 class UPALogin;
@@ -57,7 +58,7 @@ class UPABridgePoster;
 
 class RMDSSubscriber : public LoginResponseListener, public ConnectionListener, public SourceDirectoryResponseListener, public DictionaryResponseListener
 {
-public: 
+public:
     RMDSSubscriber(UPATransportNotifier &notify);
     virtual ~RMDSSubscriber();
 
@@ -65,15 +66,16 @@ public:
 
     bool Start(const char* interfaceName, RsslConnectionTypes connType );
     bool Stop();
-    
+    bool Done();
+
     // accessors
-    std::string GetTransportName() {return transport_name_;}
-    char * InterfaceName() {return interfaceName_;}
-    RsslConnectionTypes ConnType() {return connType_;}
+    const std::string& GetTransportName() const {return transport_name_;}
+    char* InterfaceName() const {return interfaceName_;}
+    RsslConnectionTypes ConnType() const {return connType_;}
 
-    mamaQueue GetRequestQueue()    {return upaRequestQueue_;}
+    mamaQueue GetRequestQueue() const {return upaRequestQueue_;}
 
-    boost::shared_ptr<TransportConfig_t> Config(){return config_;}
+    const TransportConfig_ptr_t& Config() const {return config_;}
 
     UPAConsumer_ptr_t Consumer() const { return consumer_; }
     void Consumer(UPAConsumer_ptr_t val) { consumer_ = val; }
@@ -82,12 +84,10 @@ public:
     virtual bool AddSubscription(subscriptionBridge* subscriber, const char* source, const char* symbol, mamaTransport transport, mamaQueue queue, mamaMsgCallbacks callback, mamaSubscription subscription, void* closure);
     bool RemoveSubscription(RMDSBridgeSubscription * pSubscription);
     void SendSnapshotRequest(SnapshotReply_ptr_t snap);
-    bool FindSubscription(const string & source, const string & symbol, UPASubscription_ptr_t & sub);
+    bool FindSubscription(const std::string & source, const std::string & symbol, UPASubscription_ptr_t & sub);
 
-
-    // dictionary reply 
+    // dictionary reply
     void SetDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply);
-
 
     static void loginSuccessCallBack(RsslChannel* chnl);
 
@@ -107,18 +107,15 @@ public:
 
     SubscriberState_t GetState() const
     {
-        return subscriberState_;    
-    }    
+        return subscriberState_;
+    }
 
     // do the stuff that needs to be done when the connection comes live
     void SetLive();
 
-    
-
     // Sources
 
-
-    RsslUInt32 GetServiceId(const string & sourceName) const;
+    RsslUInt32 GetServiceId(const std::string & sourceName) const;
 
     // Listener functions
     virtual void LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, bool loginSucceeded, const char* extraInfo);
@@ -132,19 +129,20 @@ public:
     UPADictionary *GetUpaDictionary() {return consumer_ ? (consumer_->UpaDictionary()) : NULL;}
     bool UpdateUpaMamaFieldMap();
 
-    UpaMamaFieldMap_ptr_t FieldMap() {return UpaMamaFieldMap_;}
+    const UpaMamaFieldMap_ptr_t& FieldMap() const
+    {
+        return UpaMamaFieldMap_;
+    }
+
     bool CreateUpaMamaFieldMap();
 
-
-
-    // get the new item subscription for the specified source - used by interactive publishing 
-    bool GetNewItemSubscription(const std::string & sourceName, mamaSubscription * sub);
-
+    // get the new item subscription for the specified source - used by interactive publishing
+    bool GetNewItemSubscription(const std::string& sourceName, mamaSubscription* sub);
 
     // need to license the enhanced version of the bridge to accept sink inserts
-    // get the Insert subscription for the specified source 
-    virtual bool GetInsertSubscription(const std::string & sourceName, mamaSubscription * sub);
-    virtual bool SendInsertMessage(const std::string & sourceName, mamaMsg msg);
+    // get the Insert subscription for the specified source
+    virtual bool GetInsertSubscription(const std::string& sourceName, mamaSubscription* sub);
+    virtual bool SendInsertMessage(const std::string& sourceName, mamaMsg msg);
 
 
    // We need to stop updates being sent while closing down
@@ -154,14 +152,10 @@ public:
    // deal with any pending subscriptions
    void ProcessPendingSubcriptions();
 
-
-
-
 protected:
     UPAConsumer_ptr_t consumer_;
 
 private:
-
     static void *threadFunc(void *state);
     UPATransportNotifier notify_;
     UPALogin::RsslLoginResponseInfo responseInfo_;
@@ -181,10 +175,10 @@ private:
     bool connected_;
 
     // upa consumer thread
-    wthread_t hConsumerThread_; 
-   //mutable utils::thread::lock_t cs_;
+    wthread_t hConsumerThread_;
+    //mutable utils::thread::lock_t cs_;
 
-   mutable utils::thread::lock_t pendingListLock_;
+    mutable utils::thread::lock_t pendingListLock_;
 
 
     mamaQueue upaRequestQueue_;
@@ -195,12 +189,9 @@ private:
     typedef std::map<std::string, mamaSubscription> PublisherRequestSubMap_t;
     PublisherRequestSubMap_t publisherRequestSubMap_;
 
+    TransportConfig_ptr_t config_;
 
-
-    boost::shared_ptr<TransportConfig_t> config_;
-
-    boost::shared_ptr<UpaMamaFieldMapHandler_t> UpaMamaFieldMap_;
-
+    UpaMamaFieldMap_ptr_t UpaMamaFieldMap_;
 
     // list of pending subscritpions / snapshots.  If requests are made before connection completes
     // they are added to the pending list and actioned when the connection state changes
@@ -210,7 +201,7 @@ private:
     typedef std::list<RMDSBridgeSnapshot_ptr_t> SnapshotList_t;
     SnapshotList_t pendingSnapshots_;
 
-    // need to keep a map of subscriptions that are created on an invalid source. Although the subscription failure sends an error code to the caller, there is nothing to prevent  
+    // need to keep a map of subscriptions that are created on an invalid source. Although the subscription failure sends an error code to the caller, there is nothing to prevent
     // calling unsubscribe later. This holds onto the boost pointer
     typedef std::map<RMDSBridgeSubscription *, RMDSBridgeSubscription_ptr_t> BadSourceFailuresMap_t;
     BadSourceFailuresMap_t badSourceFailures_;
@@ -222,7 +213,7 @@ private:
 };
 
 
-class SnapshotReply 
+class SnapshotReply
 {
     //bound variables from publisher
 
@@ -245,10 +236,6 @@ public:
     {
     }
 
-    ~SnapshotReply()
-    {
-    }
-
     std::string Symbol() const { return symbol_; }
     void Symbol(std::string val) { symbol_ = val; }
 
@@ -257,7 +244,7 @@ public:
 
     void OnMsg(mamaMsg msg)
     {
-            rmdsMamaInbox_send( inbox,  msg );
+        rmdsMamaInbox_send( inbox,  msg );
     }
 
 };

@@ -25,7 +25,7 @@
 #include "stdafx.h"
 #include <utils/t42log.h>
 #include "UPAFieldEncoder.h"
-#include <utils/namespacedefines.h>
+#include "utils/namespacedefines.h"
 
 using namespace std;
 
@@ -76,7 +76,7 @@ bool UPAFieldEncoder::encode(mamaMsg msg, RsslChannel *chnl, RsslMsg *rsslMsg, R
 
     mamaMsg_iterateFields(msg, mamaMsgIteratorCb, dictionary_, this);
 
-    // complete encode field list 
+    // complete encode field list
     if ((ret = rsslEncodeFieldListComplete(&itEncode_, RSSL_TRUE)) < RSSL_RET_SUCCESS)
     {
         t42log_warn("rsslEncodeFieldListComplete()  %s : %s  failed with return code: %d\n",  sourceName_.c_str(), symbol_.c_str(), ret);
@@ -112,7 +112,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
     mama_status status;
 
     // get the fid and its type and value (cf mamalistenc displayField line 1470 or thereabouts)
-    mamaMsgField_getFid  (field, &fid);
+    mamaMsgField_getFid(field, &fid);
     mamaMsgField_getName(field, &fname);
     mamaMsgField_getType(field, &fldType);
 
@@ -121,8 +121,9 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
     if (rmdsFid != 0)
     {
-        //we can do something with it 
-        RsslDictionaryEntry * dictEntry =  rmdsDictionary_->entriesArray[rmdsFid];
+        t42log_info("RMDS fid %d from mama fid %d", rmdsFid, fid);
+        //we can do something with it
+        RsslDictionaryEntry * dictEntry = rmdsDictionary_->entriesArray[rmdsFid];
 
         if (dictEntry == 0)
         {
@@ -157,7 +158,11 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 // and encode into the message
                 if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&intVal)) < RSSL_RET_SUCCESS)
                 {
-                    t42log_warn("rsslEncodeFieldEntry() failed  for fid %d with return code: %d\n", rmdsFid, ret);
+                    t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                        rsslRetCodeToString(ret), ret,
+                        sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                        rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                    encodeFail_ = true;
                 }
             }
             break;
@@ -180,12 +185,16 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 // and encode into the message
                 if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&uintVal)) < RSSL_RET_SUCCESS)
                 {
-                    t42log_warn("rsslEncodeFieldEntry() failed  for fid %d with return code: %d\n", rmdsFid, ret);
+                    t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                        rsslRetCodeToString(ret), ret,
+                        sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                        rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                    encodeFail_ = true;
                 }
             }
             break;
 
-        case RSSL_DT_FLOAT:    
+        case RSSL_DT_FLOAT:
             RsslFloat fltVal;
             status = mamaMsgField_getF32(field, &fltVal);
             if (status != MAMA_STATUS_OK)
@@ -201,7 +210,11 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 // and encode into the message
                 if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&fltVal)) < RSSL_RET_SUCCESS)
                 {
-                    t42log_warn("rsslEncodeFieldEntry() failed  for fid %d with return code: %d\n", rmdsFid, ret);
+                    t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                        rsslRetCodeToString(ret), ret,
+                        sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                        rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                    encodeFail_ = true;
                 }
             }
             break;
@@ -222,7 +235,11 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 // and encode into the message
                 if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&dblVal)) < RSSL_RET_SUCCESS)
                 {
-                    t42log_warn("rsslEncodeFieldEntry() failed  for fid %d with return code: %d\n", rmdsFid, ret);
+                    t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                        rsslRetCodeToString(ret), ret,
+                        sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                        rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                    encodeFail_ = true;
                 }
             }
             break;
@@ -238,34 +255,49 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 {
                     mamaPrice p;
                     mamaPrice_create(&p);
-                    mamaMsgField_getPrice(field, p);
-                    double d;
-                    mamaPrice_getValue(p, &d);
-
-                    mamaPricePrecision precision;
-                    mamaPrice_getPrecision(p, &precision);
-                    RsslRealHints rsslHint = MamaPrecisionToRsslHint(precision, fid);    
-
-                    mama_bool_t b = false;
-                    mamaPrice_getIsValidPrice(p, &b);
-
-                    // set up an rssl real for the price value
-                    RsslReal r;
-                    if (b == false)
+                    status = mamaMsgField_getPrice(field, p);
+                    if (status != MAMA_STATUS_OK)
                     {
-                         rsslBlankReal(&r);
+                        t42log_warn("Conversion error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getPrice\n",
+                            mamaStatus_stringForStatus(status), status,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
                     }
                     else
                     {
-                        rsslClearReal(&r);
-                        rsslDoubleToReal(&r, &d, rsslHint);
-                    }
+                        double d;
+                        mamaPrice_getValue(p, &d);
 
-                    RsslRet ret;
-                    // and encode into the message
-                    if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
-                    {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        mamaPricePrecision precision;
+                        mamaPrice_getPrecision(p, &precision);
+                        RsslRealHints rsslHint = MamaPrecisionToRsslHint(precision, fid);
+
+                        mama_bool_t b = false;
+                        mamaPrice_getIsValidPrice(p, &b);
+
+                        // set up an rssl real for the price value
+                        RsslReal r;
+                        if (b == false)
+                        {
+                            rsslBlankReal(&r);
+                        }
+                        else
+                        {
+                            rsslClearReal(&r);
+                            rsslDoubleToReal(&r, &d, rsslHint);
+                        }
+
+                        RsslRet ret;
+                        // and encode into the message
+                        if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                        {
+                            t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                                rsslRetCodeToString(ret), ret,
+                                sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                                rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                            encodeFail_ = true;
+                        }
                     }
 
                     mamaPrice_destroy(p);
@@ -285,18 +317,32 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
                     //    RsslInt64 intVal;
                     mama_i64_t intVal;  // gcc seems happier with this
-                    mamaMsgField_getI64(field, &intVal);
-
-                    RsslReal r;
-                    r.isBlank = false;
-                    r.value = intVal;
-                    r.hint = RSSL_RH_EXPONENT0;
-
-                    RsslRet ret;
-                    // and encode into the message
-                    if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                    status = mamaMsgField_getI64(field, &intVal);
+                    if (status != MAMA_STATUS_OK)
                     {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        t42log_warn("Conversion error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getF64\n",
+                            mamaStatus_stringForStatus(status), status,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
+                    }
+                    else
+                    {
+                        RsslReal r;
+                        r.isBlank = false;
+                        r.value = intVal;
+                        r.hint = RSSL_RH_EXPONENT0;
+
+                        RsslRet ret;
+                        // and encode into the message
+                        if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                        {
+                            t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                                rsslRetCodeToString(ret), ret,
+                                sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                                rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                            encodeFail_ = true;
+                        }
                     }
                 }
                 break;
@@ -305,46 +351,73 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 {
                     // It's a double
                     mama_f64_t dblVal;
-                    mamaMsgField_getF64(field, &dblVal);
-
-                    RsslBuffer buffer;
-                    buffer.length = 64;
-                    buffer.data = (char *) alloca(buffer.length + 1);
-                    snprintf(buffer.data, buffer.length, "%f", dblVal);
-
-                    RsslReal r;
-                    rsslClearReal(&r);
-                    rsslNumericStringToReal(&r, &buffer);
-
-                    RsslRet ret;
-                    // and encode into the message
-                    if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                    status = mamaMsgField_getF64(field, &dblVal);
+                    if (status != MAMA_STATUS_OK)
                     {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        t42log_warn("Conversion error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getF64\n",
+                            mamaStatus_stringForStatus(status), status,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
                     }
+                    else
+                    {
+                        RsslBuffer buffer;
+                        buffer.length = 64;
+                        buffer.data = (char *) alloca(buffer.length + 1);
+                        snprintf(buffer.data, buffer.length, "%f", dblVal);
 
+                        RsslReal r;
+                        rsslClearReal(&r);
+                        rsslNumericStringToReal(&r, &buffer);
+
+                        RsslRet ret;
+                        // and encode into the message
+                        if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                        {
+                            t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                                rsslRetCodeToString(ret), ret,
+                                sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                                rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                            encodeFail_ = true;
+                        }
+                    }
                 }
                 break;
 
             case MAMA_FIELD_TYPE_F32:
                 {
                     mama_f32_t floatVal;
-                    mamaMsgField_getF32(field, &floatVal);
-
-                    RsslBuffer buffer;
-                    buffer.length = 64;
-                    buffer.data = (char *) alloca(buffer.length + 1);
-                    snprintf(buffer.data, buffer.length, "%f", floatVal);
-
-                    RsslReal r;
-                    rsslClearReal(&r);
-                    rsslNumericStringToReal(&r, &buffer);
-
-                    RsslRet ret;
-                    // and encode into the message
-                    if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                    status = mamaMsgField_getF32(field, &floatVal);
+                    if (status != MAMA_STATUS_OK)
                     {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        t42log_warn("Conversion error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getF32\n",
+                            mamaStatus_stringForStatus(status), status,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
+                    }
+                    else
+                    {
+                        RsslBuffer buffer;
+                        buffer.length = 64;
+                        buffer.data = (char *) alloca(buffer.length + 1);
+                        snprintf(buffer.data, buffer.length, "%f", floatVal);
+
+                        RsslReal r;
+                        rsslClearReal(&r);
+                        rsslNumericStringToReal(&r, &buffer);
+
+                        RsslRet ret;
+                        // and encode into the message
+                        if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&r)) < RSSL_RET_SUCCESS)
+                        {
+                            t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                                rsslRetCodeToString(ret), ret,
+                                sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                                rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                            encodeFail_ = true;
+                        }
                     }
                 }
                 break;
@@ -370,29 +443,30 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                     // build an rssl date from the mama datetime
                     RsslDate dt;
                     rsslClearDate(&dt);    // do we need to do this?
-                    uint32_t  yr;
-                    uint32_t mnth;
-                    uint32_t day;
-                    mamaDateTime_getYear(d, &yr);
-                    mamaDateTime_getMonth(d, &mnth);
-                    mamaDateTime_getDay(d, &day);
 
                     mama_bool_t hasDate = false;
                     mamaDateTime_hasDate(d, &hasDate);
-
-                    if (hasDate == true && yr != 1970)
+                    if (hasDate)
                     {
-                        // If year is 1970 send blank RSSL date, which is converted to empty Marketfeed string
-                        dt.year = yr;
-                        dt.month = mnth;
-                        dt.day = day;
+                        struct tm tmStruct;
+                        mama_status status = mamaDateTime_getStructTm(d, &tmStruct);
+                        if (MAMA_STATUS_OK == status)
+                        {
+                            dt.year = tmStruct.tm_year + 1900;
+                            dt.month = tmStruct.tm_mon + 1;
+                            dt.day = tmStruct.tm_mday;
+                        }
                     }
 
                     RsslRet ret;
                     // and encode into the message
                     if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&dt)) < RSSL_RET_SUCCESS)
                     {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                            rsslRetCodeToString(ret), ret,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
                     }
                 }
                 else
@@ -410,7 +484,6 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
             break;
         case RSSL_DT_TIME:
             {
-                mama_status status;
                 mamaDateTime d;
                 mamaDateTime_create(&d);
                 status = mamaMsgField_getDateTime(field, d);
@@ -419,23 +492,27 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                     // build an rssl date from the mama datetime
                     RsslTime t;
                     rsslClearTime(&t);    // do we need to do this?
-                    uint32_t  h;
-                    uint32_t m;
-                    uint32_t s;
-                    uint32_t us;
-                    mamaDateTime_getHour(d, &h);
-                    mamaDateTime_getMinute(d, &m);
-                    mamaDateTime_getSecond(d, &s);
-                    mamaDateTime_getMicrosecond(d, &us);
 
                     mama_bool_t hasTime = false;
                     mamaDateTime_hasTime(d, &hasTime);
                     if (hasTime)
                     {
-                        t.hour = h;
-                        t.minute = m;
-                        t.second = s;
-                        t.millisecond = us/1000;
+                        mama_i64_t seconds = 0;
+                        mama_u32_t nanoseconds = 0;
+                        mamaDateTime_getEpochTimeExt(d, &seconds, &nanoseconds);
+
+                        struct tm tmStruct;
+                        mama_status status = mamaDateTime_getStructTm(d, &tmStruct);
+                        if (MAMA_STATUS_OK == status)
+                        {
+                            t.hour = tmStruct.tm_hour;
+                            t.minute = tmStruct.tm_min;
+                            t.second = tmStruct.tm_sec;
+
+                            t.millisecond = nanoseconds / 1e+06;
+                            t.microsecond = (nanoseconds - t.millisecond * 1e+06) / 1e+03;
+                            t.nanosecond = nanoseconds - t.millisecond * 1e+06 - t.microsecond * 1e+03;
+                        }
                     }
                     else
                     {
@@ -446,12 +523,20 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                     // and encode into the message
                     if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&t)) < RSSL_RET_SUCCESS)
                     {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                            rsslRetCodeToString(ret), ret,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
                     }
                 }
                 else
                 {
-                    t42log_warn("fid %d : Unable to convert field to RSSL_DT_TIME - mama field is wrong type (%d)", fid, fldType);
+                    t42log_warn("Conversion error: %s.%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getDateTime\n",
+                        mamaStatus_stringForStatus(status), status,
+                        sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                        rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                    encodeFail_ = true;
                 }
 
                 mamaDateTime_destroy(d);
@@ -460,49 +545,63 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
             break;
         case RSSL_DT_DATETIME:
             {
-                mama_status status;
                 mamaDateTime d;
                 mamaDateTime_create(&d);
                 status = mamaMsgField_getDateTime(field, d);
-                if (status == MAMA_STATUS_OK )
+                if (status == MAMA_STATUS_OK)
                 {
                     // build an rssl date from the mama datetime
                     RsslDateTime dt;
                     rsslClearDateTime(&dt);    // do we need to do this?
-                    uint32_t  yr;
-                    uint32_t mnth;
-                    uint32_t day;    
-                    uint32_t  h;
-                    uint32_t m;
-                    uint32_t s;
-                    uint32_t us;
 
-                    mamaDateTime_getYear(d, &yr);
-                    mamaDateTime_getMonth(d, &mnth);
-                    mamaDateTime_getDay(d, &day);
-                    mamaDateTime_getHour(d, &h);
-                    mamaDateTime_getMinute(d, &m);
-                    mamaDateTime_getSecond(d, &s);
-                    mamaDateTime_getMicrosecond(d, &us);
+                    struct tm tmStruct;
+                    mama_status status = mamaDateTime_getStructTm(d, &tmStruct);
+                    if (MAMA_STATUS_OK == status)
+                    {
+                        dt.date.year = tmStruct.tm_yday + 1900;
+                        dt.date.month = tmStruct.tm_mon + 1;
+                        dt.date.day = tmStruct.tm_mday;
 
-                    dt.date.year = yr;
-                    dt.date.month = mnth;
-                    dt.date.day = day;                    
-                    dt.time.hour = h;
-                    dt.time.minute = m;
-                    dt.time.second = s;
-                    dt.time.millisecond = us/1000;
+                        mama_bool_t hasTime = false;
+                        mamaDateTime_hasTime(d, &hasTime);
+                        if (hasTime)
+                        {
+                            mama_i64_t seconds = 0;
+                            mama_u32_t nanoseconds = 0;
+                            mamaDateTime_getEpochTimeExt(d, &seconds, &nanoseconds);
+
+                            dt.time.hour = tmStruct.tm_hour;
+                            dt.time.minute = tmStruct.tm_min;
+                            dt.time.second = tmStruct.tm_sec;
+
+                            dt.time.millisecond = nanoseconds / 1e+06;
+                            dt.time.microsecond = (nanoseconds - dt.time.millisecond * 1e+06) / 1e+03;
+                            dt.time.nanosecond = nanoseconds - dt.time.millisecond * 1e+06 - dt.time.microsecond * 1e+03;
+                        }
+                        else
+                        {
+                            rsslBlankTime(&dt.time);
+                        }
+                    }
 
                     RsslRet ret;
                     // and encode into the message
                     if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&dt)) < RSSL_RET_SUCCESS)
                     {
-                        t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                        t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                            rsslRetCodeToString(ret), ret,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
                     }
                 }
                 else
                 {
-                    t42log_warn("fid %d : Unable to convert field to RSSL_DT_DATETIME - mama field is wrong type (%d)", fid, fldType);
+                    t42log_warn("Conversion error: %s.%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getDateTime\n",
+                        mamaStatus_stringForStatus(status), status,
+                        sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                        rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                    encodeFail_ = true;
                 }
 
                 mamaDateTime_destroy(d);
@@ -511,7 +610,6 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
         case RSSL_DT_QOS:
         case RSSL_DT_STATE:
-
         case RSSL_DT_ENUM:
 
             // if the mama field is an int then check its a valid enum value and use it direct or of its a string
@@ -525,7 +623,8 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
                     // first get the string value
                     const char * stringVal;
-                    if (mamaMsgField_getString(field, &stringVal) == MAMA_STATUS_OK)
+                    status = mamaMsgField_getString(field, &stringVal);
+                    if (status == MAMA_STATUS_OK)
                     {
 
                         size_t stringLen = strlen(stringVal);
@@ -535,7 +634,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                         RsslEnum numEntries = enumTable->maxValue + 1;
 
                         // now we need to walk the set of strings in the enum table to try find a match
-                        // (it goes without saying that mama clients will be more efficient if they 
+                        // (it goes without saying that mama clients will be more efficient if they
                         // use the enumerators rather than string values)
                         RsslEnum enumVal;
                         bool found = false;
@@ -564,7 +663,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                         if (!found)
                         {
                             // Output message only once for each fid
-                            if (suppressBadEnumWarnings_.insert(fid).second) 
+                            if (suppressBadEnumWarnings_.insert(fid).second)
                             {
                                 t42log_warn("PUB: RSSL_DT_ENUM: %s.%s unknown enum string='%s' for fid %d",
                                     sourceName_.c_str(), symbol_.c_str(), stringVal, fid);
@@ -575,16 +674,22 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
 
                         if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&enumVal)) < RSSL_RET_SUCCESS)
                         {
-                            t42log_warn("rsslEncodeFieldEntry() failed with return code: %d", ret);
+                            t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                                rsslRetCodeToString(ret), ret,
+                                sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                                rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                            encodeFail_ = true;
                         }
 
                     }
                     else
                     {
-                        t42log_warn("fid %d : Unable to extract field from mama message as string", fid);
+                        t42log_warn("Conversion error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getString\n",
+                            mamaStatus_stringForStatus(status), status,
+                            sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                            rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                        encodeFail_ = true;
                     }
-
-
                 }
                 break;
 
@@ -599,8 +704,8 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                 // otherwise, if its an int type then encode with 0 exponent
                 {
                     RsslEnum enumVal;
-                    mama_status status;
-                    if ((status = mamaMsgField_getU16(field, &enumVal)) == MAMA_STATUS_OK)
+                    mama_status status = mamaMsgField_getU16(field, &enumVal);
+                    if (status == MAMA_STATUS_OK)
                     {
                         // check the enum value is valid
                         RsslEnumType *pEnumType = getFieldEntryEnumType( rmdsDictionary_->entriesArray[rmdsFid], enumVal);
@@ -609,7 +714,11 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                             // and encode into the message
                             if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&enumVal)) < RSSL_RET_SUCCESS)
                             {
-                                t42log_warn("rsslEncodeFieldEntry() failed with return code: %d\n", ret);
+                                t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
+                                    rsslRetCodeToString(ret), ret,
+                                    sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
+                                    rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
+                                encodeFail_ = true;
                             }
                         }
                         else if (suppressBadEnumWarnings_.insert(fid).second) // Output message only once for each fid
@@ -664,7 +773,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
                     // and encode into the message
                     if ((ret = rsslEncodeFieldEntry(&itEncode_, &fieldEntry, (void*)&buf)) < RSSL_RET_SUCCESS)
                     {
-                        t42log_warn("Conversion error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling mamaMsgField_getString\n",
+                        t42log_warn("Encoding error: %s/%d %s.%s field=%s mamaFid=%d mamaType=%s/%d rsslType=%s/%d failed calling rsslEncodeFieldEntry\n",
                             rsslRetCodeToString(ret), ret,
                             sourceName_.c_str(), symbol_.c_str(), fname, fid, mamaFieldTypeToString(fldType), fldType,
                             rsslDataTypeToString(fieldEntry.dataType), fieldEntry.dataType);
@@ -675,7 +784,7 @@ void UPAFieldEncoder::encodeField(const mamaMsgField &field)
             break;
 
         }
-    } 
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -684,37 +793,37 @@ RsslRealHints UPAFieldEncoder::MamaPrecisionToRsslHint(mamaPricePrecision p, uin
 {
     switch(p)
     {
-    case MAMA_PRICE_PREC_UNKNOWN: 
+    case MAMA_PRICE_PREC_UNKNOWN:
         return RSSL_RH_EXPONENT_2;
 
-    case MAMA_PRICE_PREC_10:    
+    case MAMA_PRICE_PREC_10:
         return RSSL_RH_EXPONENT_1;
 
-    case MAMA_PRICE_PREC_100:  
+    case MAMA_PRICE_PREC_100:
         return RSSL_RH_EXPONENT_2;
 
-    case MAMA_PRICE_PREC_1000:  
+    case MAMA_PRICE_PREC_1000:
         return RSSL_RH_EXPONENT_3;
 
-    case MAMA_PRICE_PREC_10000:  
+    case MAMA_PRICE_PREC_10000:
         return RSSL_RH_EXPONENT_4;
 
-    case MAMA_PRICE_PREC_100000:       
+    case MAMA_PRICE_PREC_100000:
         return RSSL_RH_EXPONENT_5;
 
-    case MAMA_PRICE_PREC_1000000:      
+    case MAMA_PRICE_PREC_1000000:
         return RSSL_RH_EXPONENT_6;
 
-    case MAMA_PRICE_PREC_10000000:     
+    case MAMA_PRICE_PREC_10000000:
         return RSSL_RH_EXPONENT_7;
 
-    case MAMA_PRICE_PREC_100000000:    
+    case MAMA_PRICE_PREC_100000000:
         return RSSL_RH_EXPONENT_8;
 
-    case MAMA_PRICE_PREC_1000000000:   
+    case MAMA_PRICE_PREC_1000000000:
         return RSSL_RH_EXPONENT_9;
 
-    case MAMA_PRICE_PREC_10000000000:  
+    case MAMA_PRICE_PREC_10000000000:
         return RSSL_RH_EXPONENT_10;
 
     case MAMA_PRICE_PREC_INT:

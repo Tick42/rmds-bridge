@@ -116,7 +116,7 @@ UPAPublisherItem_ptr_t RMDSPublisherSource::GetItem( std::string symbol )
 
 
 // add a new item or add the channel and stream to an existing item. Return the item
-UPAPublisherItem_ptr_t RMDSPublisherSource::AddItem( RsslChannel * chnl, RsslUInt32 streamID, string source, string symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher, bool & isNew )
+UPAPublisherItem_ptr_t RMDSPublisherSource::AddItem( RsslChannel * chnl, RsslUInt32 streamID, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher, bool & isNew )
 {
     UPAPublisherItem_ptr_t ret;
 
@@ -147,7 +147,7 @@ UPAPublisherItem_ptr_t RMDSPublisherSource::AddItem( RsslChannel * chnl, RsslUIn
 
 }
 
-bool RMDSPublisherSource::HasItem( string symbol )
+bool RMDSPublisherSource::HasItem( std::string symbol )
 {
     PublisherItemMap_t::iterator it = publisherItemMap_.find(symbol);
 
@@ -155,12 +155,12 @@ bool RMDSPublisherSource::HasItem( string symbol )
     {
         return true;
     }
-    
+
 
     return false;
 }
 
-void RMDSPublisherSource::RemoveItem( string symbol )
+void RMDSPublisherSource::RemoveItem( std::string symbol )
 {
     publisherItemMap_.erase(symbol);
 }

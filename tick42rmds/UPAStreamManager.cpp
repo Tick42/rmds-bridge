@@ -57,7 +57,7 @@ void* UPAStreamManager::Track(void* p)
         int other = 0;
         long sum = 0;
         {
-            T42Lock lock(&s->streamLock_);
+            utils::thread::T42Lock lock(&s->streamLock_);
             pending_items_t::iterator it = s->pendingItems_.begin();
             while (s->pendingItems_.end() != it)
             {
@@ -86,7 +86,7 @@ UPAStreamManager::UPAStreamManager()
    , openItems_(0)
    , pendingCloses_(0)
 {
-    ItemArray_ = new UPAItem_ptr_t [NumStreamIds]; 
+    ItemArray_ = new UPAItem_ptr_t [NumStreamIds];
     ::memset(ItemArray_, 0, sizeof(UPAItem_ptr_t *)*NumStreamIds);
 
     nextIndex_ = 0;
@@ -104,7 +104,7 @@ UPAStreamManager::~UPAStreamManager(void)
 
 RsslUInt32 UPAStreamManager::AddItem( UPASubscription_ptr_t sub )
 {
-    T42Lock lock(&streamLock_);
+    utils::thread::T42Lock lock(&streamLock_);
 
     RsslUInt32 index;
     static bool firstUseOfQueue = true;
@@ -149,7 +149,7 @@ UPAItem_ptr_t UPAStreamManager::GetItem( RsslUInt32 streamId )
 
 bool UPAStreamManager::ReleaseStreamId( RsslUInt32 streamId )
 {
-    T42Lock lock(&streamLock_);
+    utils::thread::T42Lock lock(&streamLock_);
 
     RsslUInt32 index = StreamId2Index(streamId);
     ItemArray_[index].reset();

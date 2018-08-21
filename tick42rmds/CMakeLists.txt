@@ -142,6 +142,7 @@ set(SRC_FILES
    ${PROJECT_ROOT_DIR}/utils/utils/properties.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/t42log.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/threadMonitor.cpp
+   ${PROJECT_ROOT_DIR}/utils/utils/time.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/mama/mamaDictionaryWrapper.cpp
    ${PROJECT_ROOT_DIR}/utils/utils/mama/mamaFieldDescriptorWrapper.cpp
 

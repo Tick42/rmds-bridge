@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
-MinimumVisualStudioVersion = 10.0.40219.1
+# Visual Studio 12
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tick42rmds", "tick42rmds\tick42rmds_VS110.vcxproj", "{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}"
 	ProjectSection(ProjectDependencies) = postProject
 		{60BC4DA6-8573-44CE-A463-958C993C1831} = {60BC4DA6-8573-44CE-A463-958C993C1831}
@@ -14,6 +12,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "utils", "utils\utils_VS110.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Property Sheets", "Property Sheets", "{13279803-C777-4360-8C85-8A20FD4992F1}"
 	ProjectSection(SolutionItems) = preProject
+		PropertySheets\Build_Defines.props = PropertySheets\Build_Defines.props
 		PropertySheets\Build_Targets.props = PropertySheets\Build_Targets.props
 		PropertySheets\Middleware_OpenMAMA_Defines.props = PropertySheets\Middleware_OpenMAMA_Defines.props
 		PropertySheets\MiddlewareRelease.props = PropertySheets\MiddlewareRelease.props
@@ -43,8 +42,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CMake Packages", "CMake Pac
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamalistencpp", "mamaClient\openmamalistencpp_VS110.vcxproj", "{E5C9631A-E289-442E-8081-9E7F08F0BD53}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C} = {DA23D1C3-2B8E-405F-8DC1-6D24F7F7E27C}
+		{5BD79CF4-CF6B-4844-BE6E-FD908539E5C4} = {5BD79CF4-CF6B-4844-BE6E-FD908539E5C4}
+	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamachurnc", "mamaClient\mamachurnc.vcxproj", "{1995DE97-F582-4706-8E60-400E6CD9215D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamachurnc", "mamaClient\openmamachurnc_VS110.vcxproj", "{1995DE97-F582-4706-8E60-400E6CD9215D}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamapublisherc", "mamaClient\openmamapublisherc_VS110.vcxproj", "{1EA37392-E4EC-45E3-B541-6979B43CCFB0}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mamaproxyc", "mamaClient\openmamaproxyc_VS110.vcxproj", "{83DCB92B-074C-4CC0-871F-3D51E6EC184D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -102,6 +109,22 @@ Global
 		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|Win32.Build.0 = Release|Win32
 		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|x64.ActiveCfg = Release|x64
 		{1995DE97-F582-4706-8E60-400E6CD9215D}.Release|x64.Build.0 = Release|x64
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Debug|Win32.Build.0 = Debug|Win32
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Debug|x64.ActiveCfg = Debug|x64
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Debug|x64.Build.0 = Debug|x64
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Release|Win32.ActiveCfg = Release|Win32
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Release|Win32.Build.0 = Release|Win32
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Release|x64.ActiveCfg = Release|x64
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0}.Release|x64.Build.0 = Release|x64
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Debug|Win32.Build.0 = Debug|Win32
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Debug|x64.ActiveCfg = Debug|x64
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Debug|x64.Build.0 = Debug|x64
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Release|Win32.ActiveCfg = Release|Win32
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Release|Win32.Build.0 = Release|Win32
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Release|x64.ActiveCfg = Release|x64
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -111,5 +134,10 @@ Global
 		{157B7EBE-3775-4DA7-B49A-A42CF07A72EE} = {205B01CF-D465-48D9-AFB2-9B3C3EC65897}
 		{E5C9631A-E289-442E-8081-9E7F08F0BD53} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
 		{1995DE97-F582-4706-8E60-400E6CD9215D} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
+		{1EA37392-E4EC-45E3-B541-6979B43CCFB0} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
+		{83DCB92B-074C-4CC0-871F-3D51E6EC184D} = {8B4E71A4-F4C4-4057-8910-E8E5EED9D2BA}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7B9741B5-9E5A-48A6-B76D-126162358730}
 	EndGlobalSection
 EndGlobal

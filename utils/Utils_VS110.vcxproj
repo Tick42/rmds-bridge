@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -56,33 +56,37 @@
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="..\PropertySheets\Build_Defines.props" />
+    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheets\Tick42_OpenMAMA.props" />
     <Import Project="..\PropertySheets\Tick42_Boost.props" />
-    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="..\PropertySheets\Tick42_ForceStdIntFix.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="..\PropertySheets\Build_Defines.props" />
+    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheets\Tick42_OpenMAMA.props" />
     <Import Project="..\PropertySheets\Tick42_Boost.props" />
-    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="..\PropertySheets\Tick42_ForceStdIntFix.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="..\PropertySheets\Build_Defines.props" />
+    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheets\Tick42_Boost.props" />
     <Import Project="..\PropertySheets\Tick42_OpenMAMA.props" />
     <Import Project="..\PropertySheets\MiddlewareRelease.props" />
-    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="..\PropertySheets\Tick42_ForceStdIntFix.props" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="..\PropertySheets\Build_Defines.props" />
+    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\PropertySheets\Tick42_Boost.props" />
     <Import Project="..\PropertySheets\Tick42_OpenMAMA.props" />
     <Import Project="..\PropertySheets\MiddlewareRelease.props" />
-    <Import Project="..\PropertySheets\Build_Targets.props" />
     <Import Project="..\PropertySheets\Tick42_ForceStdIntFix.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
@@ -190,6 +194,7 @@
     </ClCompile>
     <ClCompile Include="utils\t42log.cpp" />
     <ClCompile Include="utils\threadMonitor.cpp" />
+    <ClCompile Include="utils\time.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

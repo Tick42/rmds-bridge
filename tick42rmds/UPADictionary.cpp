@@ -36,14 +36,18 @@ using namespace std;
 const int FieldDictionaryStreamId = 3;
 const int EnumDictionaryStreamId = 4;
 
-UPADictionary::UPADictionary( const std::string &transport_name ) 
-    : rsslDictionary_(new UPADictionaryWrapper) 
+UPADictionary::UPADictionary( const std::string &transport_name )
+    : rsslDictionary_(new UPADictionaryWrapper)
     , transport_name_(transport_name)
+    , maxMessageSize_(Default_maxMessageSize)
 {
-    fieldDictionaryStreamId_ = 0; 
+    fieldDictionaryStreamId_ = 0;
     enumDictionaryStreamId_ = 0;
 
-    LoadDictionaryFromFile();
+    TransportConfig_t config(transport_name_);
+    maxMessageSize_ = config.getUint16("maxmsgsize", Default_maxMessageSize);
+
+    LoadDictionaryFromFile(config);
 }
 
 
@@ -82,7 +86,7 @@ bool UPADictionary::QueueMamaClientRequest(mamaQueue queue)
 
 
 // if the file paths are configured in mama.properties then load the rmds dictionaries from the specified files (otherwise they will be subscribed)
-void UPADictionary::LoadDictionaryFromFile()
+void UPADictionary::LoadDictionaryFromFile(const TransportConfig_t& config)
 {
     if (transport_name_.empty())
     {
@@ -91,8 +95,6 @@ void UPADictionary::LoadDictionaryFromFile()
     }
 
     using namespace utils;
-
-    TransportConfig_t config(transport_name_);
 
     std::string dictionaryFileNamePath = GetActualPath(config.getString("fieldfile"));
     if (!dictionaryFileNamePath.empty())
@@ -150,22 +152,22 @@ bool UPADictionary::SendRequest()
 
 
 
- // Sends a dictionary request to the rmds 
+ // Sends a dictionary request to the rmds
 
  // dictionaryName - The name of the dictionary to request
- // streamId - The stream id of the dictionary request 
- 
+ // streamId - The stream id of the dictionary request
+
 RsslRet UPADictionary::SendDictionaryRequest(const char *dictionaryName, RsslInt32 streamId)
 {
     RsslError error;
     RsslBuffer* msgBuf = 0;
 
-     // get a buffer for the dictionary request 
-    msgBuf = rsslGetBuffer(UPAChannel_, MAX_MSG_SIZE, RSSL_FALSE, &error);
+     // get a buffer for the dictionary request
+    msgBuf = rsslGetBuffer(UPAChannel_, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
-         // encode the dictionary request 
+         // encode the dictionary request
         if (EncodeDictionaryRequest(msgBuf, dictionaryName, streamId) != RSSL_RET_SUCCESS)
         {
             rsslReleaseBuffer(msgBuf, &error);
@@ -196,19 +198,19 @@ RsslRet UPADictionary::SendDictionaryRequest(const char *dictionaryName, RsslInt
 
  // msgBuf - The message buffer to encode the dictionary request into
  // dictionaryName - The name of the dictionary to request
-  // streamId - The stream id of the dictionary request 
- 
+  // streamId - The stream id of the dictionary request
+
 RsslRet UPADictionary::EncodeDictionaryRequest( RsslBuffer* msgBuf, const char *dictionaryName, RsslInt32 streamId)
 {
     RsslRet ret = 0;
     RsslRequestMsg msg = RSSL_INIT_REQUEST_MSG;
     RsslEncodeIterator encodeIter;
-         
-    //clear encode iterator 
+
+    //clear encode iterator
     rsslClearEncodeIterator(&encodeIter);
 
-     
-    // init the message 
+
+    // init the message
     msg.msgBase.msgClass = RSSL_MC_REQUEST;
     msg.msgBase.streamId = streamId;
     msg.msgBase.domainType = RSSL_DMT_DICTIONARY;
@@ -222,8 +224,8 @@ RsslRet UPADictionary::EncodeDictionaryRequest( RsslBuffer* msgBuf, const char *
 
     msg.msgBase.msgKey.filter = RDM_DICTIONARY_VERBOSE;
 
-     
-    // encode message 
+
+    // encode message
     if ((ret = rsslSetEncodeIteratorBuffer(&encodeIter, msgBuf)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslSetEncodeIteratorBuffer() failed with return code: %d\n", ret);
@@ -243,12 +245,12 @@ RsslRet UPADictionary::EncodeDictionaryRequest( RsslBuffer* msgBuf, const char *
 
 
 
- // Processes a dictionary response.  
+ // Processes a dictionary response.
 
  // chnl - The channel of the response
  // msg - The partially decoded message
  // dIter - The decode iterator
- 
+
 RsslRet UPADictionary::ProcessDictionaryResponse( RsslMsg* msg, RsslDecodeIterator* dIter)
 {
     RsslState *pState = 0;
@@ -288,7 +290,7 @@ RsslRet UPADictionary::ProcessDictionaryResponse( RsslMsg* msg, RsslDecodeIterat
             switch (dictionaryType)
             {
             case RDM_DICTIONARY_FIELD_DEFINITIONS:
-                fieldDictionaryStreamId_ = msg->msgBase.streamId; 
+                fieldDictionaryStreamId_ = msg->msgBase.streamId;
                 break;
             case RDM_DICTIONARY_ENUM_TABLES:
                 enumDictionaryStreamId_ = msg->msgBase.streamId;
@@ -319,7 +321,7 @@ RsslRet UPADictionary::ProcessDictionaryResponse( RsslMsg* msg, RsslDecodeIterat
                 else
                     t42log_info("Field Dictionary complete.\n");
             }
-        } 
+        }
         else if (msg->msgBase.streamId == enumDictionaryStreamId_)
         {
             if (rsslDecodeEnumTypeDictionary(dIter, &rsslDictionary_->GetRawDictionary(), RDM_DICTIONARY_VERBOSE, &errorText) != RSSL_RET_SUCCESS)
@@ -376,16 +378,16 @@ RsslRet UPADictionary::ProcessDictionaryResponse( RsslMsg* msg, RsslDecodeIterat
  // Close the dictionary stream if there is one.
 
  // chnl - The channel to send a dictionary close to
- // streamId - The stream id of the dictionary stream to close 
- 
+ // streamId - The stream id of the dictionary stream to close
+
 RsslRet UPADictionary::CloseDictionaryStream(RsslInt32 streamId)
 {
     RsslError error;
     RsslBuffer* msgBuf = 0;
 
-     
-    //get a buffer for the dictionary close 
-    msgBuf = rsslGetBuffer(UPAChannel_, MAX_MSG_SIZE, RSSL_FALSE, &error);
+
+    //get a buffer for the dictionary close
+    msgBuf = rsslGetBuffer(UPAChannel_, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
@@ -419,7 +421,7 @@ RsslRet UPADictionary::CloseDictionaryStream(RsslInt32 streamId)
 
 
  //msgBuf - The message buffer to encode the dictionary close into
- // streamId - The stream id of the dictionary stream to close 
+ // streamId - The stream id of the dictionary stream to close
  //
 RsslRet UPADictionary::EncodeDictionaryClose(RsslBuffer* msgBuf, RsslInt32 streamId)
 {
@@ -435,7 +437,7 @@ RsslRet UPADictionary::EncodeDictionaryClose(RsslBuffer* msgBuf, RsslInt32 strea
     msg.msgBase.streamId = streamId;
     msg.msgBase.domainType = RSSL_DMT_DICTIONARY;
     msg.msgBase.containerType = RSSL_DT_NO_DATA;
-    
+
     /* encode message */
     if ((ret = rsslSetEncodeIteratorBuffer(&encodeIter, msgBuf)) < RSSL_RET_SUCCESS)
     {
@@ -470,8 +472,8 @@ void UPADictionary::ResetDictionaryStreamId()
 
 // todo add the logic in the recover to deal with this
 
-/* if the dictionary stream IDs are non-zero, it indicates we downloaded the dictionaries.  Because of this, we want to free the memory before recovery 
-since we will download them again upon recovery.  If the stream IDs are zero, it implies no dictionary or dictionary was loaded from file, so we only 
+/* if the dictionary stream IDs are non-zero, it indicates we downloaded the dictionaries.  Because of this, we want to free the memory before recovery
+since we will download them again upon recovery.  If the stream IDs are zero, it implies no dictionary or dictionary was loaded from file, so we only
 want to release when we are cleaning up the entire app. */
 RsslBool UPADictionary::NeedToDeleteDictionary()
 {

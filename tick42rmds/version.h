@@ -3,7 +3,7 @@
  *
  * This file is used both by the bridge C++ code and
  * by the Microsoft (Windows) resource compiler.
- * 
+ *
  * For some reason, the Microsoft resource compiler
  * requires the FILE_VERSION as a CSV-list of numbers
  * and the PRODUCT_VERSION as a string resource. It
@@ -16,8 +16,18 @@
 #define BRIDGE_NAME_STRING "tick42rmds"
 #define PAYLOAD_BRIDGE_NAME_STRING "tick42rmdsmsg"
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
 #define BRIDGE_VERSION_MAJOR 1
-#define BRIDGE_VERSION_MINOR 4
-#define BRIDGE_VERSION_REVISION 0
+#define BRIDGE_VERSION_MINOR 5
+#define BRIDGE_VERSION_REVISION 7
+
+#ifndef BRIDGE_VERSION_BUILD
 #define BRIDGE_VERSION_BUILD 0
-#define BRIDGE_VERSION_STRING "1.4.0.0"
+#endif
+
+#define BRIDGE_VERSION_STRING TOSTRING(BRIDGE_VERSION_MAJOR) "." \
+                              TOSTRING(BRIDGE_VERSION_MINOR) "." \
+                              TOSTRING(BRIDGE_VERSION_REVISION) "." \
+                              TOSTRING(BRIDGE_VERSION_BUILD)

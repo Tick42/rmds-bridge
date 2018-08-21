@@ -30,8 +30,6 @@
 extern "C" {
 #endif
 
-#define MAX_MSG_SIZE 4096
-
 // Send a message on the channel
 
 RsslRet SendUPAMessage(RsslChannel* chnl, RsslBuffer* msgBuf);

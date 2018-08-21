@@ -40,11 +40,11 @@ public:
     {
         dictionary_ = consumer_->RsslDictionary()->RsslDictionary();
 
-        string transportName = consumer->GetOwner()->GetTransportName();
+        const std::string& transportName = consumer->GetOwner()->GetTransportName();
         boost::shared_ptr<TransportConfig_t> enhancedConfig_ = boost::make_shared<TransportConfig_t>(transportName);
-        string dateAsString = enhancedConfig_->getString("returnDateAndTimeAsString");
-        string ansiAsOpaque = enhancedConfig_->getString("returnAnsiAsOpaque");
-    
+        std::string dateAsString = enhancedConfig_->getString("returnDateAndTimeAsString");
+        std::string ansiAsOpaque = enhancedConfig_->getString("returnAnsiAsOpaque");
+
         returnDateTimeAsString_ = (dateAsString == "true");
         returnAnsiAsOpaque_ = (ansiAsOpaque == "true");
     }
@@ -59,14 +59,14 @@ protected:
     //
     // The functions provide a basic "take the decoded field and insert it into the mama message with type specified in the field map"
     // They can be over-ridden if more complex logic is required
-    virtual mama_status AddRsslUintToMsg(mamaMsg msg, MamaField_t & mamaField, RsslUInt64 UIntVal, RsslFieldId fid);
-    virtual mama_status AddRsslIntToMsg(mamaMsg msg, MamaField_t & mamaField, RsslInt64 IntVal,RsslFieldId fid);
-    virtual mama_status AddRsslFloatToMsg(mamaMsg msg, MamaField_t & mamaField, RsslFloat floatVal, RsslFieldId fid);
-    virtual mama_status AddRsslDoubleToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDouble dblVal, RsslUInt8 hint, RsslFieldId fid);
-    virtual mama_status AddRsslDateToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateVal, RsslFieldId fid, bool isBlank = false);
-    virtual mama_status AddRsslTimeToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime timeVal, RsslFieldId fid, bool isBlank = false);
-    virtual mama_status AddRsslDateTimeToMsg(mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateTimeVal, RsslFieldId fid, bool isBlank = false);
-    virtual mama_status AddRsslStringToMsg(mamaMsg msg, MamaField_t & mamaField, std::string strVal, RsslFieldId fid);
+    virtual mama_status AddRsslUintToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslUInt64 UIntVal, RsslFieldId fid);
+    virtual mama_status AddRsslIntToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslInt64 IntVal,RsslFieldId fid);
+    virtual mama_status AddRsslFloatToMsg(mamaMsg msg, const MamaField_t & mamaField, RsslFloat floatVal, RsslFieldId fid);
+    virtual mama_status AddRsslDoubleToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslDouble dblVal, RsslUInt8 hint, RsslFieldId fid);
+    virtual mama_status AddRsslDateToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslDateTime dateVal, RsslFieldId fid, bool isBlank = false);
+    virtual mama_status AddRsslTimeToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslDateTime timeVal, RsslFieldId fid, bool isBlank = false);
+    virtual mama_status AddRsslDateTimeToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslDateTime dateTimeVal, RsslFieldId fid, bool isBlank = false);
+    virtual mama_status AddRsslStringToMsg(mamaMsg msg, const MamaField_t& mamaField, std::string strVal, RsslFieldId fid);
 
 
 

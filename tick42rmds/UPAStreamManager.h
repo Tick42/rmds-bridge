@@ -32,13 +32,12 @@
 
 #include <utils/thread/lock.h>
 #include <utils/namespacedefines.h>
-using namespace utils::thread;
 
 // manage generation of stream IDs
 class UPAItem
 {
 
-public: 
+public:
    UPAItem(RsslUInt32 streamId, UPASubscription_ptr_t sub);
 
    ~UPAItem()
@@ -80,14 +79,14 @@ public:
 
    void addPendingItem(UPASubscription *sub)
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
 
       pendingItems_.insert(sub);
    }
 
    bool removePendingItem(UPASubscription *sub)
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
 
       bool found = false;
       pending_items_t::iterator it = pendingItems_.find(sub);
@@ -102,38 +101,38 @@ public:
    // The number of items that have been opened
    RsslUInt64 OpenItems() const
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
       return  openItems_;
    }
 
    RsslUInt64 IncOpenItems()
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
       return ++openItems_;
    }
 
    RsslUInt64 DecOpenItems()
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
       return --openItems_;
    }
 
    // The number of items that are waiting to be closed
    RsslUInt64 PendingCloses() const
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
       return  pendingCloses_;
    }
 
    RsslUInt64 IncPendingCloses()
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
       return ++pendingCloses_;
    }
 
    RsslUInt64 DecPendingCloses()
    {
-      T42Lock lock(&streamLock_);
+      utils::thread::T42Lock lock(&streamLock_);
       return --pendingCloses_;
    }
 

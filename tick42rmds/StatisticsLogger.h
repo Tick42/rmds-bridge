@@ -24,6 +24,8 @@
 */
 #pragma once
 
+#include "utils/thread/lock.h"
+
 class StatisticsLogger;
 typedef boost::shared_ptr<StatisticsLogger> StatisticsLogger_ptr_t;
 
@@ -76,7 +78,7 @@ public:
    void SetOpenItems(int value)
    {
       openItems_ = value;
-   }     
+   }
 
    void SetPendingCloses(int value)
    {
@@ -109,13 +111,15 @@ private:
     int interval_;
 
     // upa consumer thread
-    wthread_t loggerThread_; 
+    wthread_t loggerThread_;
 
     volatile bool runThread_;
 
+    mutable utils::thread::lock_t cs_;
+
     // Pathname arithmetic
     boost::filesystem::path logFilename_;
-   
+
     // manage time intervals
     RsslUInt64 lastSampleTime_;
     RsslUInt64 lastMessageCount_;

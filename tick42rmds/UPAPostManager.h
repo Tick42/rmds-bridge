@@ -48,7 +48,7 @@ public:
 
     // get the poster back from the AckId
     //UPABridgePoster_ptr_t RemovePost(RsslUInt32 AckId);
-    bool RemovePost(RsslUInt32 AckId, UPABridgePoster_ptr_t & poster, PublisherPostMessageReply *& reply);
+    bool RemovePost(RsslUInt32 AckId, UPABridgePoster_ptr_t & poster, PublisherPostMessageReply_ptr_t& reply);
 
 private:
     // hold information on key passed as to rmds as postID and returned as AckId
@@ -62,7 +62,7 @@ private:
 
         UPABridgePoster_ptr_t Poster() const { return poster_; }
         RsslUInt32 Id() const { return id_; }
-        PublisherPostMessageReply* Reply()const {return reply_.get();}
+        const PublisherPostMessageReply_ptr_t& Reply() const { return reply_; }
 
     private:
         RsslUInt32 id_;

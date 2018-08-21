@@ -29,6 +29,7 @@
 #include "stdafx.h"
 #include "UPAFieldDecoder.h"
 #include "UPADecodeUtils.h"
+#include "utils/time.h"
 
 using namespace std;
 
@@ -49,20 +50,20 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
     }
 
     /* return if no entry found */
-    if (!dictionaryEntry) 
+    if (!dictionaryEntry)
     {
         return RSSL_RET_SUCCESS;
     }
 
     RsslDataType dataType = dictionaryEntry->rwfType;
 
-    MamaField_t mamaField;
-
-    // translate from the RMDS fid to the mama fid
-    if (!fieldmap_->GetTranslatedField(fEntry->fieldId, mamaField))
+    FindFieldResult findFieldResult = fieldmap_->GetTranslatedField(fEntry->fieldId);
+    if (!findFieldResult.first)
     {
         return RSSL_RET_SUCCESS;
     }
+
+    const MamaField_t& mamaField = findFieldResult.second;
 
     // insert the field into the message according to the type
     switch (dataType)
@@ -73,7 +74,7 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
             if ((ret = rsslDecodeUInt(dIter, &UIntVal)) == RSSL_RET_SUCCESS)
             {
                 AddRsslUintToMsg(msg, mamaField, UIntVal, fEntry->fieldId);
-            }            
+            }
             else if (ret != RSSL_RET_BLANK_DATA)
             {
                 t42log_error("rsslDecodeUInt() %s.%s %s failed with return code: %d\n", sourceName_.c_str(), symbol_.c_str(), mamaField.mama_field_name.c_str(), ret);
@@ -110,7 +111,7 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
     case RSSL_DT_FLOAT:
         {
             RsslFloat floatVal = 0;
-            if ((ret = rsslDecodeFloat(dIter, &floatVal)) == RSSL_RET_SUCCESS) 
+            if ((ret = rsslDecodeFloat(dIter, &floatVal)) == RSSL_RET_SUCCESS)
             {
                 AddRsslFloatToMsg(msg, mamaField, floatVal, fEntry->fieldId);
             }
@@ -130,7 +131,7 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
     case RSSL_DT_DOUBLE:
         {
             RsslDouble doubleVal = 0;
-            if ((ret = rsslDecodeDouble(dIter, &doubleVal)) == RSSL_RET_SUCCESS) 
+            if ((ret = rsslDecodeDouble(dIter, &doubleVal)) == RSSL_RET_SUCCESS)
             {
                 AddRsslDoubleToMsg(msg, mamaField, doubleVal, RSSL_RH_EXPONENT0, fEntry->fieldId);
             }
@@ -153,7 +154,7 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
             if ((ret = rsslDecodeReal(dIter, &realVal)) == RSSL_RET_SUCCESS)
             {
                 // need to look at marketfeed type and decide whether this is a price or something else
-                // this seems to be more reliable than using the hint field in the rsslReal 
+                // this seems to be more reliable than using the hint field in the rsslReal
                 if (dictionaryEntry->fieldType == RSSL_MFEED_INTEGER)
                 {
                     // then its an integer, (presumably a size)
@@ -250,15 +251,6 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
             RsslDateTime dateTimeVal = RSSL_INIT_DATETIME;
             if ((ret = rsslDecodeDate(dIter, &dateTimeVal.date)) == RSSL_RET_SUCCESS)
             {
-#ifdef WIN32
-                // this is a problem with 32 bit open mama on windows. Just drop the field and log
-                if (dateTimeVal.date.year > 2038)
-                {
-                    t42log_warn("Dates later than Jan19 2038 not supported in 32 bit windows - %s (%s = %4d:%02d:%02d)\n", symbol_.c_str(),
-                        mamaField.mama_field_name.c_str(), dateTimeVal.date.year,dateTimeVal.date.month,  dateTimeVal.date.day);
-                    break;
-                }
-#endif
                 // Build a MAMA DateTime from the field value
                 AddRsslDateToMsg(msg, mamaField, dateTimeVal, fEntry->fieldId);
             }
@@ -328,7 +320,7 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
 
     case RSSL_DT_QOS:
         {
-            RsslQos qosVal= RSSL_INIT_QOS; 
+            RsslQos qosVal= RSSL_INIT_QOS;
             RsslBuffer qosBuff;
             if ((ret = rsslDecodeQos(dIter, &qosVal)) == RSSL_RET_SUCCESS)
             {
@@ -382,7 +374,7 @@ RsslRet UPAFieldDecoder::DecodeFieldEntry(RsslFieldEntry* fEntry, RsslDecodeIter
                 string strVal(bufferVal.data, bufferVal.length);
                 mamaMsg_addString(msg, mamaField.mama_field_name.c_str() ,mamaField.mama_fid,strVal.c_str());
             }
-            else if (ret != RSSL_RET_BLANK_DATA) 
+            else if (ret != RSSL_RET_BLANK_DATA)
             {
                 t42log_error("rsslDecodeBuffer() %s.%s %s failed with return code: %d\n", sourceName_.c_str(), symbol_.c_str(), mamaField.mama_field_name.c_str(), ret);
                 return ret;
@@ -436,19 +428,20 @@ RsslRet UPAFieldDecoder::DecodeBookFieldEntry(RsslFieldEntry* fEntry, RsslDecode
     }
 
     /* return if no entry found */
-    if (!dictionaryEntry) 
+    if (!dictionaryEntry)
     {
         return RSSL_RET_SUCCESS;
     }
 
     dataType = dictionaryEntry->rwfType;
 
-    MamaField_t mamaField;
-
-    if (!fieldmap_->GetTranslatedField(fEntry->fieldId, mamaField))
+    FindFieldResult findFieldResult = fieldmap_->GetTranslatedField(fEntry->fieldId);
+    if (!findFieldResult.first)
     {
         return RSSL_RET_SUCCESS;
     }
+
+    const MamaField_t& mamaField = findFieldResult.second;
 
     // we can either rely on hard coded rmds fids here or use the fieldmap translated names into mama field names
     // in this version we'll work with rmds fids but we could change that
@@ -469,7 +462,7 @@ RsslRet UPAFieldDecoder::DecodeBookFieldEntry(RsslFieldEntry* fEntry, RsslDecode
         if ((ret = rsslDecodeReal(dIter, &fidRealValue)) == RSSL_RET_SUCCESS)
         {
             if (fidRealValue.hint == RSSL_RH_EXPONENT0)
-            { 
+            {
                 // we expect an int here so RSSL_RH_EXPONENT0
                 entry->Size(fidRealValue.value);
             }
@@ -545,13 +538,13 @@ RsslRet UPAFieldDecoder::DecodeBookFieldEntry(RsslFieldEntry* fEntry, RsslDecode
 }
 
 
-mama_status UPAFieldDecoder::AddRsslUintToMsg(mamaMsg msg,  MamaField_t & mamaField, RsslUInt64 UIntVal, RsslFieldId fid)
+mama_status UPAFieldDecoder::AddRsslUintToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslUInt64 UIntVal, RsslFieldId fid)
 {
     switch (mamaField.mama_field_type)
     {
 
-        // String 
-    case AS_MAMA_FIELD_TYPE_STRING: 
+        // String
+    case AS_MAMA_FIELD_TYPE_STRING:
     case RSSL_DT_ENUM_AS_MAMA_FIELD_TYPE_STRING:
         {
             char buffer[80];
@@ -559,98 +552,98 @@ mama_status UPAFieldDecoder::AddRsslUintToMsg(mamaMsg msg,  MamaField_t & mamaFi
             snprintf(buffer, sizeof(buffer)-1, "%I64u" , UIntVal);
 #else
             snprintf(buffer, sizeof(buffer)-1, "%llu" , UIntVal);
-#endif 
+#endif
             return mamaMsg_addString(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, buffer);
         }
 
-        // Boolean 
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
         {
             return mamaMsg_addBool(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal != 0);
         }
 
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
         if (CHAR_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type char - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addChar(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, char(UIntVal));
 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
         if (INT8_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I8 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addI8(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int8_t(UIntVal));
 
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
         if (UINT8_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type U8 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addU8(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint8_t(UIntVal));
 
-        // Signed 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_I16:  
+        // Signed 16 bit integer
+    case AS_MAMA_FIELD_TYPE_I16:
         if (INT16_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addI16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int16_t(UIntVal));
 
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:     
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
         if (UINT16_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type U16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addU16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint16_t(UIntVal));
 
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
         if (INT32_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addI32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int32_t(UIntVal));
 
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32:   
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
         if (UINT32_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type U32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addU32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint32_t(UIntVal));
 
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64:   
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
         if (INT64_MAX <= UIntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I64 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, UIntVal);
         }
         return mamaMsg_addI64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int64_t(UIntVal));
 
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
         // don't need size check / warning in this one
         return mamaMsg_addU64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid,UIntVal);
 
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
     case RSSL_DT_REAL_AS_MAMA_FIELD_TYPE_F32:
         // just convert to float
         return mamaMsg_addF32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, (float)UIntVal);
 
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
         return mamaMsg_addF64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, (double)UIntVal);
 
 
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
         {
             // create a mama price from the value rendered into double
             mamaPrice p;
@@ -662,8 +655,8 @@ mama_status UPAFieldDecoder::AddRsslUintToMsg(mamaMsg msg,  MamaField_t & mamaFi
             return stat;
         }
 
-        // 64 bit MAMA time 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+        // 64 bit MAMA time
+    case AS_MAMA_FIELD_TYPE_TIME:
         {
             // some rmds fields are time since midnight GMT in ms so if requested convert int to mamaDateTime
             mamaDateTime dt;
@@ -682,13 +675,13 @@ mama_status UPAFieldDecoder::AddRsslUintToMsg(mamaMsg msg,  MamaField_t & mamaFi
     return MAMA_STATUS_OK;
 }
 
-mama_status UPAFieldDecoder::AddRsslIntToMsg( mamaMsg msg, MamaField_t & mamaField, RsslInt64 IntVal, RsslFieldId fid )
+mama_status UPAFieldDecoder::AddRsslIntToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslInt64 IntVal, RsslFieldId fid )
 {
     switch (mamaField.mama_field_type)
     {
 
-        // String 
-    case AS_MAMA_FIELD_TYPE_STRING: 
+        // String
+    case AS_MAMA_FIELD_TYPE_STRING:
     case RSSL_DT_ENUM_AS_MAMA_FIELD_TYPE_STRING:
 
         {
@@ -701,91 +694,91 @@ mama_status UPAFieldDecoder::AddRsslIntToMsg( mamaMsg msg, MamaField_t & mamaFie
             return mamaMsg_addString(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, buffer);
         }
 
-        // Boolean 
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
         {
             return mamaMsg_addBool(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal != 0);
         }
 
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
         if (CHAR_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type char - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addChar(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, char(IntVal));
 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
         if (INT8_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I8 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addI8(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int8_t(IntVal));
 
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
         if (UINT8_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type U8 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addU8(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint8_t(IntVal));
 
-        // Signed 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_I16:  
+        // Signed 16 bit integer
+    case AS_MAMA_FIELD_TYPE_I16:
         if (INT16_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addI16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int16_t(IntVal));
 
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:     
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
         if (UINT16_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type U16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addU16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint16_t(IntVal));
 
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
         if (INT32_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type I32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addI32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int32_t(IntVal));
 
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32:   
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
         if (UINT32_MAX <= IntVal)
         {
             t42log_info("Field %s (fid %d) value %d is too big for mama field type U32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, IntVal);
         }
         return mamaMsg_addU32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint32_t(IntVal));
 
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64:   
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
         // don't need size check / warning in this one
         return mamaMsg_addI64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int64_t(IntVal));
 
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
         // don't need size check / warning in this one
         return mamaMsg_addU64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid,IntVal);
 
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
     case RSSL_DT_REAL_AS_MAMA_FIELD_TYPE_F32:
         // just convert to float
         return mamaMsg_addF32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, (float)IntVal);
 
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
         return mamaMsg_addF64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, (double)IntVal);
 
 
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
         // create a mama price from the value rendered into double
         {
             mamaPrice p;
@@ -797,8 +790,8 @@ mama_status UPAFieldDecoder::AddRsslIntToMsg( mamaMsg msg, MamaField_t & mamaFie
             return stat;
         }
 
-        // 64 bit MAMA time 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+        // 64 bit MAMA time
+    case AS_MAMA_FIELD_TYPE_TIME:
         {
             // some rmds fields are time since midnight GMT in ms so if requested convert int to mamaDateTime
             mamaDateTime dt;
@@ -823,13 +816,13 @@ mama_status UPAFieldDecoder::AddRsslIntToMsg( mamaMsg msg, MamaField_t & mamaFie
 
 }
 
-mama_status UPAFieldDecoder::AddRsslFloatToMsg( mamaMsg msg, MamaField_t & mamaField, RsslFloat floatVal, RsslFieldId fid )
+mama_status UPAFieldDecoder::AddRsslFloatToMsg( mamaMsg msg, const MamaField_t& mamaField, RsslFloat floatVal, RsslFieldId fid )
 {
     switch (mamaField.mama_field_type)
     {
 
-        // String 
-    case AS_MAMA_FIELD_TYPE_STRING: 
+        // String
+    case AS_MAMA_FIELD_TYPE_STRING:
     case RSSL_DT_ENUM_AS_MAMA_FIELD_TYPE_STRING:
 
         {
@@ -840,19 +833,19 @@ mama_status UPAFieldDecoder::AddRsslFloatToMsg( mamaMsg msg, MamaField_t & mamaF
 
 
 
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
     case RSSL_DT_REAL_AS_MAMA_FIELD_TYPE_F32:
         // just convert to float
         return mamaMsg_addF32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
 
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
         return mamaMsg_addF64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, (double)floatVal);
 
 
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
         // create a mama price from the value rendered into double
         {
             mamaPrice p;
@@ -864,42 +857,42 @@ mama_status UPAFieldDecoder::AddRsslFloatToMsg( mamaMsg msg, MamaField_t & mamaF
             return stat;
         }
 
-    case AS_MAMA_FIELD_TYPE_I16: 
+    case AS_MAMA_FIELD_TYPE_I16:
         if (INT16_MAX <= (int16_t)floatVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type I16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
         }
         return mamaMsg_addI16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int16_t(floatVal));
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:   
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
         if (UINT16_MAX <= (uint16_t)floatVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type U16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
         }
         return mamaMsg_addU16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint16_t(floatVal));
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
         if (INT32_MAX <= (int32_t)floatVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type I32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
         }
         return mamaMsg_addI32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int32_t(floatVal));
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32: 
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
         if (UINT32_MAX <= (uint32_t)floatVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type U32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
         }
         return mamaMsg_addU32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint32_t(floatVal));
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64: 
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
         if (INT64_MAX <= (int64_t)floatVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type I64 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
         }
         return mamaMsg_addI64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int64_t(floatVal));
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
         if (UINT64_MAX <= (uint64_t)floatVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type U64 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, floatVal);
@@ -908,17 +901,17 @@ mama_status UPAFieldDecoder::AddRsslFloatToMsg( mamaMsg msg, MamaField_t & mamaF
 
         // none of these conversions is really meaningful
         // (although its possible that there might be cases where we need to convert (with risk of truncation) from float to the longer int types
-        // Boolean 
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
-        // Signed 16 bit integer 
-        // 64 bit MAMA time 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
+        // Signed 16 bit integer
+        // 64 bit MAMA time
+    case AS_MAMA_FIELD_TYPE_TIME:
         // doesn't really mean anything to convert rssl uint to mama date / time
     default:
         t42log_warn("Unhandled field type %d for field %s(fid %d)", mamaField.mama_field_type, mamaField.mama_field_name.c_str(), mamaField.mama_fid );
@@ -929,13 +922,13 @@ mama_status UPAFieldDecoder::AddRsslFloatToMsg( mamaMsg msg, MamaField_t & mamaF
 
 }
 
-mama_status UPAFieldDecoder::AddRsslDoubleToMsg( mamaMsg msg, MamaField_t & mamaField, RsslDouble dblVal, RsslUInt8 hint, RsslFieldId fid )
+mama_status UPAFieldDecoder::AddRsslDoubleToMsg( mamaMsg msg, const MamaField_t& mamaField, RsslDouble dblVal, RsslUInt8 hint, RsslFieldId fid )
 {
     switch (mamaField.mama_field_type)
     {
 
-        // String 
-    case AS_MAMA_FIELD_TYPE_STRING: 
+        // String
+    case AS_MAMA_FIELD_TYPE_STRING:
     case RSSL_DT_ENUM_AS_MAMA_FIELD_TYPE_STRING:
         {
             char buffer[80];
@@ -943,20 +936,20 @@ mama_status UPAFieldDecoder::AddRsslDoubleToMsg( mamaMsg msg, MamaField_t & mama
             return mamaMsg_addString(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, buffer);
         }
 
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:  
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
     case RSSL_DT_REAL_AS_MAMA_FIELD_TYPE_F32:
 
         // just convert to float
         return mamaMsg_addF32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, (float)dblVal);
 
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
         return mamaMsg_addF64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
 
 
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
         // create a mama price from the value rendered into double
         {
             mamaPrice p;
@@ -970,42 +963,42 @@ mama_status UPAFieldDecoder::AddRsslDoubleToMsg( mamaMsg msg, MamaField_t & mama
             return stat;
         }
 
-    case AS_MAMA_FIELD_TYPE_I16: 
+    case AS_MAMA_FIELD_TYPE_I16:
         if (INT16_MAX <= (int16_t)dblVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type I16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
         }
         return mamaMsg_addI16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int16_t(dblVal));
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:   
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
         if (UINT16_MAX <= (uint16_t)dblVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type U16 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
         }
         return mamaMsg_addU16(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint16_t(dblVal));
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
         if (INT32_MAX <= (int32_t)dblVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type I32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
         }
         return mamaMsg_addI32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int32_t(dblVal));
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32: 
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
         if (UINT32_MAX <= (uint32_t)dblVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type U32 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
         }
         return mamaMsg_addU32(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, uint32_t(dblVal));
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64: 
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
         if (INT64_MAX <= (int64_t)dblVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type I64 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
         }
         return mamaMsg_addI64(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, int64_t(dblVal));
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
         if (UINT64_MAX <= (uint64_t)dblVal)
         {
             t42log_info("Field %s (fid %d) value %f is too big for mama field type U64 - truncated", mamaField.mama_field_name.c_str(), mamaField.mama_fid, dblVal);
@@ -1014,17 +1007,17 @@ mama_status UPAFieldDecoder::AddRsslDoubleToMsg( mamaMsg msg, MamaField_t & mama
 
         // none of these conversions is really meaningful
         // (although its possible that there might be cases where we need to convert (with risk of truncation) from float to the longer int types
-        // Boolean 
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
-        // Signed 16 bit integer 
-        // 64 bit MAMA time 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
+        // Signed 16 bit integer
+        // 64 bit MAMA time
+    case AS_MAMA_FIELD_TYPE_TIME:
         // doesn't really mean anything to convert rssl uint to mama date / time
     default:
         t42log_warn("Unhandled field type %d for field %s(fid %d)", mamaField.mama_field_type, mamaField.mama_field_name.c_str(), mamaField.mama_fid );
@@ -1035,7 +1028,7 @@ mama_status UPAFieldDecoder::AddRsslDoubleToMsg( mamaMsg msg, MamaField_t & mama
 
 }
 
-mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateVal, RsslFieldId fid, bool isBlank )
+mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, const MamaField_t& mamaField, RsslDateTime dateVal, RsslFieldId fid, bool isBlank )
 {
     if (returnDateTimeAsString_)
     {
@@ -1052,19 +1045,10 @@ mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, MamaField_t & mamaFi
     switch (mamaField.mama_field_type)
     {
 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+    case AS_MAMA_FIELD_TYPE_TIME:
     case RSSL_DT_DATE_AS_MAMA_FIELD_TYPE_TIME:
     case RSSL_DT_TIME_AS_MAMA_FIELD_TYPE_TIME:
         {
-#ifdef WIN32
-            // this is a problem with 32 bit open mama on windows. Just drop the field and log
-            if (dateVal.date.year > 2038)
-            {
-                t42log_warn("Dates later than Jan19 2038 not supported in 32 bit windows - %s (%s = %4d:%02d:%02d)\n", symbol_.c_str(),
-                    mamaField.mama_field_name.c_str(), dateVal.date.year,dateVal.date.month,  dateVal.date.day);
-                break;
-            }
-#endif
             // Build a MAMA DateTime from the field value
             mamaDateTime dt;
             mamaDateTime_create(&dt);
@@ -1072,7 +1056,8 @@ mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, MamaField_t & mamaFi
             if (dateVal.date.year != 0 && dateVal.date.month != 0 && dateVal.date.day != 0)
             {
                 // Add it not blank date
-                mamaDateTime_setDate(dt, dateVal.date.year,dateVal.date.month,  dateVal.date.day);
+                mamaDateTime_setEpochTimeExt(dt, utils::time::GetSeconds(dateVal.date.year, dateVal.date.month, dateVal.date.day), 0);
+                mamaDateTime_setHints(dt, MAMA_DATE_TIME_HAS_DATE);
             }
             mama_status stat = mamaMsg_addDateTime(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dt); //dt is copied and should be destroyed later on!
             mamaDateTime_destroy(dt);
@@ -1084,8 +1069,8 @@ mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, MamaField_t & mamaFi
         {
             if (isBlank)
             {
-                return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, "" );
-            } 
+                return mamaMsg_addString(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, "" );
+            }
             else
             {
                 RsslBuffer dateTimeBuffer;
@@ -1094,40 +1079,40 @@ mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, MamaField_t & mamaFi
                 rsslDateTimeToString(&dateTimeBuffer, RSSL_DT_DATE, &dateVal);
 
                 // assuming here that rsslDateTimeToString delivers a null terminated string
-                return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dateTimeBuffer.data );
+                return mamaMsg_addString(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, dateTimeBuffer.data );
             }
         }
 
 
         // none of these other conversions is really meaningful but can add if necessary
-        // 
-        // Boolean 
+        //
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
-        // Signed 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_I16:  
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:     
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32:   
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64:   
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
-        // 64 bit MAMA time 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
+        // Signed 16 bit integer
+    case AS_MAMA_FIELD_TYPE_I16:
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
+        // 64 bit MAMA time
     default:
         t42log_warn("Unhandled field type %d for field %s(fid %d)", mamaField.mama_field_type, mamaField.mama_field_name.c_str(), mamaField.mama_fid );
         break;
@@ -1136,7 +1121,7 @@ mama_status UPAFieldDecoder::AddRsslDateToMsg( mamaMsg msg, MamaField_t & mamaFi
 
 }
 
-mama_status UPAFieldDecoder::AddRsslTimeToMsg( mamaMsg msg, MamaField_t & mamaField, RsslDateTime timeVal, RsslFieldId fid, bool isBlank)
+mama_status UPAFieldDecoder::AddRsslTimeToMsg(mamaMsg msg, const MamaField_t& mamaField, RsslDateTime timeVal, RsslFieldId fid, bool isBlank)
 {
     if (returnDateTimeAsString_)
     {
@@ -1146,13 +1131,13 @@ mama_status UPAFieldDecoder::AddRsslTimeToMsg( mamaMsg msg, MamaField_t & mamaFi
         dateTimeBuffer.length = 20;
         snprintf(dateTimeBuffer.data, 20, "%02d:%02d:%02d",
             timeVal.time.hour, timeVal.time.minute, timeVal.time.second);
-        return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dateTimeBuffer.data );    
+        return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dateTimeBuffer.data );
     }
 
     switch (mamaField.mama_field_type)
     {
 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+    case AS_MAMA_FIELD_TYPE_TIME:
     case RSSL_DT_TIME_AS_MAMA_FIELD_TYPE_TIME:
         {
             mamaDateTime dt;
@@ -1168,11 +1153,16 @@ mama_status UPAFieldDecoder::AddRsslTimeToMsg( mamaMsg msg, MamaField_t & mamaFi
             else
             {
                 // Build a MAMA DateTime from the field value
-                mamaDateTime_setTime(dt, timeVal.time.hour,timeVal.time.minute,  timeVal.time.second, timeVal.time.millisecond *1000 );
+                mamaDateTime_setTime(dt, timeVal.time.hour,timeVal.time.minute, timeVal.time.second, timeVal.time.millisecond * 1000 + timeVal.time.microsecond);
+                mama_i64_t seconds = 0;
+                mama_u32_t nanoseconds = 0;
+                mamaDateTime_getEpochTimeExt(dt, &seconds, &nanoseconds);
+                nanoseconds += timeVal.time.nanosecond;
+                mamaDateTime_setEpochTimeExt(dt, seconds, nanoseconds);
                 // as this is a time only field we dont want a date
                 mamaDateTime_clearDate(dt);
             }
-            mama_status stat = mamaMsg_addDateTime(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dt); //dt is copied and should be destroyed later on!
+            mama_status stat = mamaMsg_addDateTime(msg, mamaField.mama_field_name.c_str(), mamaField.mama_fid, dt); //dt is copied and should be destroyed later on!
             mamaDateTime_destroy(dt);
             return stat;
         }
@@ -1192,39 +1182,39 @@ mama_status UPAFieldDecoder::AddRsslTimeToMsg( mamaMsg msg, MamaField_t & mamaFi
                 dateTimeBuffer.length = 50;
                 rsslDateTimeToString(&dateTimeBuffer, RSSL_DT_TIME, &timeVal);
                 // assuming here that rsslDateTimeToString delivers a null terminated string
-                return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dateTimeBuffer.data );    
+                return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dateTimeBuffer.data );
             }
         }
 
         // none of these other conversions is really meaningful but can add if necessary
-        // 
-        // Boolean 
+        //
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
-        // Signed 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_I16:  
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:     
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32:   
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64:   
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
-        // 64 bit MAMA time 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
+        // Signed 16 bit integer
+    case AS_MAMA_FIELD_TYPE_I16:
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
+        // 64 bit MAMA time
     default:
         t42log_warn("Unhandled field type %d for field %s(fid %d)", mamaField.mama_field_type, mamaField.mama_field_name.c_str(), mamaField.mama_fid );
         break;
@@ -1233,7 +1223,7 @@ mama_status UPAFieldDecoder::AddRsslTimeToMsg( mamaMsg msg, MamaField_t & mamaFi
     return MAMA_STATUS_OK;
 }
 
-mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, MamaField_t & mamaField, RsslDateTime dateTimeVal, RsslFieldId fid, bool isBlank)
+mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, const MamaField_t& mamaField, RsslDateTime dateTimeVal, RsslFieldId fid, bool isBlank)
 {
     if (returnDateTimeAsString_)
     {
@@ -1250,7 +1240,7 @@ mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, MamaField_t & ma
     switch (mamaField.mama_field_type)
     {
 
-    case AS_MAMA_FIELD_TYPE_TIME: 
+    case AS_MAMA_FIELD_TYPE_TIME:
     case RSSL_DT_DATE_AS_MAMA_FIELD_TYPE_TIME:
         {
             mamaDateTime dt;
@@ -1264,9 +1254,20 @@ mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, MamaField_t & ma
             }
             else
             {
-                mamaDateTime_setToMidnightToday(dt,    NULL);
-                mamaDateTime_setDate(dt, dateTimeVal.date.year,dateTimeVal.date.month,  dateTimeVal.date.day);
-                mamaDateTime_setTime(dt, dateTimeVal.time.hour,dateTimeVal.time.minute,  dateTimeVal.time.second, dateTimeVal.time.millisecond*1000 );
+                mamaDateTime_setToMidnightToday(dt, NULL);
+                // set the date
+                if (dateTimeVal.date.year != 0 && dateTimeVal.date.month != 0 && dateTimeVal.date.day != 0)
+                {
+                    mamaDateTime_setEpochTimeExt(dt, utils::time::GetSeconds(dateTimeVal.date.year, dateTimeVal.date.month, dateTimeVal.date.day), 0);
+                    mamaDateTime_setHints(dt, MAMA_DATE_TIME_HAS_DATE);
+                }
+                // set the time
+                mamaDateTime_setTime(dt, dateTimeVal.time.hour, dateTimeVal.time.minute, dateTimeVal.time.second, dateTimeVal.time.millisecond * 1000 + dateTimeVal.time.microsecond);
+                mama_i64_t seconds = 0;
+                mama_u32_t nanoseconds = 0;
+                mamaDateTime_getEpochTimeExt(dt, &seconds, &nanoseconds);
+                nanoseconds += dateTimeVal.time.nanosecond;
+                mamaDateTime_setEpochTimeExt(dt, seconds, nanoseconds);
             }
             mama_status stat = mamaMsg_addDateTime(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, dt); //dt is copied and should be destroyed later on!
             mamaDateTime_destroy(dt);
@@ -1282,7 +1283,7 @@ mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, MamaField_t & ma
             {
                 // just want an empty string
                 return mamaMsg_addString(msg,  mamaField.mama_field_name.c_str(), mamaField.mama_fid, "" );
-            } 
+            }
             else
             {
                 RsslBuffer dateTimeBuffer;
@@ -1297,34 +1298,34 @@ mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, MamaField_t & ma
         }
 
         // none of these other conversions is really meaningful but can add if necessary
-        // 
-        // Boolean 
+        //
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
-        // Signed 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_I16:  
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:     
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32:   
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64:   
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
-        // 64 bit MAMA time 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
+        // Signed 16 bit integer
+    case AS_MAMA_FIELD_TYPE_I16:
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
+        // 64 bit MAMA time
     default:
         t42log_warn("Unhandled field type %d for field %s(fid %d)", mamaField.mama_field_type, mamaField.mama_field_name.c_str(), mamaField.mama_fid );
         break;
@@ -1335,7 +1336,7 @@ mama_status UPAFieldDecoder::AddRsslDateTimeToMsg( mamaMsg msg, MamaField_t & ma
 
 }
 
-mama_status UPAFieldDecoder::AddRsslStringToMsg( mamaMsg msg, MamaField_t & mamaField, string strVal, RsslFieldId fid )
+mama_status UPAFieldDecoder::AddRsslStringToMsg( mamaMsg msg, const MamaField_t& mamaField, string strVal, RsslFieldId fid )
 {
 
     switch (mamaField.mama_field_type)
@@ -1349,35 +1350,35 @@ mama_status UPAFieldDecoder::AddRsslStringToMsg( mamaMsg msg, MamaField_t & mama
 
         // none of these other conversions is really meaningful but can add if necessary. There are many problems associated with converting strings to most of these types
         // so just don't do it. If there are caes where it is required, we can re-consider
-        // 
-    case AS_MAMA_FIELD_TYPE_TIME: 
-        // Boolean 
+        //
+    case AS_MAMA_FIELD_TYPE_TIME:
+        // Boolean
     case AS_MAMA_FIELD_TYPE_BOOL:
-        // Character 
-    case AS_MAMA_FIELD_TYPE_CHAR : 
-        // Signed 8 bit integer 
-    case AS_MAMA_FIELD_TYPE_I8:  
-        // Unsigned byte 
-    case AS_MAMA_FIELD_TYPE_U8:    
-        // Signed 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_I16:  
-        // Unsigned 16 bit integer 
-    case AS_MAMA_FIELD_TYPE_U16:     
-        // Signed 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_I32: 
-        // Unsigned 32 bit integer 
-    case AS_MAMA_FIELD_TYPE_U32:   
-        // Signed 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_I64:   
-        // Unsigned 64 bit integer 
-    case AS_MAMA_FIELD_TYPE_U64:  
-        // 32 bit float 
-    case AS_MAMA_FIELD_TYPE_F32:        
-        // 64 bit float 
-    case AS_MAMA_FIELD_TYPE_F64:        
-        // MAMA price 
-    case AS_MAMA_FIELD_TYPE_PRICE:  
-        // 64 bit MAMA time 
+        // Character
+    case AS_MAMA_FIELD_TYPE_CHAR :
+        // Signed 8 bit integer
+    case AS_MAMA_FIELD_TYPE_I8:
+        // Unsigned byte
+    case AS_MAMA_FIELD_TYPE_U8:
+        // Signed 16 bit integer
+    case AS_MAMA_FIELD_TYPE_I16:
+        // Unsigned 16 bit integer
+    case AS_MAMA_FIELD_TYPE_U16:
+        // Signed 32 bit integer
+    case AS_MAMA_FIELD_TYPE_I32:
+        // Unsigned 32 bit integer
+    case AS_MAMA_FIELD_TYPE_U32:
+        // Signed 64 bit integer
+    case AS_MAMA_FIELD_TYPE_I64:
+        // Unsigned 64 bit integer
+    case AS_MAMA_FIELD_TYPE_U64:
+        // 32 bit float
+    case AS_MAMA_FIELD_TYPE_F32:
+        // 64 bit float
+    case AS_MAMA_FIELD_TYPE_F64:
+        // MAMA price
+    case AS_MAMA_FIELD_TYPE_PRICE:
+        // 64 bit MAMA time
     default:
         t42log_warn("Unhandled field type %d for field %s(fid %d)", mamaField.mama_field_type, mamaField.mama_field_name.c_str(), mamaField.mama_fid );
         break;
@@ -1391,41 +1392,41 @@ mamaPricePrecision UPAFieldDecoder::RsslHintToMamaPrecisionTo( RsslRealHints p, 
 
     switch(p)
     {
-    case RSSL_RH_EXPONENT0:    
+    case RSSL_RH_EXPONENT0:
         return MAMA_PRICE_PREC_INT;
 
-    case RSSL_RH_EXPONENT_1:    
+    case RSSL_RH_EXPONENT_1:
         return MAMA_PRICE_PREC_10;
 
-    case RSSL_RH_EXPONENT_2:  
+    case RSSL_RH_EXPONENT_2:
         return MAMA_PRICE_PREC_100;
 
-    case RSSL_RH_EXPONENT_3:  
+    case RSSL_RH_EXPONENT_3:
         return MAMA_PRICE_PREC_1000;
 
-    case RSSL_RH_EXPONENT_4:  
+    case RSSL_RH_EXPONENT_4:
         return MAMA_PRICE_PREC_10000;
 
-    case RSSL_RH_EXPONENT_5:  
+    case RSSL_RH_EXPONENT_5:
         return MAMA_PRICE_PREC_100000;
 
-    case RSSL_RH_EXPONENT_6:  
+    case RSSL_RH_EXPONENT_6:
         return MAMA_PRICE_PREC_1000000;
 
-    case RSSL_RH_EXPONENT_7:  
+    case RSSL_RH_EXPONENT_7:
         return MAMA_PRICE_PREC_10000000;
 
-    case RSSL_RH_EXPONENT_8:  
+    case RSSL_RH_EXPONENT_8:
         return MAMA_PRICE_PREC_100000000;
 
-    case RSSL_RH_EXPONENT_9:  
+    case RSSL_RH_EXPONENT_9:
         return MAMA_PRICE_PREC_1000000000;
 
-    case RSSL_RH_EXPONENT_10:  
-    case RSSL_RH_EXPONENT_11:  
-    case RSSL_RH_EXPONENT_12:  
-    case RSSL_RH_EXPONENT_13:  
-    case RSSL_RH_EXPONENT_14:  
+    case RSSL_RH_EXPONENT_10:
+    case RSSL_RH_EXPONENT_11:
+    case RSSL_RH_EXPONENT_12:
+    case RSSL_RH_EXPONENT_13:
+    case RSSL_RH_EXPONENT_14:
         return MAMA_PRICE_PREC_10000000000;
 
     // These occur when the original price was in fraction form, e.g., "102 114/256"

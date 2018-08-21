@@ -75,19 +75,23 @@ UPAConsumer::UPAConsumer(RMDSSubscriber * pOwner)
     TransportConfig_t config(pOwner->GetTransportName());
 
     login_ = new UPALogin(false);
-    login_->ConfigureEntitlements(&config);       // Use the DACS settings in the configuration to login
+    login_->ConfigureEntitlements(config);       // Use the DACS settings in the configuration to login
 
     // config for throttle
     maxDispatchesPerCycle_ = config.getInt("maxdisp", Default_maxdisp);
     maxPendingOpens_ = config.getInt("maxPending", Default_maxPending);
-    t42log_info("Consumer thread request throttle parameters - max dispatches = %d max pending = %d\n", maxDispatchesPerCycle_, maxPendingOpens_);
+    waitTimeForSelect_ = config.getInt("waitTimeForSelect", Default_waitTimeForSelect);
+    t42log_info("Consumer thread request throttle parameters - maxdisp=%d, maxPending=%d, waitTimeForSelect=%d\n",
+                maxDispatchesPerCycle_, maxPendingOpens_, waitTimeForSelect_);
+
+    maxMessageSize_ = config.getUint16("maxmsgsize", Default_maxMessageSize);
 
     bool configDisableDataConversion = config.getBool("disabledataconversion",false);
 
     // initialise the source directory and dictionary management components
     login_->AddListener(pOwner);
     login_->DisableDataConversion(configDisableDataConversion);
-    sourceDirectory_ = new UPASourceDirectory();
+    sourceDirectory_ = new UPASourceDirectory(config.getUint16("maxmsgsize", Default_maxMessageSize));
     sourceDirectory_->AddListener(pOwner);
     upaDictionary_ = boost::make_shared<UPADictionary>(pOwner->GetTransportName());
     upaDictionary_->AddListener(pOwner);
@@ -174,7 +178,7 @@ void UPAConsumer::Run()
          if (rsslConsumerChannel_ != NULL && rsslConsumerChannel_->state == RSSL_CH_STATE_ACTIVE)
             shouldRecoverConnection_ = RSSL_FALSE;
 
-         //Wait for channel to become active. 
+         //Wait for channel to become active.
          while (rsslConsumerChannel_ != NULL && rsslConsumerChannel_->state != RSSL_CH_STATE_ACTIVE && runThread_)
          {
             useRead = readfds_;
@@ -187,7 +191,7 @@ void UPAConsumer::Run()
 
             selRet = select(FD_SETSIZE, &useRead, &useWrt, &useExcept, &time_interval);
 
-            // select has timed out, close the channel and attempt to reconnect 
+            // select has timed out, close the channel and attempt to reconnect
             if (selRet == 0)
             {
                t42log_warn("Channel initialization has timed out, attempting to reconnect...\n");
@@ -202,7 +206,7 @@ void UPAConsumer::Run()
                RecoverConnection();
             }
             else
-               // Received a response from the provider. 
+               // Received a response from the provider.
                if (rsslConsumerChannel_ && selRet > 0 && (FD_ISSET(rsslConsumerChannel_->socketId, &useRead) || FD_ISSET(rsslConsumerChannel_->socketId, &useWrt) || FD_ISSET(rsslConsumerChannel_->socketId, &useExcept)))
                {
                   if (rsslConsumerChannel_->state == RSSL_CH_STATE_INITIALIZING)
@@ -215,9 +219,9 @@ void UPAConsumer::Run()
                         t42log_warn("channelInactive fd=%d <%s>\n",
                            rsslConsumerChannel_->socketId,error.text);
                         RecoverConnection();
-                        break; 
+                        break;
                      }
-                     else 
+                     else
                      {
                         switch ((int)retval)
                         {
@@ -297,7 +301,7 @@ void UPAConsumer::Run()
          }
       }
 
-      //  WINDOWS: change size of send/receive buffer since it's small by default 
+      //  WINDOWS: change size of send/receive buffer since it's small by default
 #ifdef _WIN32
       if (rsslConsumerChannel_ && rsslIoctl(rsslConsumerChannel_, RSSL_SYSTEM_WRITE_BUFFERS, &sendBfrSize, &error) != RSSL_RET_SUCCESS)
       {
@@ -310,7 +314,7 @@ void UPAConsumer::Run()
 #endif
 
       /* Initialize ping handler */
-      if (rsslConsumerChannel_) 
+      if (rsslConsumerChannel_)
          InitPingHandler(rsslConsumerChannel_);
 
       int64_t queueCount = 0;
@@ -331,7 +335,7 @@ void UPAConsumer::Run()
              useExcept = exceptfds_;
              useWrt = wrtfds_;
              time_interval.tv_sec = 0;
-             time_interval.tv_usec = 100000;
+             time_interval.tv_usec = waitTimeForSelect_;
 
              // look at the socket state
 
@@ -357,7 +361,7 @@ void UPAConsumer::Run()
             break;
          }
 
-         if (selRet < 0) // no messages received, continue 
+         if (selRet < 0) // no messages received, continue
          {
 #ifdef _WIN32
             if (WSAGetLastError() == WSAEINTR)
@@ -410,7 +414,7 @@ void UPAConsumer::Run()
             }
          }
 
-         // break out of message processing loop if should recover connection 
+         // break out of message processing loop if should recover connection
          if (shouldRecoverConnection_ == RSSL_TRUE)
          {
             LogReconnection();
@@ -435,7 +439,7 @@ void UPAConsumer::Run()
 RsslChannel* UPAConsumer::ConnectToRsslServer(const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error)
 {
    RsslChannel* chnl;
-   RsslConnectOptions connectOpts;// = RSSL_INIT_CONNECT_OPTS;        
+   RsslConnectOptions connectOpts;// = RSSL_INIT_CONNECT_OPTS;
    //manual initialization for connectOpts based on RSSL_INIT_CONNECT_OPTS - only values that are different than zero
    memset(&connectOpts,0,sizeof(connectOpts));
    connectOpts.pingTimeout=60;
@@ -461,7 +465,7 @@ RsslChannel* UPAConsumer::ConnectToRsslServer(const std::string &hostname, const
 
       t42log_info("Channel IPC descriptor = %d\n", chnl->socketId);
       if (!connectOpts.blocking)
-      {    
+      {
          if (!FD_ISSET(chnl->socketId,&wrtfds_))
             FD_SET(chnl->socketId,&wrtfds_);
       }
@@ -497,7 +501,7 @@ void UPAConsumer::RemoveChannel(RsslChannel* chnl)
     if(0 == chnl)
     {
         return;
-    } 
+    }
    RsslError error = { 0, 0, 0, { '\0' } };
    RsslRet ret;
 
@@ -516,16 +520,20 @@ void UPAConsumer::RemoveChannel(RsslChannel* chnl)
 }
 
 // Stop the UPAConsumer thread, which will also shut down RSSL
-void UPAConsumer::JoinThread(wthread_t thread)
+void UPAConsumer::Stop()
 {
    if (0 != statsLogger_)
-   {      
+   {
       statsLogger_->Stop();
    }
 
    t42log_info("Stopping UPAConsumer thread");
    runThread_ = false;
+}
 
+// Wait for UPAConsumer thread stop
+void UPAConsumer::JoinThread(wthread_t thread)
+{
    if (0 != thread)
    {
       // And wait for the thread to exit
@@ -539,10 +547,10 @@ void UPAConsumer::InitPingHandler(RsslChannel* chnl)
 {
    time_t currentTime = 0;
 
-   // get the current time 
+   // get the current time
    time(&currentTime);
 
-   // set the ping timeout for client and server 
+   // set the ping timeout for client and server
    if ((chnl != NULL) && (chnl->socketId != -1))
    {
       pingTimeoutClient_ = chnl->pingTimeout/3;
@@ -554,10 +562,10 @@ void UPAConsumer::InitPingHandler(RsslChannel* chnl)
       pingTimeoutServer_ = 60;
    }
 
-   // set time to send next ping from client 
+   // set time to send next ping from client
    nextSendPingTime_ = currentTime + (time_t)pingTimeoutClient_;
 
-   // set time client should receive next message/ping from server 
+   // set time client should receive next message/ping from server
    nextReceivePingTime_ = currentTime + (time_t)pingTimeoutServer_;
 }
 
@@ -580,12 +588,12 @@ RsslRet UPAConsumer::ReadFromChannel(RsslChannel* chnl)
       // keep reading 'til nothing left or we have used half the ping interval
       // we put int he second condition in order that when the input rate is high we still get the opportunity to send pings and other outgoing data
 
-      while (readret > 0 && utils::time::GetMilliSpan(start) < maxReadTime )  
+      while (readret > 0 && utils::time::GetMilliSpan(start) < maxReadTime )
       {
 
          if ((msgBuf = rsslRead(chnl,&readret,&error)) != 0)
          {
-            if (ProcessResponse(chnl, msgBuf) == RSSL_RET_SUCCESS)    
+            if (ProcessResponse(chnl, msgBuf) == RSSL_RET_SUCCESS)
             {
                /* set flag for server message received */
                receivedServerMsg_ = RSSL_TRUE;
@@ -606,7 +614,7 @@ RsslRet UPAConsumer::ReadFromChannel(RsslChannel* chnl)
                {
                   if (chnl->state != RSSL_CH_STATE_CLOSED)
                   {
-                     // disconnectOnGaps must be false.  Connection is not closed 
+                     // disconnectOnGaps must be false.  Connection is not closed
                      t42log_error("Read Error: %s <%d>\n", error.text, readret);
                      break;
                   }
@@ -628,9 +636,9 @@ RsslRet UPAConsumer::ReadFromChannel(RsslChannel* chnl)
                   FD_SET(chnl->socketId, &exceptfds_);
                }
                break;
-            case RSSL_RET_READ_PING: 
+            case RSSL_RET_READ_PING:
                {
-                  //set flag for server message received 
+                  //set flag for server message received
                   receivedServerMsg_ = RSSL_TRUE;
                }
                break;
@@ -660,7 +668,7 @@ void UPAConsumer::ProcessPings(RsslChannel* chnl)
 {
    time_t currentTime = 0;
 
-   // get current time 
+   // get current time
    time(&currentTime);
 
    // time to send a ping
@@ -680,7 +688,7 @@ void UPAConsumer::ProcessPings(RsslChannel* chnl)
    // time to check if we received anything
    if (currentTime >= nextReceivePingTime_)
    {
-      //  check if client received message from server since last time 
+      //  check if client received message from server since last time
       if (receivedServerMsg_)
       {
          // reset flag/
@@ -718,7 +726,7 @@ RsslRet UPAConsumer::ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer)
    // reset the decode iterator
    rsslClearDecodeIterator(&dIter);
 
-   // set version info 
+   // set version info
    rsslSetDecodeIteratorRWFVersion(&dIter, chnl->majorVersion, chnl->minorVersion);
 
    if ((ret = rsslSetDecodeIteratorBuffer(&dIter, buffer)) != RSSL_RET_SUCCESS)
@@ -728,7 +736,7 @@ RsslRet UPAConsumer::ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer)
    }
 
    // Decode the message - note this only decode the outer parts of the message
-   ret = rsslDecodeMsg(&dIter, &msg);                
+   ret = rsslDecodeMsg(&dIter, &msg);
    if (ret != RSSL_RET_SUCCESS)
    {
       t42log_error("rsslDecodeMsg(): Error %d on SessionData fd=%d  Size %d \n", ret, chnl->socketId, buffer->length);
@@ -794,7 +802,7 @@ RsslRet UPAConsumer::ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer)
          if (streamId >= 16)
             // its either a regular mp update or an onstream ack
          {
-            UPAItem_ptr_t item = streamManager_.GetItem(streamId);     
+            UPAItem_ptr_t item = streamManager_.GetItem(streamId);
             if (item.get() == 0)
             {
                // the item has been released - just ignore the update
@@ -825,7 +833,7 @@ RsslRet UPAConsumer::ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer)
          // lookup the subscription from the stream id
          RsslUInt32 streamId = msg.msgBase.streamId;
 
-         UPAItem_ptr_t item = streamManager_.GetItem(streamId); 
+         UPAItem_ptr_t item = streamManager_.GetItem(streamId);
 
 
          if (item.get() == 0)
@@ -844,7 +852,7 @@ RsslRet UPAConsumer::ProcessResponse(RsslChannel* chnl, RsslBuffer* buffer)
          // lookup the subscription from the stream id
          RsslUInt32 streamId = msg.msgBase.streamId;
 
-         UPAItem_ptr_t item = streamManager_.GetItem(streamId); 
+         UPAItem_ptr_t item = streamManager_.GetItem(streamId);
 
 
          if (item.get() == 0)
@@ -944,7 +952,7 @@ void MAMACALLTYPE UPAConsumer::ClientDictionaryRequestCb(mamaQueue queue,void *c
 bool UPAConsumer::RequestDictionary( mamaQueue requestQueue )
 {
 
-   // if the dictionary is loaded from the source files already then we can 
+   // if the dictionary is loaded from the source files already then we can
    // notify now
 
    if (upaDictionary_->IsComplete())
@@ -971,7 +979,7 @@ void UPAConsumer::AddListener( ConnectionListener * pListener )
 
 void UPAConsumer::NotifyListeners(bool connected, const char* extraInfo )
 {
-   vector<ConnectionListener*>::iterator it = listeners_.begin();
+   std::vector<ConnectionListener*>::iterator it = listeners_.begin();
 
    while(it != listeners_.end() )
    {
@@ -996,19 +1004,19 @@ RsslRet UPAConsumer::ProcessOffStreamResponse(RsslMsg* msg, RsslDecodeIterator* 
    {
       t42log_debug("Received AckMsg for stream #%d", msg->msgBase.streamId);
 
-      // get key 
+      // get key
       RsslMsgKey *key = 0;
       key = (RsslMsgKey *)rsslGetMsgKey(msg);
 
       UPABridgePoster_ptr_t poster;
-      PublisherPostMessageReply *reply = 0;
+      PublisherPostMessageReply_ptr_t reply;
 
       RsslUInt32 id = msg->ackMsg.ackId;
       if (postManager_.RemovePost(id, poster, reply))
       {
           try
           {
-              poster->ProcessAck(msg, dIter, reply);
+              poster->ProcessAck(msg, dIter, reply.get());
           }
           catch (...)
           {
@@ -1017,7 +1025,7 @@ RsslRet UPAConsumer::ProcessOffStreamResponse(RsslMsg* msg, RsslDecodeIterator* 
       }
       else
       {
-         t42log_warn("received response for off-stream post with unknown id %d", id); 
+         t42log_warn("received response for off-stream post with unknown id %d", id);
       }
    }
    return RSSL_RET_SUCCESS;
@@ -1034,7 +1042,7 @@ bool UPAConsumer::PumpQueueEvents()
   mama_status status = mamaQueue_getEventCount(requestQueue_, &numEvents);
    if ((status == MAMA_STATUS_OK) && (numEvents > 0))
    {
-      // although we only really want to throttle subscriptions, for simplicity throttle everything here.  
+      // although we only really want to throttle subscriptions, for simplicity throttle everything here.
       size_t eventsDispatched = 0;
 
       // so keep dispatching while there are events on the queue, we haven't hit the max per cycle
@@ -1048,7 +1056,7 @@ bool UPAConsumer::PumpQueueEvents()
             return false;
          }
 
-         mamaQueue_dispatchEvent(requestQueue_);    
+         mamaQueue_dispatchEvent(requestQueue_);
          ++eventsDispatched;
       }
 
@@ -1091,7 +1099,7 @@ void UPAConsumer::LogReconnection()
    t42log_warn("Connection failed will retry in %d second(s)\n", connectionConfig_.Delay());
 }
 
-string UPAConsumer::getTransportName()
+const std::string& UPAConsumer::getTransportName() const
 {
    return GetOwner()->GetTransportName();
 }

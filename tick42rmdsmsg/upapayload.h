@@ -80,12 +80,12 @@ public:
         parent_ = parent;
     }
 
-    void set(mama_fid_t fid, const std::string& name, const std::string& value)
+    void set(mama_fid_t fid, const char* name, const std::string& value)
     {
         fields_[fid] = UpaFieldPayload(fid, name, value);
     }
 
-    void setPrice(mama_fid_t fid, const std::string& name, MamaPriceWrapper_ptr_t value)
+    void setPrice(mama_fid_t fid, const char* name, MamaPriceWrapper_ptr_t value)
     {
         //UpaFieldPayload fld = fields_[fid];
 
@@ -93,7 +93,7 @@ public:
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;    
+            UpaFieldPayload fld = it->second;
             if (fld.type_ == MAMA_FIELD_TYPE_PRICE)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -106,10 +106,10 @@ public:
         }
     }
 
-    void setMsg(mama_fid_t fid, const std::string& name, MamaMsgPayloadWrapper_ptr_t value)
+    void setMsg(mama_fid_t fid, const char* name, MamaMsgPayloadWrapper_ptr_t value)
     {
         //       UpaFieldPayload fld = fields_[fid];
-        // 
+        //
         //       if (fld.type_ == MAMA_FIELD_TYPE_MSG)
         //       {
         //          fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -118,7 +118,7 @@ public:
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;    
+            UpaFieldPayload fld = it->second;
             if (fld.type_ == MAMA_FIELD_TYPE_MSG)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -132,7 +132,7 @@ public:
     }
 
 
-    void setVectorMsg(mama_fid_t fid, const std::string& name, MamaMsgVectorWrapper_ptr_t value)
+    void setVectorMsg(mama_fid_t fid, const char* name, MamaMsgVectorWrapper_ptr_t value)
     {
         //UpaFieldPayload fld = fields_[fid];
 
@@ -145,7 +145,7 @@ public:
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;    
+            UpaFieldPayload fld = it->second;
             if (fld.type_ == MAMA_FIELD_TYPE_VECTOR_MSG)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -158,14 +158,14 @@ public:
         }
     }
 
-    void setOpaque(mama_fid_t fid, const std::string& name, MamaOpaqueWrapper_ptr_t value)
+    void setOpaque(mama_fid_t fid, const char* name, MamaOpaqueWrapper_ptr_t value)
     {
 
         FieldsMap_t::iterator it = fields_.find(fid);
 
         if (it != fields_.end())
         {
-            UpaFieldPayload fld = it->second;    
+            UpaFieldPayload fld = it->second;
             if (fld.type_ == MAMA_FIELD_TYPE_OPAQUE)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
@@ -180,7 +180,7 @@ public:
 
     //////////////////////////////////////////////////////////////////////////
     //
-    void setVectorString(mama_fid_t fid, const std::string& name, const char *value[],
+    void setVectorString(mama_fid_t fid, const char* name, const char *value[],
         size_t numElements)
     {
         fields_[fid] = UpaFieldPayload(fid, name, value, numElements);
@@ -189,7 +189,7 @@ public:
     //////////////////////////////////////////////////////////////////////////
     //
     template<typename T>
-    void setVector(mama_fid_t fid, const std::string& name, const T value[],
+    void setVector(mama_fid_t fid, const char* name, const T value[],
         size_t numElements)
     {
         fields_[fid] = UpaFieldPayload(fid, name, value, numElements);
@@ -198,7 +198,7 @@ public:
     //////////////////////////////////////////////////////////////////////////
     //
     template <typename T>
-    void set(mama_fid_t fid, const std::string& name, T value)
+    void set(mama_fid_t fid, const char* name, T value)
     {
         //fields_[fid] = UpaFieldPayload(fid, name, value);
 
@@ -240,7 +240,7 @@ public:
             // Searching for the field by name requires O(n) time.
             for (itField = fields_.begin(); itField != fields_.end(); ++itField)
             {
-                if (itField->second.name_ == name)
+                if (strcmp(itField->second.name_, name) == 0)
                 {
                     return itField;
                 }
@@ -249,7 +249,7 @@ public:
         return fields_.end();
     }
 
-    mama_status get(mama_fid_t fid, const char *name, const char** value/*out*/) const 
+    mama_status get(mama_fid_t fid, const char *name, const char** value/*out*/) const
     {
         FieldsMap_t::const_iterator itField = cfindField(fid, name);
         if (itField == fields_.end())
@@ -258,7 +258,7 @@ public:
         }
 
         mama_status ret = MAMA_STATUS_OK;
-        try 
+        try
         {
             *value = boost::get<std::string>(itField->second.data_).c_str();
         }
@@ -358,6 +358,28 @@ public:
         return ret;
     }
 
+    mama_status getPrice(mama_fid_t fid, const char *name, mamaPrice& value/*out*/) const
+    {
+        FieldsMap_t::const_iterator itField = cfindField(fid, name);
+        if (itField == fields_.end())
+        {
+            return MAMA_STATUS_NOT_FOUND;
+        }
+
+        return itField->second.getPrice(value);
+    }
+
+    mama_status getDateTime(mama_fid_t fid, const char *name, mamaDateTime& value/*out*/) const
+    {
+        FieldsMap_t::const_iterator itField = cfindField(fid, name);
+        if (itField == fields_.end())
+        {
+            return MAMA_STATUS_NOT_FOUND;
+        }
+
+        return itField->second.getDateTime(value);
+    }
+
     // for others
 
     template <typename T>
@@ -381,7 +403,7 @@ public:
         mama_status ret = MAMA_STATUS_OK;
         if (itField->second.type_ == MAMA_FIELD_TYPE_STRING)
         {
-            try 
+            try
             {
                 value = boost::get<std::string>(itField->second.data_);
             }
@@ -392,7 +414,7 @@ public:
         }
         else if (itField->second.type_ == MAMA_FIELD_TYPE_TIME)
         {
-            try 
+            try
             {
                 uint64_t ms = boost::get<uint64_t>(itField->second.data_);
                 value = epochTimeToString(ms);
@@ -435,7 +457,7 @@ public:
         //int32_t msgType;
         //try {
         //    get(1, 0, msgType);
-        //} 
+        //}
         //catch (boost::bad_get&)
         //{
         //    msgType = MAMA_STATUS_WRONG_FIELD_TYPE;
@@ -471,7 +493,7 @@ public:
 
     //void markAllDirty()
     //{
-    //    // mark all the fields as dirty 
+    //    // mark all the fields as dirty
     //    // this will force the iterator to behave as if the message is an image
     //    FieldsMap_t::iterator fld;
     //    for ( fld = fields_.begin(); fld != fields_.end(); ++fld)
@@ -484,7 +506,7 @@ public:
 
     size_t numFields() const
     {
-        // with this implementation of the payload there is no way to track the number of dirty fields as a field value might me updated 
+        // with this implementation of the payload there is no way to track the number of dirty fields as a field value might me updated
         // outside of the context of the payload - the best we can do is walk the collection and count the dirty fields
 
         //size_t numDirty = 0;
@@ -538,40 +560,40 @@ private:
 };
 
 
-/** 
+/**
 * @brief iterator wrapper implementation for the payload to support all APIs of tick42rmdsmsgPayloadIter_XXXXX
 */
 class UpaPayloadFieldIterator
 {
-    const UpaPayload* payloadContext_; 
+    const UpaPayload* payloadContext_;
     UpaPayload::FieldsMap_t::const_iterator current_;
 
     // hold state for mama's notion of begin (which is infront of the boost/stl begin)
     bool mamaBegin_;
 public:
     typedef UpaPayload::FieldsMap_t::const_iterator const_iterator;
-    /** 
+    /**
     * @brief Associate the iterator with another payload and reset position
     * @param payload another payload
     */
-    UpaPayloadFieldIterator(const UpaPayload & payload) 
+    UpaPayloadFieldIterator(const UpaPayload & payload)
         : payloadContext_(&payload)
         , current_ (payload.fields_.begin())
         , mamaBegin_(true)
     {
     }
-    /** 
+    /**
     * @brief Copy constructor that basically associate with another payload from rhs and get rhs position
-    * @param rhs - another iterator object. 
+    * @param rhs - another iterator object.
     */
-    UpaPayloadFieldIterator(const UpaPayloadFieldIterator& rhs) 
+    UpaPayloadFieldIterator(const UpaPayloadFieldIterator& rhs)
         : payloadContext_(rhs.payloadContext_)
         , current_ ((rhs.payloadContext_)->fields_.begin())
     {
     }
-    /** 
+    /**
     * @brief Copy constructor that basically associate with another payload from rhs and get rhs position
-    * @param rhs - another iterator object. 
+    * @param rhs - another iterator object.
     */
     UpaPayloadFieldIterator &operator=(const UpaPayloadFieldIterator& rhs)
     {
@@ -582,7 +604,7 @@ public:
         }
         return *this;
     }
-    /** 
+    /**
     * @brief Associate the iterator with another payload and reset position
     * @param payload another payload
     */
@@ -592,9 +614,9 @@ public:
         payloadContext_ = &payload;
         current_ = payload.fields_.begin();
     }
-    /** 
+    /**
     * @brief next item on the payload
-    * @return iterator 
+    * @return iterator
     */
     const_iterator next()
     {
@@ -615,7 +637,7 @@ public:
         //return tmp;
         return ++current_;
     }
-    /** 
+    /**
     * @brief predicate: is current item has next item
     * @return true if next item on the payload exists
     */
@@ -625,13 +647,13 @@ public:
         //return ++tmp != payloadContext_->fields_.end();
         return InternalHasNext();
     }
-    /** 
+    /**
     * @brief beginning position of the payload
     * @return iterator
     */
 
     // take the const qualifier off this because we want to set the state that maps the begin point
-    const_iterator begin() 
+    const_iterator begin()
     {
 
         mamaBegin_ = true;
@@ -651,7 +673,7 @@ public:
     {
         return payloadContext_->fields_.end();
     }
-    /** 
+    /**
     * @brief current position on the payload
     * @return iterator
     */
@@ -672,7 +694,7 @@ private:
     //    int32_t msgType;
     //    try {
     //        payloadContext_->get(1, 0, msgType);
-    //    } 
+    //    }
     //    catch (boost::bad_get&)
     //    {
     //        // if we fail the message type call then only return field with dirty set
@@ -707,7 +729,7 @@ private:
         //int32_t msgType;
         //try {
         //    payloadContext_->get(1, 0, msgType);
-        //} 
+        //}
         //catch (boost::bad_get&)
         //{
         //    // if we fail the message type call then only return field with dirty set

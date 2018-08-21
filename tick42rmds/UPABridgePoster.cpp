@@ -34,15 +34,14 @@
 #include "UPAFieldEncoder.h"
 
 // post message buffer size
-const RsslUInt32 postMsgSize = 4096;
 static RsslInt32 nextNIStreamId = -2;
 
-UPABridgePublisher::UPABridgePublisher(const string & root, const string& sourceName, const string& symbol, mamaTransport transport, mamaPublisher parent )
+UPABridgePublisher::UPABridgePublisher(const std::string & root, const std::string& sourceName, const std::string& symbol, mamaTransport transport, mamaPublisher parent )
    :root_(root), sourceName_(sourceName), symbol_(symbol), transport_(transport), parent_(parent)
 {
 }
 
-UPABridgePublisher_ptr_t UPABridgePublisher::CreatePublisher(const string & root, const string& sourceName, const string& symbol, mamaTransport transport, mamaPublisher parent)
+UPABridgePublisher_ptr_t UPABridgePublisher::CreatePublisher(const std::string & root, const std::string& sourceName, const std::string& symbol, mamaTransport transport, mamaPublisher parent)
 {
    UPABridgePublisher* newPublisher = new UPABridgePublisher(root, sourceName, symbol, transport, parent);
    UPABridgePublisher_ptr_t ret = UPABridgePublisher_ptr_t(newPublisher);
@@ -56,7 +55,7 @@ UPABridgePublisher::~UPABridgePublisher()
 {
 }
 
-bool UPABridgePublisher::Initialise(UPABridgePublisher_ptr_t shared_ptr)
+bool UPABridgePublisher::Initialise(const UPABridgePublisher_ptr_t& shared_ptr)
 {
    sharedPtr_ = shared_ptr;
    return true;
@@ -130,9 +129,9 @@ void UPABridgePublisher::raiseOnError(mama_status status, const char* info)
 }
 
 // factory
-UPABridgePublisher_ptr_t UPABridgePoster::CreatePoster(const string & root, const string& sourceName,
-   const string& symbol, mamaTransport transport, mamaPublisher parent,
-   RMDSSubscriber_ptr_t subscriber,TransportConfig_t config )
+UPABridgePublisher_ptr_t UPABridgePoster::CreatePoster(const std::string & root, const std::string& sourceName,
+   const std::string& symbol, mamaTransport transport, mamaPublisher parent,
+   const RMDSSubscriber_ptr_t& subscriber, const TransportConfig_t& config )
 {
    UPABridgePoster* newPoster = new UPABridgePoster(root, sourceName, symbol, transport, parent, subscriber);
    UPABridgePoster_ptr_t p = UPABridgePoster_ptr_t(newPoster);
@@ -144,12 +143,12 @@ UPABridgePublisher_ptr_t UPABridgePoster::CreatePoster(const string & root, cons
    return ret;
 }
 
-UPABridgePoster::UPABridgePoster(const string & root, const string& sourceName, const string& symbol,
-      mamaTransport transport, mamaPublisher parent,  RMDSSubscriber_ptr_t subscriber)
+UPABridgePoster::UPABridgePoster(const std::string & root, const std::string& sourceName, const std::string& symbol,
+      mamaTransport transport, mamaPublisher parent, const RMDSSubscriber_ptr_t& subscriber)
 
    : UPABridgePublisher(root, sourceName, symbol, transport, parent)
    , subscriber_(subscriber), gotServiceId_(false), lastMsgStatus_(MAMA_MSG_STATUS_OK)
-   , useCallbacks_(false), sendAckMessages_(true)
+   , useCallbacks_(false), sendAckMessages_(true), maxMessageSize_(Default_maxMessageSize)
 {
 }
 
@@ -162,14 +161,14 @@ void UPABridgePoster::Shutdown()
 
     // empty the inflight list
     {
-        T42Lock lock(&inFlightListLock_);
+        utils::thread::T42Lock lock(&inFlightListLock_);
         inFlightPosts_.clear();
     }
 
    sharedPtr_.reset();
 }
 
-bool UPABridgePoster::Initialise(UPABridgePoster_ptr_t shared_ptr, TransportConfig_t config)
+bool UPABridgePoster::Initialise(const UPABridgePoster_ptr_t& shared_ptr, const TransportConfig_t& config)
 {
    sharedPtr_ = shared_ptr;
 
@@ -201,6 +200,7 @@ bool UPABridgePoster::Initialise(UPABridgePoster_ptr_t shared_ptr, TransportConf
 
    useCallbacks_ = config.getBool("use-callbacks", Default_useCallbacks);
    sendAckMessages_ = config.getBool("send-ack-messages", Default_sendAckMessage);
+   maxMessageSize_ = config.getUint16("maxmsgsize", Default_maxMessageSize);
 
    return true;
 }
@@ -224,8 +224,8 @@ mama_status UPABridgePoster::PublishMessage( mamaMsg msg )
    RequestPostMessage(subscriber_->Consumer()->RequestQueue(), pubMsg);
 #else
    // short circuit  the queue and call directly
-   bool bret = DoPostMessage(msg, 0);
-   if (bret == false) return MAMA_STATUS_WRONG_FIELD_TYPE;
+   bool bret = DoPostMessage(msg, PublisherPostMessageReply_ptr_t());
+   if (bret == false) return MAMA_STATUS_SYSTEM_ERROR;
 #endif
 
    return MAMA_STATUS_OK;
@@ -251,7 +251,7 @@ mama_status UPABridgePoster::PublishMessage(mamaMsg msg, const PublisherPostMess
 #else
    // short circuit  the queue and call directly
    bool bret = DoPostMessage(msg, reply);
-   if (bret == false) return MAMA_STATUS_WRONG_FIELD_TYPE;
+   if (bret == false) return MAMA_STATUS_SYSTEM_ERROR;
 #endif
 
    return MAMA_STATUS_OK;
@@ -300,7 +300,7 @@ bool UPABridgePoster::DoPostMessage(mamaMsg msg, const PublisherPostMessageReply
    }
 
    // Now go on to process the refresh/update as normal
-   RsslBuffer *rsslMessageBuffer = rsslGetBuffer(chnl, postMsgSize, RSSL_FALSE, &err);
+   RsslBuffer *rsslMessageBuffer = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &err);
 
    if (rsslMessageBuffer == 0)
    {
@@ -346,7 +346,7 @@ bool UPABridgePoster::BuildPostMessage(RsslChannel * chnl, RsslBuffer* rsslMessa
    rsslMsg.msgBase.domainType = RSSL_DMT_MARKET_PRICE;
    rsslMsg.msgBase.containerType = RSSL_DT_MSG;
 
-   rsslMsg.flags = RSSL_PSMF_POST_COMPLETE 
+   rsslMsg.flags = RSSL_PSMF_POST_COMPLETE
       | RSSL_PSMF_ACK // request ACK
       | RSSL_PSMF_HAS_POST_ID
       | RSSL_PSMF_HAS_POST_USER_RIGHTS;
@@ -381,7 +381,7 @@ bool UPABridgePoster::BuildPostMessage(RsslChannel * chnl, RsslBuffer* rsslMessa
       }
    }
 
-   // populate post user info 
+   // populate post user info
    RsslBuffer hostName = RSSL_INIT_BUFFER;
    char hostNameBuf[256];
    hostName.data = hostNameBuf;
@@ -397,7 +397,7 @@ bool UPABridgePoster::BuildPostMessage(RsslChannel * chnl, RsslBuffer* rsslMessa
    }
    rsslMsg.postUserInfo.postUserId = getpid();
 
-   // encode the message 
+   // encode the message
    RsslEncodeIterator itEncode = RSSL_INIT_ENCODE_ITERATOR;
    if ((ret = rsslSetEncodeIteratorBuffer(&itEncode, rsslMessageBuffer)) < RSSL_RET_SUCCESS)
    {
@@ -447,7 +447,7 @@ bool UPABridgePoster::BuildPostMessage(RsslChannel * chnl, RsslBuffer* rsslMessa
    rsslMessageBuffer->length = rsslGetEncodedBufferLength(&itEncode);
 
    {
-       T42Lock lock(&inFlightListLock_);
+       utils::thread::T42Lock lock(&inFlightListLock_);
        inFlightPosts_.push_back(postId);
    }
    return true;
@@ -512,8 +512,8 @@ bool UPABridgePoster::EncodeMessageData(RsslChannel * chnl, RsslBuffer* rsslMess
       rsslMsgBase->msgKey.nameType = RDM_INSTRUMENT_NAME_TYPE_RIC;
 
 
-      // 
-      // Qos 
+      //
+      // Qos
       rsslRefreshMsg.qos.dynamic = RSSL_FALSE;
       rsslRefreshMsg.qos.rate = RSSL_QOS_RATE_TICK_BY_TICK;
       rsslRefreshMsg.qos.timeliness = RSSL_QOS_TIME_REALTIME;
@@ -532,10 +532,10 @@ bool UPABridgePoster::EncodeMessageData(RsslChannel * chnl, RsslBuffer* rsslMess
    rsslMsgBase->domainType = RSSL_DMT_MARKET_PRICE;
    rsslMsgBase->containerType = RSSL_DT_FIELD_LIST;
 
-   // StreamId 
+   // StreamId
    rsslMsgBase->streamId = streamId_;
 
-   //encode message 
+   //encode message
    UPAFieldEncoder encoder(mamaDictionary_, upaFieldMap_, rmdsDictionary_, sourceName_, symbol_);
    return encoder.encode(msg, chnl, rsslMsg, rsslMessageBuffer);
 }
@@ -553,7 +553,7 @@ void UPABridgePoster::PrintMsg(RsslBuffer* buffer)
      rsslSetDecodeIteratorRWFVersion(&dIter, chnl->majorVersion, chnl->minorVersion);
     rsslSetDecodeIteratorBuffer(&dIter, buffer);
 
-    rsslDecodeMsg(&dIter, &msg);                
+    rsslDecodeMsg(&dIter, &msg);
     rsslDecodeFieldList(&dIter, &fList, 0);
 
     t42log_info("--- RSSL BUFFER ---");
@@ -566,17 +566,17 @@ void UPABridgePoster::PrintMsg(RsslBuffer* buffer)
 RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  PublisherPostMessageReply * reply)
 {
    bool nak = false;
-   string nakText;
+   std::string nakText;
    RsslUInt8 nakCode = RSSL_NAKC_NONE;
 
     // make sure the message is still in the inflight list
     RsslUInt32 id = msg->ackMsg.ackId;
     bool found = false;
 
-    // we are assuming that the message responses arrive more or less in the order the messages are sent, so we would expect the id to be near 
+    // we are assuming that the message responses arrive more or less in the order the messages are sent, so we would expect the id to be near
     // the front of the list - but nevertheless we cant assume it will be at the front.
     {
-        T42Lock lock(&inFlightListLock_);
+        utils::thread::T42Lock lock(&inFlightListLock_);
         PostIDList_t::iterator it = inFlightPosts_.begin();
         while (it != inFlightPosts_.end())
         {
@@ -595,7 +595,7 @@ RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  Pu
 
     if(!found)
     {
-        // list is empty, the publisher has gone away 
+        // list is empty, the publisher has gone away
         return RSSL_RET_SUCCESS;
     }
 
@@ -611,17 +611,17 @@ RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  Pu
       {
 
          nak = true;
-         // this is a nak so log as warning 
+         // this is a nak so log as warning
          if (rsslAckMsgCheckHasText(&msg->ackMsg))
          {
-            nakText = string( msg->ackMsg.text.data, msg->ackMsg.text.length);
+            nakText = std::string( msg->ackMsg.text.data, msg->ackMsg.text.length);
          }
       }
    }
 
    if (reply != 0 && reply->Inbox() != 0 && sendAckMessages_)
    {
-      // build a message for the inbox        
+      // build a message for the inbox
       mamaMsg msg;
       mamaMsg_createForPayload(&msg, MAMA_PAYLOAD_TICK42RMDS);
       mamaMsg_addI32(msg,MamaFieldMsgType.mName, MamaFieldMsgType.mFid, MAMA_MSG_TYPE_SEC_STATUS);
@@ -631,7 +631,7 @@ RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  Pu
       {
           status = RsslNakCode2MamaMsgStatus(nakCode);
       }
-      
+
       mamaMsg_addI32(msg, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, status);
       mamaMsg_addString(msg, commonFields.wIssueSymbol.mama_field_name.c_str(), commonFields.wIssueSymbol.mama_fid, symbol_.c_str());
       mamaMsg_addString(msg, commonFields.wSymbol.mama_field_name.c_str(), commonFields.wSymbol.mama_fid, symbol_.c_str());
@@ -646,12 +646,12 @@ RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  Pu
       if (msg->ackMsg.nakCode != RSSL_NAKC_NONE)
       {
          nak = true;
-         // this is a nak so log as warning 
-         string nakText;
+         // this is a nak so log as warning
+         std::string nakText;
 
          if (rsslAckMsgCheckHasText(&msg->ackMsg))
          {
-            nakText = string( msg->ackMsg.text.data, msg->ackMsg.text.length);
+            nakText = std::string( msg->ackMsg.text.data, msg->ackMsg.text.length);
          }
 
          mama_status status = MAMA_STATUS_OK;
@@ -689,31 +689,31 @@ mamaMsgStatus UPABridgePoster::RsslNakCode2MamaMsgStatus(RsslUInt8 nakCode)
    case RSSL_NAKC_NONE:                 //! No Nak Code
       ret = MAMA_MSG_STATUS_OK;
       break;
-   case RSSL_NAKC_ACCESS_DENIED:      // Access Denied. The user not properly permissioned for posting on the item or service. 
+   case RSSL_NAKC_ACCESS_DENIED:      // Access Denied. The user not properly permissioned for posting on the item or service.
       ret = MAMA_MSG_STATUS_NOT_ENTITLED;
       break;
-   case RSSL_NAKC_DENIED_BY_SRC:      // Denied by source. The source being posted to has denied accepting this post message. 
+   case RSSL_NAKC_DENIED_BY_SRC:      // Denied by source. The source being posted to has denied accepting this post message.
       ret = MAMA_MSG_STATUS_NOT_PERMISSIONED;
       break;
-   case RSSL_NAKC_SOURCE_DOWN:        // Source Down. Source being posted to is down or not available. 
-   case RSSL_NAKC_GATEWAY_DOWN:       // Gateway is Down. The gateway device for handling posted or contributed information is down or not available. 
+   case RSSL_NAKC_SOURCE_DOWN:        // Source Down. Source being posted to is down or not available.
+   case RSSL_NAKC_GATEWAY_DOWN:       // Gateway is Down. The gateway device for handling posted or contributed information is down or not available.
       ret = MAMA_MSG_STATUS_LINE_DOWN;
       break;
 
-   case RSSL_NAKC_SOURCE_UNKNOWN:     // Source Unknown. The source being posted to is unknown and is unreachable. 
+   case RSSL_NAKC_SOURCE_UNKNOWN:     // Source Unknown. The source being posted to is unknown and is unreachable.
    case RSSL_NAKC_SYMBOL_UNKNOWN:     // Unknown Symbol. The item information provided within the post message is not recognized by the system.
       // treat both of these together
       ret = MAMA_MSG_STATUS_BAD_SYMBOL;
       break;
 
-   case RSSL_NAKC_NOT_OPEN:           // Item not open. The item being posted to does not have an available stream open. 
+   case RSSL_NAKC_NOT_OPEN:           // Item not open. The item being posted to does not have an available stream open.
       // might not the the intended semantics os this messsage status but seems to match quite well
       ret = MAMA_MSG_STATUS_NO_SUBSCRIBERS;
       break;
 
-   case RSSL_NAKC_NO_RESOURCES:       // No Resources. A component along the path of the post message does not have appropriate resources available to continue processing the post. 
-   case RSSL_NAKC_NO_RESPONSE:        // No Response. This code may mean that the source is unavailable or there is a delay in processing the posted information. 
-   case RSSL_NAKC_INVALID_CONTENT:    // Nak being sent due to invalid content. The content of the post message is invalid and cannot be posted, it does not match the expected formatting for this post. 
+   case RSSL_NAKC_NO_RESOURCES:       // No Resources. A component along the path of the post message does not have appropriate resources available to continue processing the post.
+   case RSSL_NAKC_NO_RESPONSE:        // No Response. This code may mean that the source is unavailable or there is a delay in processing the posted information.
+   case RSSL_NAKC_INVALID_CONTENT:    // Nak being sent due to invalid content. The content of the post message is invalid and cannot be posted, it does not match the expected formatting for this post.
       // no direct equivalent here
       ret = MAMA_MSG_STATUS_PLATFORM_STATUS;
       break;
@@ -738,31 +738,31 @@ mama_status UPABridgePoster::RsslNakCode2MamaStatus(RsslUInt8 nakCode)
     case RSSL_NAKC_NONE:                 //! No Nak Code
         ret = MAMA_STATUS_OK;
         break;
-    case RSSL_NAKC_ACCESS_DENIED:      // Access Denied. The user not properly permissioned for posting on the item or service. 
+    case RSSL_NAKC_ACCESS_DENIED:      // Access Denied. The user not properly permissioned for posting on the item or service.
         ret = MAMA_STATUS_NOT_ENTITLED;
         break;
-    case RSSL_NAKC_DENIED_BY_SRC:      // Denied by source. The source being posted to has denied accepting this post message. 
+    case RSSL_NAKC_DENIED_BY_SRC:      // Denied by source. The source being posted to has denied accepting this post message.
         ret = MAMA_STATUS_NOT_PERMISSIONED;
         break;
-    case RSSL_NAKC_SOURCE_DOWN:        // Source Down. Source being posted to is down or not available. 
-    case RSSL_NAKC_GATEWAY_DOWN:       // Gateway is Down. The gateway device for handling posted or contributed information is down or not available. 
+    case RSSL_NAKC_SOURCE_DOWN:        // Source Down. Source being posted to is down or not available.
+    case RSSL_NAKC_GATEWAY_DOWN:       // Gateway is Down. The gateway device for handling posted or contributed information is down or not available.
         ret = MAMA_STATUS_IO_ERROR;
         break;
 
-    case RSSL_NAKC_SOURCE_UNKNOWN:     // Source Unknown. The source being posted to is unknown and is unreachable. 
+    case RSSL_NAKC_SOURCE_UNKNOWN:     // Source Unknown. The source being posted to is unknown and is unreachable.
     case RSSL_NAKC_SYMBOL_UNKNOWN:     // Unknown Symbol. The item information provided within the post message is not recognized by the system.
                                     // treat both of these together
         ret = MAMA_STATUS_BAD_SYMBOL;
         break;
 
-    case RSSL_NAKC_NOT_OPEN:           // Item not open. The item being posted to does not have an available stream open. 
+    case RSSL_NAKC_NOT_OPEN:           // Item not open. The item being posted to does not have an available stream open.
                                     // might not the the intended semantics os this messsage status but seems to match quite well
         ret = MAMA_STATUS_NO_SUBSCRIBERS;
         break;
 
-    case RSSL_NAKC_NO_RESOURCES:       // No Resources. A component along the path of the post message does not have appropriate resources available to continue processing the post. 
-    case RSSL_NAKC_NO_RESPONSE:        // No Response. This code may mean that the source is unavailable or there is a delay in processing the posted information. 
-    case RSSL_NAKC_INVALID_CONTENT:    // Nak being sent due to invalid content. The content of the post message is invalid and cannot be posted, it does not match the expected formatting for this post. 
+    case RSSL_NAKC_NO_RESOURCES:       // No Resources. A component along the path of the post message does not have appropriate resources available to continue processing the post.
+    case RSSL_NAKC_NO_RESPONSE:        // No Response. This code may mean that the source is unavailable or there is a delay in processing the posted information.
+    case RSSL_NAKC_INVALID_CONTENT:    // Nak being sent due to invalid content. The content of the post message is invalid and cannot be posted, it does not match the expected formatting for this post.
                                     // no direct equivalent here
         ret = MAMA_STATUS_PLATFORM;
         break;
@@ -776,9 +776,9 @@ mama_status UPABridgePoster::RsslNakCode2MamaStatus(RsslUInt8 nakCode)
     return ret;
 }
 
-UPABridgePublisherItem_ptr_t UPABridgePublisherItem::CreatePublisherItem(
-   const string & root, const string& sourceName, const string& symbol, mamaTransport transport,
-   mamaPublisher parent, RMDSPublisherBase_ptr_t RMDSPublisher, TransportConfig_t config, bool interactive )
+UPABridgePublisherItem_ptr_t UPABridgePublisherItem::CreatePublisherItem(const std::string & root, const std::string& sourceName, const std::string& symbol,
+                                                                         mamaTransport transport, mamaPublisher parent,
+                                                                         const RMDSPublisherBase_ptr_t& RMDSPublisher, TransportConfig_t config, bool interactive )
 {
    UPABridgePublisherItem* newItem = new UPABridgePublisherItem(root, sourceName, symbol, transport, parent, RMDSPublisher );
    UPABridgePublisherItem_ptr_t p = UPABridgePublisherItem_ptr_t(newItem);
@@ -795,7 +795,7 @@ void MAMACALLTYPE UPABridgePublisherItem::InboxOnMessageCB(mamaMsg msg, void *cl
    ((UPABridgePublisherItem*)closure)->InboxOnMessage(msg);
 }
 
-bool UPABridgePublisherItem::Initialise(UPABridgePublisherItem_ptr_t shared_ptr, TransportConfig_t config, bool interactive)
+bool UPABridgePublisherItem::Initialise(const UPABridgePublisherItem_ptr_t& shared_ptr, const TransportConfig_t& config, bool interactive)
 {
    sharedPtr_ = shared_ptr;
 
@@ -807,7 +807,7 @@ bool UPABridgePublisherItem::Initialise(UPABridgePublisherItem_ptr_t shared_ptr,
       return false;
    }
 
-   // Now find the UPA item 
+   // Now find the UPA item
    UPAItem_ = source->GetItem(symbol_);
 
    if (UPAItem_.get() == 0)
@@ -903,7 +903,7 @@ RsslRet UPABridgePoster::PostStatusMessage(RsslChannel *chnl, mamaMsgStatus msgS
    rsslPostMsg.msgBase.domainType = RSSL_DMT_MARKET_PRICE;
    rsslPostMsg.msgBase.containerType = RSSL_DT_MSG;
 
-   rsslPostMsg.flags = RSSL_PSMF_POST_COMPLETE 
+   rsslPostMsg.flags = RSSL_PSMF_POST_COMPLETE
       | RSSL_PSMF_ACK // request ACK
       | RSSL_PSMF_HAS_POST_ID;
 
@@ -934,7 +934,7 @@ RsslRet UPABridgePoster::PostStatusMessage(RsslChannel *chnl, mamaMsgStatus msgS
       rsslPostMsg.seqNum = (RsslUInt32)seqNum;
    }
 
-   // populate post user info 
+   // populate post user info
    RsslRet ret = 0;
    if ((ret = SetPostUserInfo(rsslPostMsg.postUserInfo)) != RSSL_RET_SUCCESS)
    {
@@ -942,7 +942,7 @@ RsslRet UPABridgePoster::PostStatusMessage(RsslChannel *chnl, mamaMsgStatus msgS
    }
    rsslPostMsg.flags |= RSSL_STMF_HAS_POST_USER_INFO;
 
-   // encode the message 
+   // encode the message
    RsslBuffer *buffer;
    RsslEncodeIterator itEncode;
    rsslClearEncodeIterator(&itEncode);
@@ -966,7 +966,7 @@ RsslRet UPABridgePoster::PostStatusMessage(RsslChannel *chnl, mamaMsgStatus msgS
       rsslReleaseBuffer(buffer, &err);
       return ret;
    }
-   
+
    if ((ret = FinishEncoding(itEncode)) != RSSL_RET_SUCCESS)
    {
       RsslError err;
@@ -1027,7 +1027,7 @@ RsslBuffer *UPABridgePoster::AllocateEncoder(RsslChannel *chnl, RsslEncodeIterat
    RsslRet ret;
    RsslError err;
    RsslBuffer *buffer;
-   if ((buffer = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &err)) == 0)
+   if ((buffer = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &err)) == 0)
    {
       t42log_warn("[%s:%s]: StartEncoding() failed to get buffer for posting, error %s(%d)",
          sourceName_.c_str(), symbol_.c_str(), err.text, err.rsslErrorId);

@@ -37,8 +37,8 @@ RMDSBridgeSubscription::RMDSBridgeSubscription(void)
 
 RMDSBridgeSubscription::RMDSBridgeSubscription( const std::string& sourceName, const std::string& symbol, mamaTransport transport, mamaQueue queue,
     mamaMsgCallbacks callback, mamaSubscription subscription, void* closure, bool logRmdsValues)
-    : transport_(transport), queue_(queue), callback_(callback), subscription_(subscription), closure_(closure), logRmdsValues_(logRmdsValues), 
-        sourceName_(sourceName), symbol_(symbol), gotImage_(false), isShutdown_(false) 
+    : transport_(transport), queue_(queue), callback_(callback), subscription_(subscription), closure_(closure), logRmdsValues_(logRmdsValues),
+        sourceName_(sourceName), symbol_(symbol), gotImage_(false), isShutdown_(false)
 
 {
 
@@ -73,7 +73,7 @@ void RMDSBridgeSubscription::SendStatusMessage( mamaMsgStatus secStatus )
     }
     catch (...)
     {
-        mamaMsg_destroy(msg);    
+        mamaMsg_destroy(msg);
         t42log_error("RMDSBridgeSubscription::OnMessage - caught exception calling mamaSubscription_processMsg for %s", symbol_.c_str());
     }
 
@@ -86,7 +86,7 @@ void RMDSBridgeSubscription::SendStatusMessage( mamaMsgStatus secStatus )
             status);
     }
 
-    mamaMsg_destroy(msg);    
+    mamaMsg_destroy(msg);
 }
 
 // SubscriptionResponseListener implementation
@@ -166,6 +166,12 @@ void RMDSBridgeSubscription::OnStatusMessage( mamaMsgStatus statusCode )
 
 void RMDSBridgeSubscription::OnQuality(mamaQuality quality, short cause)
 {
+    if (isShutdown_)
+    {
+        // just dont bother with making the callback
+        return;
+    }
+
     try
     {
         if (callback_.onQuality)

@@ -656,7 +656,7 @@ mama_status
     mama_fid_t     fid,
     mamaDateTime   result)
 {
-    return upaPayload(msg)->get(fid, name, result);
+    return upaPayload(msg)->getDateTime(fid, name, result);
 }
 
 mama_status
@@ -730,7 +730,7 @@ mama_status
     mama_fid_t     fid,
     mamaPrice      result)
 {
-    return upaPayload(msg)->get(fid, name, result);
+    return upaPayload(msg)->getPrice(fid, name, result);
 }
 
 mama_status

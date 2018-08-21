@@ -36,7 +36,7 @@
 #include "UPAStreamManager.h"
 #include "UPADictionary.h"
 
-// for the post manager 
+// for the post manager
 #include "UPAPostManager.h"
 #include "transportconfig.h"
 #include "RMDSConnectionConfig.h"
@@ -54,7 +54,7 @@ class UPALogin;
 class LoginResponseListener;
 class ConnectionListener;
 class UPASourceDirectory;
-class SourceDirectoryResponseListener; 
+class SourceDirectoryResponseListener;
 class UPADictionary;
 class DictionaryResponseListener;
 class PublishMessageRequest;
@@ -70,6 +70,7 @@ public:
     ~UPAConsumer(void);
 
     void Run();
+    void Stop();
 
     bool IsConnectionConfigValid();
 
@@ -99,17 +100,17 @@ public:
     // connection notifications
     void AddListener( ConnectionListener * pListener );
 
-
     // Accessors
     UPAStreamManager & StreamManager()  { return streamManager_; }
     UPAPostManager & PostManager()  { return postManager_; }
     RsslChannel * RsslConsumerChannel() const { return rsslConsumerChannel_; }
     UPASourceDirectory *SourceDirectory() { return sourceDirectory_; }
     UPADictionaryWrapper_ptr_t RsslDictionary()    {return upaDictionary_->RsslDictionary();}
-    RMDSSubscriber * GetOwner() { return owner_; }
+    const RMDSSubscriber* GetOwner() const { return owner_; }
     bool RequiresConnection() const    {return requiresConnection_;}
 
-   std::string getTransportName();
+    const std::string& getTransportName() const;
+    unsigned int MaxMessageSize() const { return maxMessageSize_; }
 
     // Stats functions
 
@@ -130,9 +131,9 @@ public:
 
     void WarnMissingFid(RsslFieldId fid);
 
-   void JoinThread(wthread_t thread);
+    void JoinThread(wthread_t thread);
 
-   mamaMsg MamaMsg() const { return msg_; }
+    mamaMsg MamaMsg() const { return msg_; }
 
 
 private:
@@ -173,7 +174,6 @@ private:
     char* interfaceName_;
     RsslConnectionTypes connType_;
 
-
     RMDSSubscriber * owner_;
 
     mamaQueue requestQueue_;
@@ -184,6 +184,7 @@ private:
 
     boost::shared_ptr<UPADictionary> upaDictionary_;
 
+    unsigned int maxMessageSize_;
 
     RsslBool isInLoginSuspectState_;
 
@@ -222,7 +223,7 @@ private:
     // request throttling
     size_t maxDispatchesPerCycle_;
     size_t maxPendingOpens_;
-
+    size_t waitTimeForSelect_;
 
     // Re-usable message object
     // this is used by all the subscriptions on this thread. We can share this because currently

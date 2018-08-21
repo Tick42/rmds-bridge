@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='90' ">
+    <PlatformVersionExt>9.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='100' ">
+    <PlatformVersionExt>10.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='110' ">
+    <PlatformVersionExt>11.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='120' ">
+    <PlatformVersionExt>12.0</PlatformVersionExt>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='140' ">
+    <PlatformVersionExt>14.0</PlatformVersionExt>
+  </PropertyGroup>
+  <ItemGroup>
+    <BuildMacro Include="PlatformVersionExt">
+      <Value>$(PlatformVersionExt)</Value>
+    </BuildMacro>
+  </ItemGroup>
+  <ItemDefinitionGroup>
+    <BuildLog>
+      <Path>$(IntDir)$(MSBuildProjectName).log</Path>
+    </BuildLog>
+  </ItemDefinitionGroup>
+</Project>

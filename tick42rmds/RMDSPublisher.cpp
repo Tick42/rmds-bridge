@@ -90,9 +90,8 @@ bool RMDSPublisher::Initialize(mamaBridge bridge, mamaTransport transport, const
     // the two configurations match and that they also match the source name that is expected
     // by the client application
 
-    utils::properties config;
-    std::string sourcesKey = "mama.tick42rmds.transport." + transport_name + ".source";
-    std::string source = config.get(sourcesKey, "");
+    TransportConfig_t config(transport_name);
+    std::string source = config.getString("source", "");
     boost::algorithm::trim(source);
 
     t42log_debug("Interactive publisher on transport '%s' using source '%s'\n", transport_name.c_str(), source.c_str());
@@ -115,7 +114,7 @@ static void * threadFuncPublisher(void * p)
     RMDSPublisher * pOwner = (RMDSPublisher *) p;
     pOwner->Provider()->Run();
 
-    return 0;        
+    return 0;
 }
 
 bool RMDSPublisher::Start()
@@ -123,6 +122,7 @@ bool RMDSPublisher::Start()
     TransportConfig_t config(transportName_);
 
     portNumber_ = config.getString("pubport");
+    maxMessageSize_ = config.getUint16("maxmsgsize", Default_maxMessageSize);
 
     subscriberTransportName_ = config.getString("sub_tport");
 
@@ -172,16 +172,14 @@ bool RMDSPublisher::Start()
 }
 
 // initialise the source from the mama properties
-int RMDSPublisher::InitialiseSource( const std::string sourceName )
+int RMDSPublisher::InitialiseSource( const std::string& sourceName )
 {
-    utils::properties config;
-
     RMDSPublisherSource * newSource = new RMDSPublisherSource(sourceName);
 
     newSource->InitialiseSource();
     // now read the source properties
-    std::string sourcePropBase = "mama.tick42rmds.transport." + transportName_ + "." + sourceName;
-    std::string serviceId = config.get(sourcePropBase + ".serviceid", "");
+    TransportConfig_t config(transportName_);
+    std::string serviceId = config.getString(sourceName + ".serviceid", "");
 
     int RMDSServiceId = ::atoi(serviceId.c_str());
     if (RMDSServiceId == 0)
@@ -222,7 +220,7 @@ bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool re
         return false;
     }
 
-    mamaMsg msg;    
+    mamaMsg msg;
     mamaMsg_createForPayload(&msg, MAMA_PAYLOAD_TICK42RMDS);
 
     mamaMsgReplyImpl reply;
@@ -250,7 +248,7 @@ bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool re
     }
     catch (...)
     {
-        mamaMsg_destroy(msg);    
+        mamaMsg_destroy(msg);
         t42log_error("RMDSPublisher::RequestItem - caught exception calling mamaSubscription_processMsg for %s\n",symbol.c_str());
     }
 
@@ -282,7 +280,7 @@ bool RMDSPublisher::CloseItem(std::string source, std::string symbol)
     }
     catch (...)
     {
-        mamaMsg_destroy(msg);    
+        mamaMsg_destroy(msg);
         t42log_error("RMDSPublisher::RequestItem - caught exception calling mamaSubscription_processMsg for %s\n",symbol.c_str());
     }
 
@@ -349,14 +347,14 @@ bool RMDSPublisherBase::createUpaMamaFieldMap()
 
     if (!rmdsDict->LoadFullDictionary(dictionaryFileNamePath, enumTableFileNamePath))
     {
-        t42log_error("failed to load RMDS dictionary for publisher on transport %s, using field file = %s and enum file = %s \n", transportName_.c_str(), 
+        t42log_error("failed to load RMDS dictionary for publisher on transport %s, using field file = %s and enum file = %s \n", transportName_.c_str(),
             dictionaryFileNamePath.c_str(), enumTableFileNamePath.c_str());
         return false;
     }
 
     if (config.exists("fidsoffset"))
     {
-        boost::shared_ptr<UpaMamaFieldMapHandler_t> upaMamaFieldMapTmp(
+        UpaMamaFieldMap_ptr_t upaMamaFieldMapTmp(
             new UpaMamaFieldMapHandler_t(
             config.getString("fieldmap", Default_Fieldmap),
             config.getUint16("fidsoffset", Default_FieldOffset),
@@ -368,7 +366,7 @@ bool RMDSPublisherBase::createUpaMamaFieldMap()
     }
     else
     {
-        boost::shared_ptr<UpaMamaFieldMapHandler_t> upaMamaFieldMapTmp (
+        UpaMamaFieldMap_ptr_t upaMamaFieldMapTmp (
             new UpaMamaFieldMapHandler_t(
             config.getString("fieldmap", Default_Fieldmap),
             config.getBool("unmapdfld", Default_PassUnmappedFields),

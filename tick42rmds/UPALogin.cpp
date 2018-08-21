@@ -131,7 +131,7 @@ UPALogin::~UPALogin(void)
     }
 }
 
-void UPALogin::ConfigureEntitlements(TransportConfig_t *pConfig)
+void UPALogin::ConfigureEntitlements(const TransportConfig_t& pConfig)
 {
     // Set up the DACS user name and application ID from the
     // configuration
@@ -155,7 +155,7 @@ void UPALogin::ConfigureEntitlements(TransportConfig_t *pConfig)
     if(userName_.empty())
     {
         // now try the bridge config
-        userName_ = pConfig->getString("user", Default_UserName);
+        userName_ = pConfig.getString("user", Default_UserName);
         if(userName_.empty())
         {
             // now try from the mama infrastructure
@@ -186,7 +186,7 @@ void UPALogin::ConfigureEntitlements(TransportConfig_t *pConfig)
     else
     {
         // if thats not present then user appid from the config file
-        appID_ = pConfig->getString("appid", Default_Appid);
+        appID_ = pConfig.getString("appid", Default_Appid);
         if(appID_.empty())
         {
             // and failing that...
@@ -194,7 +194,8 @@ void UPALogin::ConfigureEntitlements(TransportConfig_t *pConfig)
             appID_ = "255";
         }
     }
-    
+
+    maxMessageSize_ = pConfig.getUint16("maxmsgsize", Default_maxMessageSize);
 }
 
 void UPALogin::AddListener( LoginResponseListener * pListener )
@@ -213,7 +214,7 @@ bool UPALogin::SendLoginRequest()
     char hostName[256], positionStr[32];
     RsslBuffer  hostNameBuf;
 
-    //initialize login request info to default values 
+    //initialize login request info to default values
     RsslLoginRequestInfo loginReqInfo;
     initLoginReqInfo(&loginReqInfo);
 
@@ -224,22 +225,22 @@ bool UPALogin::SendLoginRequest()
         return false;
     }
 
-    //get a buffer for the login request 
-    UPAMsgBuff = rsslGetBuffer(UPAChannel_, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    //get a buffer for the login request
+    UPAMsgBuff = rsslGetBuffer(UPAChannel_, maxMessageSize_, RSSL_FALSE, &error);
 
     if (UPAMsgBuff != NULL)
     {
         // populate the login request information
-         //StreamId 
+         //StreamId
         loginReqInfo.StreamId = LoginStreamId;
 
-         //Username 
+         //Username
         snprintf(loginReqInfo.Username, 128, "%s", userName_.c_str());
 
-         //ApplicationId 
+         //ApplicationId
         snprintf(loginReqInfo.ApplicationId, 128, "%s", appID_.c_str());
 
-         //ApplicationName 
+         //ApplicationName
         snprintf(loginReqInfo.ApplicationName, 128, "%s", appName_.c_str());
 
          //Position build the DACS position string from the hostname
@@ -269,18 +270,18 @@ bool UPALogin::SendLoginRequest()
         //if provider, change role and single open from default values//
         if (role_ == RSSL_PROVIDER)
         {
-             // if this provider supports SingleOpen behavior 
+             // if this provider supports SingleOpen behavior
             loginReqInfo.SingleOpen = singleOpen_;
 
-             //provider role 
-            loginReqInfo.Role = RSSL_PROVIDER; 
+             //provider role
+            loginReqInfo.Role = RSSL_PROVIDER;
         }
-        //keep default values for all others 
+        //keep default values for all others
 
         //encode login request
         if ((ret = EncodeLoginRequest(&loginReqInfo, UPAMsgBuff)) != RSSL_RET_SUCCESS)
         {
-            rsslReleaseBuffer(UPAMsgBuff, &error); 
+            rsslReleaseBuffer(UPAMsgBuff, &error);
             t42log_error("encodeLoginRequest() failed with return code: %d\n", ret);
             return false;
         }
@@ -333,7 +334,7 @@ RsslRet UPALogin::processLoginResponse(RsslChannel* chnl, RsslMsg* msg, RsslDeco
 {
     RsslRet ret;
     RsslState *pState = 0;
-    
+
     // temp buffer for recovering rssl state as string
     RsslBuffer buff;
     char tempData[1024];
@@ -455,7 +456,7 @@ RsslRet UPALogin::processLoginResponse(RsslChannel* chnl, RsslMsg* msg, RsslDeco
             const char * errMsg =  "Received Login Close";
             t42log_error("\n%s\n",errMsg);
             NotifyListeners(&loginResponseInfo_, true, errMsg);
-    
+
             isClosed_ = RSSL_TRUE;
             return RSSL_RET_FAILURE;
             break;
@@ -466,7 +467,7 @@ RsslRet UPALogin::processLoginResponse(RsslChannel* chnl, RsslMsg* msg, RsslDeco
             sprintf(errMsgBuff, "Received Unhandled Login Msg Class: %d", msg->msgBase.msgClass);
             t42log_error("\n%s\n",errMsgBuff);
             NotifyListeners(&loginResponseInfo_, true, errMsgBuff);
-    
+
             return RSSL_RET_FAILURE;
             break;
         }
@@ -502,7 +503,7 @@ bool UPALogin::QueueLogin(mamaQueue queue, mamaQueueEventCB callback)
 
 void UPALogin::NotifyListeners( RsslLoginResponseInfo *pResponseInfo, bool loginSucceeded, const char* extraInfo)
 {
-    vector<LoginResponseListener*>::iterator it = listeners_.begin();
+    std::vector<LoginResponseListener*>::iterator it = listeners_.begin();
 
     while(it != listeners_.end() )
     {
@@ -528,14 +529,14 @@ RsslRet UPALogin::CloseLoginStream(RsslChannel* chnl)
     RsslBuffer* msgBuf = 0;
 
     /* get a buffer for the login close */
-    msgBuf = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuf = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
         /* encode login close */
         if ((ret = EncodeLoginClose(msgBuf, LoginStreamId)) != RSSL_RET_SUCCESS)
         {
-            rsslReleaseBuffer(msgBuf, &error); 
+            rsslReleaseBuffer(msgBuf, &error);
             t42log_error("encodeLoginClose() failed with return code: %d\n", ret);
             return ret;
         }
@@ -565,10 +566,10 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
 
     RsslUInt64 d;
 
-     //clear encode iterator 
+     //clear encode iterator
     rsslClearEncodeIterator(&encodeIter);
 
-     //set-up message 
+     //set-up message
     msg.msgBase.msgClass = RSSL_MC_REQUEST;
     msg.msgBase.streamId = loginReqInfo->StreamId;
     msg.msgBase.domainType = RSSL_DMT_LOGIN;
@@ -576,32 +577,32 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
     msg.flags = RSSL_RQMF_STREAMING;
 
 
-     //set msgKey members 
+     //set msgKey members
     msg.msgBase.msgKey.flags = RSSL_MKF_HAS_ATTRIB | RSSL_MKF_HAS_NAME_TYPE | RSSL_MKF_HAS_NAME;
-     //Username 
+     //Username
     msg.msgBase.msgKey.name.data = loginReqInfo->Username;
     msg.msgBase.msgKey.name.length = (RsslUInt32)strlen(loginReqInfo->Username);
     msg.msgBase.msgKey.nameType = RDM_LOGIN_USER_NAME;
     msg.msgBase.msgKey.attribContainerType = RSSL_DT_ELEMENT_LIST;
 
 
-     //encode message 
+     //encode message
     if((ret = rsslSetEncodeIteratorBuffer(&encodeIter, msgBuf)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslSetEncodeIteratorBuffer() failed with return code: %d\n", ret);
         return ret;
     }
     rsslSetEncodeIteratorRWFVersion(&encodeIter, UPAChannel_->majorVersion, UPAChannel_->minorVersion);
-     //since our msgKey has opaque that we want to encode, we need to use rsslEncodeMsgInit 
-     //rsslEncodeMsgInit should return and inform us to encode our key opaque 
+     //since our msgKey has opaque that we want to encode, we need to use rsslEncodeMsgInit
+     //rsslEncodeMsgInit should return and inform us to encode our key opaque
     if ((ret = rsslEncodeMsgInit(&encodeIter, (RsslMsg*)&msg, 0)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslEncodeMsgInit() failed with return code: %d\n", ret);
         return ret;
     }
-    
-     //encode our msgKey opaque 
-     //encode the element list 
+
+     //encode our msgKey opaque
+     //encode the element list
     rsslClearElementList(&elementList);
     elementList.flags = RSSL_ELF_HAS_STANDARD_DATA;
     if ((ret = rsslEncodeElementListInit(&encodeIter, &elementList, 0, 3)) < RSSL_RET_SUCCESS)
@@ -609,7 +610,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementListInit() failed with return code: %d\n", ret);
         return ret;
     }
-     //ApplicationId 
+     //ApplicationId
     applicationId.data = (char*)loginReqInfo->ApplicationId;
     applicationId.length = (RsslUInt32)strlen(loginReqInfo->ApplicationId);
     element.dataType = RSSL_DT_ASCII_STRING;
@@ -619,7 +620,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //ApplicationName 
+     //ApplicationName
     applicationName.data = (char*)loginReqInfo->ApplicationName;
     applicationName.length = (RsslUInt32)strlen(loginReqInfo->ApplicationName);
     element.dataType = RSSL_DT_ASCII_STRING;
@@ -629,7 +630,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //Position 
+     //Position
     position.data = (char*)loginReqInfo->Position;
     position.length = (RsslUInt32)strlen(loginReqInfo->Position);
     element.dataType = RSSL_DT_ASCII_STRING;
@@ -639,7 +640,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //Password 
+     //Password
     password.data = (char*)loginReqInfo->Password;
     password.length = (RsslUInt32)strlen(loginReqInfo->Password);
     element.dataType = RSSL_DT_ASCII_STRING;
@@ -649,7 +650,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //ProvidePermissionProfile 
+     //ProvidePermissionProfile
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_PROV_PERM_PROF;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginReqInfo->ProvidePermissionProfile)) < RSSL_RET_SUCCESS)
@@ -657,7 +658,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //ProvidePermissionExpressions 
+     //ProvidePermissionExpressions
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_PROV_PERM_EXP;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginReqInfo->ProvidePermissionExpressions)) < RSSL_RET_SUCCESS)
@@ -665,7 +666,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //SingleOpen 
+     //SingleOpen
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SINGLE_OPEN;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginReqInfo->SingleOpen)) < RSSL_RET_SUCCESS)
@@ -673,7 +674,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //AllowSuspectData 
+     //AllowSuspectData
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_ALLOW_SUSPECT_DATA;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginReqInfo->AllowSuspectData)) < RSSL_RET_SUCCESS)
@@ -681,7 +682,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //InstanceId 
+     //InstanceId
     instanceId.data = (char*)loginReqInfo->InstanceId;
     instanceId.length = (RsslUInt32)strlen(loginReqInfo->InstanceId);
     element.dataType = RSSL_DT_ASCII_STRING;
@@ -691,7 +692,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //Role 
+     //Role
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_ROLE;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginReqInfo->Role)) < RSSL_RET_SUCCESS)
@@ -699,7 +700,7 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         t42log_error("rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-     //DownloadConnectionConfig 
+     //DownloadConnectionConfig
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_DOWNLOAD_CON_CONFIG;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginReqInfo->DownloadConnectionConfig)) < RSSL_RET_SUCCESS)
@@ -714,11 +715,11 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
     // Handling these messages requires the Tick42 Enhanced version of the bridge. Please contact support@tick42.com for details.
     if (disableDataConversion_)
     {
-         //DisableDataConversion 
+         //DisableDataConversion
         element.dataType = RSSL_DT_UINT;
         element.name.length =21;
         element.name.data = (char*)"DisableDataConversion";
-        
+
         d = RSSL_TRUE;
         if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &d)) < RSSL_RET_SUCCESS)
         {
@@ -734,16 +735,16 @@ RsslRet UPALogin::EncodeLoginRequest(RsslLoginRequestInfo* loginReqInfo, RsslBuf
         return ret;
     }
 
-     //complete encode key 
+     //complete encode key
      //rsslEncodeMsgKeyAttribComplete finishes our key opaque, so it should return and indicate
-     //  for us to encode our container/msg payload 
+     //  for us to encode our container/msg payload
     if ((ret = rsslEncodeMsgKeyAttribComplete(&encodeIter, RSSL_TRUE)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslEncodeMsgKeyAttribComplete() failed with return code: %d\n", ret);
         return ret;
     }
 
-     //complete encode message 
+     //complete encode message
     if ((ret = rsslEncodeMsgComplete(&encodeIter, RSSL_TRUE)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslEncodeMsgComplete() failed with return code: %d\n", ret);
@@ -762,10 +763,10 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
     RsslElementList    elementList;
     RsslElementEntry    element;
 
-     //set stream id 
+     //set stream id
     loginRespInfo->StreamId = msg->msgBase.streamId;
 
-     //set isSolicited flag if a solicited refresh 
+     //set isSolicited flag if a solicited refresh
     if (msg->msgBase.msgClass == RSSL_MC_REFRESH)
     {
         if (msg->refreshMsg.flags & RSSL_RFMF_SOLICITED)
@@ -774,10 +775,10 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
         }
     }
 
-     //get key 
+     //get key
     key = (RsslMsgKey *)rsslGetMsgKey(msg);
 
-     //get Username 
+     //get Username
     if (key)
     {
         if (key->name.length < MAX_LOGIN_INFO_STRLEN)
@@ -791,28 +792,28 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
             loginRespInfo->Username[MAX_LOGIN_INFO_STRLEN - 1] = '\0';
         }
     }
-    else 
+    else
     {
         loginRespInfo->Username[0] = '\0';
     }
 
-     //decode key opaque data 
+     //decode key opaque data
     if ((ret = rsslDecodeMsgKeyAttrib(dIter, key)) != RSSL_RET_SUCCESS)
     {
         t42log_error("rsslDecodeMsgKeyAttrib() failed with return code: %d\n", ret);
         return ret;
     }
 
-     //decode element list 
+     //decode element list
     if ((ret = rsslDecodeElementList(dIter, &elementList, NULL)) == RSSL_RET_SUCCESS)
     {
-         //decode each element entry in list 
+         //decode each element entry in list
         while ((ret = rsslDecodeElementEntry(dIter, &element)) != RSSL_RET_END_OF_CONTAINER)
         {
             if (ret == RSSL_RET_SUCCESS)
             {
-                 //get login response information 
-                 //AllowSuspectData 
+                 //get login response information
+                 //AllowSuspectData
                 if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_ALLOW_SUSPECT_DATA))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->AllowSuspectData);
@@ -822,7 +823,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //ApplicationId 
+                 //ApplicationId
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_APPID))
                 {
                     if (element.encData.length < MAX_LOGIN_INFO_STRLEN)
@@ -836,7 +837,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         loginRespInfo->ApplicationId[MAX_LOGIN_INFO_STRLEN - 1] = '\0';
                     }
                 }
-                 //ApplicationName 
+                 //ApplicationName
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_APPNAME))
                 {
                     if (element.encData.length < MAX_LOGIN_INFO_STRLEN)
@@ -850,7 +851,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         loginRespInfo->ApplicationName[MAX_LOGIN_INFO_STRLEN - 1] = '\0';
                     }
                 }
-                 //Position 
+                 //Position
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_POSITION))
                 {
                     if (element.encData.length < MAX_LOGIN_INFO_STRLEN)
@@ -864,7 +865,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         loginRespInfo->Position[MAX_LOGIN_INFO_STRLEN - 1] = '\0';
                     }
                 }
-                 //ProvidePermissionExpressions 
+                 //ProvidePermissionExpressions
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_PROV_PERM_EXP))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->ProvidePermissionExpressions);
@@ -874,7 +875,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //ProvidePermissionProfile 
+                 //ProvidePermissionProfile
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_PROV_PERM_PROF))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->ProvidePermissionProfile);
@@ -884,7 +885,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SingleOpen 
+                 //SingleOpen
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SINGLE_OPEN))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SingleOpen);
@@ -894,7 +895,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SupportOMMPost 
+                 //SupportOMMPost
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SUPPORT_POST))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SupportOMMPost);
@@ -904,7 +905,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SupportPauseResume 
+                 //SupportPauseResume
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SUPPORT_PR))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SupportPauseResume);
@@ -914,7 +915,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SupportStandby 
+                 //SupportStandby
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SUPPORT_STANDBY))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SupportStandby);
@@ -924,7 +925,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SupportBatchRequests 
+                 //SupportBatchRequests
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SUPPORT_BATCH))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SupportBatchRequests);
@@ -934,7 +935,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SupportViewRequests 
+                 //SupportViewRequests
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SUPPORT_VIEW))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SupportViewRequests);
@@ -944,7 +945,7 @@ RsslRet UPALogin::DecodeLoginResponse(RsslLoginResponseInfo* loginRespInfo, Rssl
                         return ret;
                     }
                 }
-                 //SupportOptimizedPauseResume 
+                 //SupportOptimizedPauseResume
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SUPPORT_OPR))
                 {
                     ret = rsslDecodeUInt(dIter, &loginRespInfo->SupportOptimizedPauseResume);
@@ -978,16 +979,16 @@ RsslRet UPALogin::EncodeLoginClose(RsslBuffer* msgBuf, RsslInt32 streamId)
     RsslCloseMsg msg = RSSL_INIT_CLOSE_MSG;
     RsslEncodeIterator encodeIter;
 
-     //clear encode iterator 
+     //clear encode iterator
     rsslClearEncodeIterator(&encodeIter);
 
-     //set-up message 
+     //set-up message
     msg.msgBase.msgClass = RSSL_MC_CLOSE;
     msg.msgBase.streamId = streamId;
     msg.msgBase.domainType = RSSL_DMT_LOGIN;
     msg.msgBase.containerType = RSSL_DT_NO_DATA;
-    
-     //encode message 
+
+     //encode message
     if((ret = rsslSetEncodeIteratorBuffer(&encodeIter, msgBuf)) < RSSL_RET_SUCCESS)
     {
         t42log_error("rsslSetEncodeIteratorBuffer() failed with return code: %d\n", ret);
@@ -1017,7 +1018,7 @@ RsslRet UPALogin::SendLoginRequestReject(RsslChannel* chnl, RsslInt32 streamId, 
     RsslBuffer* msgBuf = 0;
 
     // create a buffer to encode the message
-    msgBuf = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &error);
+    msgBuf = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
@@ -1025,7 +1026,7 @@ RsslRet UPALogin::SendLoginRequestReject(RsslChannel* chnl, RsslInt32 streamId, 
         if (EncodeLoginRequestReject(chnl, streamId, reason, msgBuf) != RSSL_RET_SUCCESS)
         {
             rsslReleaseBuffer(msgBuf, &error);
-            t42log_warn("UPALogin::SendLoginRequestReject - EncodeLoginRequestReject() failed\n"); 
+            t42log_warn("UPALogin::SendLoginRequestReject - EncodeLoginRequestReject() failed\n");
             return RSSL_RET_FAILURE;
         }
 
@@ -1054,7 +1055,7 @@ RsslRet UPALogin::EncodeLoginRequestReject(RsslChannel* chnl, RsslInt32 streamId
     rsslClearEncodeIterator(&encodeIter);
 
     // initialise the message header
-    RsslStatusMsg msg = RSSL_INIT_STATUS_MSG;    
+    RsslStatusMsg msg = RSSL_INIT_STATUS_MSG;
     msg.msgBase.msgClass = RSSL_MC_STATUS;
     msg.msgBase.streamId = streamId;
     msg.msgBase.domainType = RSSL_DMT_LOGIN;
@@ -1081,7 +1082,7 @@ RsslRet UPALogin::EncodeLoginRequestReject(RsslChannel* chnl, RsslInt32 streamId
     }
 
     // encode the message into the buffer
-    RsslRet ret = 0;    
+    RsslRet ret = 0;
     if((ret = rsslSetEncodeIteratorBuffer(&encodeIter, msgBuf)) < RSSL_RET_SUCCESS)
     {
         t42log_warn(" UPALogin::EncodeLoginRequestReject - rsslSetEncodeIteratorBuffer() failed with return code: %d\n", ret);
@@ -1193,7 +1194,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         loginReqInfo->Password[MAX_LOGIN_INFO_STRLEN - 1] = '\0';
                     }
                 }
-                // ProvidePermissionProfile 
+                // ProvidePermissionProfile
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_PROV_PERM_PROF))
                 {
                     ret = rsslDecodeUInt(dIter, &loginReqInfo->ProvidePermissionProfile);
@@ -1203,7 +1204,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         return ret;
                     }
                 }
-                // ProvidePermissionExpressions 
+                // ProvidePermissionExpressions
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_PROV_PERM_EXP))
                 {
                     ret = rsslDecodeUInt(dIter, &loginReqInfo->ProvidePermissionExpressions);
@@ -1213,7 +1214,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         return ret;
                     }
                 }
-                // SingleOpen 
+                // SingleOpen
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_SINGLE_OPEN))
                 {
                     ret = rsslDecodeUInt(dIter, &loginReqInfo->SingleOpen);
@@ -1223,7 +1224,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         return ret;
                     }
                 }
-                 //AllowSuspectData 
+                 //AllowSuspectData
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_ALLOW_SUSPECT_DATA))
                 {
                     ret = rsslDecodeUInt(dIter, &loginReqInfo->AllowSuspectData);
@@ -1233,7 +1234,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         return ret;
                     }
                 }
-                // InstanceId 
+                // InstanceId
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_INST_ID))
                 {
                     if (element.encData.length < MAX_LOGIN_INFO_STRLEN)
@@ -1247,7 +1248,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         loginReqInfo->InstanceId[MAX_LOGIN_INFO_STRLEN - 1] = '\0';
                     }
                 }
-                // Role 
+                // Role
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_ROLE))
                 {
                     ret = rsslDecodeUInt(dIter, &loginReqInfo->Role);
@@ -1257,7 +1258,7 @@ RsslRet UPALogin::DecodeLoginRequest( RsslLoginRequestInfo* loginReqInfo, RsslMs
                         return ret;
                     }
                 }
-                // DownloadConnectionConfig 
+                // DownloadConnectionConfig
                 else if (rsslBufferIsEqual(&element.name, &RSSL_ENAME_DOWNLOAD_CON_CONFIG))
                 {
                     ret = rsslDecodeUInt(dIter, &loginReqInfo->DownloadConnectionConfig);
@@ -1289,20 +1290,20 @@ RsslRet UPALogin::SendLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo * 
     RsslError error;
     RsslBuffer* msgBuf = 0;
 
-     //get a buffer for the login response 
-    msgBuf = rsslGetBuffer(chnl, MAX_MSG_SIZE, RSSL_FALSE, &error);
+     //get a buffer for the login response
+    msgBuf = rsslGetBuffer(chnl, maxMessageSize_, RSSL_FALSE, &error);
 
     if (msgBuf != NULL)
     {
         // encode the login response message
         if (EncodeLoginResponse(chnl, loginRespInfo, msgBuf) != RSSL_RET_SUCCESS)
         {
-            rsslReleaseBuffer(msgBuf, &error); 
+            rsslReleaseBuffer(msgBuf, &error);
             t42log_warn("UPALogin::sendLoginResponse - encodeLoginResponse() failed\n");
             return RSSL_RET_FAILURE;
         }
 
-         //send login response 
+         //send login response
         if (SendUPAMessage(chnl, msgBuf) != RSSL_RET_SUCCESS)
             return RSSL_RET_FAILURE;
     }
@@ -1341,12 +1342,12 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
     msg.state.text.data = stateText;
     msg.state.text.length = (RsslUInt32)strlen(stateText);
 
-    // StreamId 
+    // StreamId
     msg.msgBase.streamId = loginRespInfo->StreamId;
 
-    // set msgKey members 
+    // set msgKey members
     msg.msgBase.msgKey.flags = RSSL_MKF_HAS_ATTRIB | RSSL_MKF_HAS_NAME_TYPE | RSSL_MKF_HAS_NAME;
-    // Username 
+    // Username
     msg.msgBase.msgKey.name.data = loginRespInfo->Username;
     msg.msgBase.msgKey.name.length = (RsslUInt32)strlen(loginRespInfo->Username);
     msg.msgBase.msgKey.nameType = RDM_LOGIN_USER_NAME;
@@ -1360,16 +1361,16 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         return ret;
     }
     rsslSetEncodeIteratorRWFVersion(&encodeIter, chnl->majorVersion, chnl->minorVersion);
-    // since our msgKey has opaque that we want to encode, we need to use rsslEncodeMsgInit 
-    // rsslEncodeMsgInit should return and inform us to encode our key opaque 
+    // since our msgKey has opaque that we want to encode, we need to use rsslEncodeMsgInit
+    // rsslEncodeMsgInit should return and inform us to encode our key opaque
     if ((ret = rsslEncodeMsgInit(&encodeIter, (RsslMsg*)&msg, 0)) < RSSL_RET_SUCCESS)
     {
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeMsgInit() failed with return code: %d\n", ret);
         return ret;
     }
-    
-    // encode our msgKey opaque 
-    // encode the element list 
+
+    // encode our msgKey opaque
+    // encode the element list
     RsslElementList    elementList = RSSL_INIT_ELEMENT_LIST;
     RsslElementEntry    element = RSSL_INIT_ELEMENT_ENTRY;
     elementList.flags = RSSL_ELF_HAS_STANDARD_DATA;
@@ -1379,7 +1380,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         return ret;
     }
 
-    // ApplicationId 
+    // ApplicationId
     RsslBuffer applicationId;
     applicationId.data = (char*)loginRespInfo->ApplicationId;
     applicationId.length = (RsslUInt32)strlen(loginRespInfo->ApplicationId);
@@ -1390,7 +1391,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // ApplicationName 
+    // ApplicationName
     RsslBuffer applicationName;
     applicationName.data = (char*)loginRespInfo->ApplicationName;
     applicationName.length = (RsslUInt32)strlen(loginRespInfo->ApplicationName);
@@ -1401,7 +1402,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // Position 
+    // Position
     RsslBuffer position;
     position.data = (char*)loginRespInfo->Position;
     position.length = (RsslUInt32)strlen(loginRespInfo->Position);
@@ -1412,7 +1413,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // ProvidePermissionProfile 
+    // ProvidePermissionProfile
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_PROV_PERM_PROF;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->ProvidePermissionProfile)) < RSSL_RET_SUCCESS)
@@ -1420,7 +1421,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // ProvidePermissionExpressions 
+    // ProvidePermissionExpressions
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_PROV_PERM_EXP;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->ProvidePermissionExpressions)) < RSSL_RET_SUCCESS)
@@ -1428,7 +1429,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SingleOpen 
+    // SingleOpen
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SINGLE_OPEN;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SingleOpen)) < RSSL_RET_SUCCESS)
@@ -1436,7 +1437,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // AllowSuspectData 
+    // AllowSuspectData
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_ALLOW_SUSPECT_DATA;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->AllowSuspectData)) < RSSL_RET_SUCCESS)
@@ -1444,7 +1445,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SupportPauseResume 
+    // SupportPauseResume
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SUPPORT_PR;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SupportPauseResume)) < RSSL_RET_SUCCESS)
@@ -1452,7 +1453,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SupportOptimizedPauseResume 
+    // SupportOptimizedPauseResume
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SUPPORT_OPR;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SupportOptimizedPauseResume)) < RSSL_RET_SUCCESS)
@@ -1460,7 +1461,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SupportOMMPost 
+    // SupportOMMPost
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SUPPORT_POST;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SupportOMMPost)) < RSSL_RET_SUCCESS)
@@ -1468,7 +1469,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SupportViewRequests 
+    // SupportViewRequests
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SUPPORT_VIEW;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SupportViewRequests)) < RSSL_RET_SUCCESS)
@@ -1476,7 +1477,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SupportBatchRequests 
+    // SupportBatchRequests
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SUPPORT_BATCH;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SupportBatchRequests)) < RSSL_RET_SUCCESS)
@@ -1484,7 +1485,7 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementEntry() failed with return code: %d\n", ret);
         return ret;
     }
-    // SupportStandby 
+    // SupportStandby
     element.dataType = RSSL_DT_UINT;
     element.name = RSSL_ENAME_SUPPORT_STANDBY;
     if ((ret = rsslEncodeElementEntry(&encodeIter, &element, &loginRespInfo->SupportStandby)) < RSSL_RET_SUCCESS)
@@ -1493,23 +1494,23 @@ RsslRet UPALogin::EncodeLoginResponse( RsslChannel* chnl, RsslLoginResponseInfo*
         return ret;
     }
 
-    // complete encode element list 
+    // complete encode element list
     if ((ret = rsslEncodeElementListComplete(&encodeIter, RSSL_TRUE)) < RSSL_RET_SUCCESS)
     {
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeElementListComplete() failed with return code: %d\n", ret);
         return ret;
     }
 
-    // complete encode key 
+    // complete encode key
     // rsslEncodeMsgKeyAttribComplete finishes our key opaque, so it should return and indicate
-    //   for us to encode our container/msg payload 
+    //   for us to encode our container/msg payload
     if ((ret = rsslEncodeMsgKeyAttribComplete(&encodeIter, RSSL_TRUE)) < RSSL_RET_SUCCESS)
     {
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeMsgKeyAttribComplete() failed with return code: %d\n", ret);
         return ret;
     }
 
-    // complete encoded message 
+    // complete encoded message
     if ((ret = rsslEncodeMsgComplete(&encodeIter, RSSL_TRUE)) < RSSL_RET_SUCCESS)
     {
         t42log_warn("UPALogin::EncodeLoginResponse - rsslEncodeMsgComplete() failed with return code: %d\n", ret);

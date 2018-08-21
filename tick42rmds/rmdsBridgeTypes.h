@@ -28,6 +28,8 @@
 
 // Collect together boost shared_ptr typedefs. This solves a number of rpoblems with header file dependencies
 
+#include <boost/shared_ptr.hpp>
+
 class UPASubscription;
 typedef boost::shared_ptr<UPASubscription> UPASubscription_ptr_t;
 
@@ -88,7 +90,6 @@ typedef boost::shared_ptr<UPABridgePublisher>UPABridgePublisher_ptr_t;
 class UPABridgePoster;
 typedef boost::shared_ptr<UPABridgePoster> UPABridgePoster_ptr_t;
 
-
 class UPABridgePublisherItem;
 typedef boost::shared_ptr<UPABridgePublisherItem> UPABridgePublisherItem_ptr_t;
 
@@ -103,9 +104,6 @@ typedef boost::shared_ptr<SnapshotReply> SnapshotReply_ptr_t;
 
 class RMDSBridgeSnapshot;
 typedef boost::shared_ptr<RMDSBridgeSnapshot> RMDSBridgeSnapshot_ptr_t;
-
-class UpaMamaFieldMapHandler_t;
-typedef boost::shared_ptr<UpaMamaFieldMapHandler_t> UPAMamaFieldMapHandler_ptr_t;
 
 class MamaOpaqueWrapper;
 typedef boost::shared_ptr<MamaOpaqueWrapper> MamaOpaqueWrapper_ptr_t;

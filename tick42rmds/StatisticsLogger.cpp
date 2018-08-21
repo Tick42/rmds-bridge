@@ -86,7 +86,7 @@ void StatisticsLogger::Initialise()
     string logIntervalProp =  config.get("mama.tick42rmds.statslogger.interval", "10");
     interval_ = atoi(logIntervalProp.c_str());
     string logAgeProp =  config.get("mama.tick42rmds.statslogger.maxAgeDays", "5");
-    maxAgeDays_ = atoi(logAgeProp.c_str());   
+    maxAgeDays_ = atoi(logAgeProp.c_str());
 
     // work on the basis that an interval of 0 disables stats logging
     enabled_ = interval_ != 0;
@@ -111,20 +111,40 @@ bool StatisticsLogger::Start()
         return false;
     }
 
-    runThread_ = true;
-    return (wthread_create( &loggerThread_, 0, threadFuncStatistics, this) == 0);
+    utils::thread::T42Lock lock(&cs_);
+
+    if (!runThread_)
+    {
+        runThread_ = true;
+        return (wthread_create( &loggerThread_, 0, threadFuncStatistics, this) == 0);
+    }
+
+    return true;
 }
 
 bool StatisticsLogger::Stop()
 {
-   runThread_ = false;
-   if (0 != loggerThread_)
-   {
-      wthread_join(loggerThread_, NULL);
-      wthread_destroy(loggerThread_);
-      loggerThread_ = 0;
-   }
-   return true;
+    if (!runThread_)
+    {
+        return true;
+    }
+
+    utils::thread::T42Lock lock(&cs_);
+
+    if (!runThread_)
+    {
+        return true;
+    }
+
+    runThread_ = false;
+    if (0 != loggerThread_)
+    {
+        wthread_join(loggerThread_, NULL);
+        wthread_destroy(loggerThread_);
+        loggerThread_ = 0;
+    }
+
+    return true;
 }
 
 // Stop the statistics logger when we pause updates, in case this is a
@@ -337,7 +357,7 @@ void StatisticsLogger::Run()
          , (int)incomingMessageCount_, (int)intervalMessages, int(updateRate + 1)
          , (int)totalSubscriptions_, (int)totalSubscriptionsSucceeded_
          , (int)totalSubscriptionsFailed_, (int)requestQueueLength_, (int)pendingOpens_, (int)openItems_ );
-        
+
         logFile << buffer << endl;
         logFile.close();
 

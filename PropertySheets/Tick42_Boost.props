@@ -3,22 +3,6 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
 
-  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='90' ">
-    <PlatformVersionExt>9.0</PlatformVersionExt>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='100' ">
-    <PlatformVersionExt>10.0</PlatformVersionExt>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='110' ">
-    <PlatformVersionExt>11.0</PlatformVersionExt>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='120' ">
-    <PlatformVersionExt>12.0</PlatformVersionExt>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(PlatformToolsetVersion)'=='140' ">
-    <PlatformVersionExt>14.0</PlatformVersionExt>
-  </PropertyGroup>
-
   <ItemDefinitionGroup Condition="'$(TICK42_BOOST)'!='' And '$(Platform)'=='Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(TICK42_BOOST);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

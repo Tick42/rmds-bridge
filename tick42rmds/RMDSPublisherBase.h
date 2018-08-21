@@ -37,52 +37,67 @@ class RMDSPublisherBase
 public:
     RMDSPublisherBase(UPATransportNotifier &notify)
         : notify_(notify)
-    {}
+    { }
+
+    virtual ~RMDSPublisherBase()
+    { }
 
     virtual bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string &transport_name) = 0;
     virtual bool Start() = 0;
 
-    RMDSPublisherSource *GetSource()
+    RMDSPublisherSource* GetSource() const
     {
         return publisherSource_;
     }
 
-    // get the RsslChannel. 
-    // todo refactor. 
-    virtual RsslChannel * GetChannel() = 0;
+    // get the RsslChannel.
+    // todo refactor.
+    virtual RsslChannel* GetChannel() = 0;
 
-    mamaQueue RequestQueue()
+    mamaQueue RequestQueue() const
     {
         return upaPublisherQueue_;
     }
 
     // get hold of the subscriber. This is where new item messages get sent to and where we get dictionaries and field map from
-    RMDSSubscriber_ptr_t Subscriber() const { return subscriber_; }
+    RMDSSubscriber_ptr_t Subscriber() const
+    {
+        return subscriber_;
+    }
 
-    virtual bool SolicitedMessages()
+    virtual bool SolicitedMessages() const
     {
         return true;
     }
 
-    UpaMamaFieldMap_ptr_t FieldMap() {return UpaMamaFieldMap_;}
+    const UpaMamaFieldMap_ptr_t& FieldMap() const
+    {
+        return UpaMamaFieldMap_;
+    }
+
+    unsigned int MaxMessageSize() const
+    {
+        return maxMessageSize_;
+    }
 
 protected:
     // transport notification callbacks
     UPATransportNotifier notify_;
 
-    RMDSPublisherSource *publisherSource_;    
+    RMDSPublisherSource *publisherSource_;
 
     // access to mama
     mamaBridge bridge_;
     mamaTransport transport_;
     std::string transportName_;
+    unsigned int maxMessageSize_;
 
     mamaQueue upaPublisherQueue_;
 
     // subscriber we send new item requests to and get dictionary from
     RMDSSubscriber_ptr_t subscriber_;
 
-    boost::shared_ptr<UpaMamaFieldMapHandler_t> UpaMamaFieldMap_;
+    UpaMamaFieldMap_ptr_t UpaMamaFieldMap_;
 
     virtual bool createUpaMamaFieldMap();
 

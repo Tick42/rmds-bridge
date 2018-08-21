@@ -71,7 +71,7 @@ mama_status
    sprintf(buff,"******* Initializing transport %s on RMDS bridge %s : version %s *******\n", name
       , tick42rmdsBridge_getName(), tick42rmdsBridge_getVersion());
 #endif // ENABLE_TICK42_ENHANCED
-   
+
    // make sure it  prints this unless the logging is very restricted
    mama_log(MAMA_LOG_LEVEL_WARN, buff);
 
@@ -80,12 +80,12 @@ mama_status
    //
    // this is not as easy as it might appear because all the properties have valid defaults so in principal one could define a transpoprt with no properties
    //
-   // but we can rely on the fact that if the hosts property is missing or empty this only makes sense for an interactive publisher 
+   // but we can rely on the fact that if the hosts property is missing or empty this only makes sense for an interactive publisher
    // so the transport.<tport_name>.source property must be set
    TransportConfig_t config(name);
 
-   string hosts = config.getString("hosts");
-   string source = config.getString("source");
+   std::string hosts = config.getString("hosts");
+   std::string source = config.getString("source");
 
    if(hosts.empty() && source.empty())
    {
@@ -103,14 +103,14 @@ mama_status
    }
 
    RMDSBridgeImpl*  upaBridge = NULL;
-   if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &upaBridge))) 
+   if (MAMA_STATUS_OK != (status = mamaBridgeImpl_getClosure((mamaBridge) bridgeImpl, (void**) &upaBridge)))
    {
       mama_log (MAMA_LOG_LEVEL_ERROR, "tick4rmdsBridgeMamaTransport_create(): Could not get UPA bridge object");
       return status;
    }
 
 
-   gNotify = new UPATransportNotifier(mamaTport); 
+   gNotify = new UPATransportNotifier(mamaTport);
 
 
    // create out transport implemententation and hook it to the mama object
@@ -143,7 +143,7 @@ mama_status
    RMDSTransportBridge * bridgeTransport = (RMDSTransportBridge *)transport;
    bridgeTransport->Stop();
 
-   if (gNotify) 
+   if (gNotify)
    {
       delete gNotify;
       gNotify = NULL;
@@ -339,7 +339,7 @@ mama_status
    return MAMA_STATUS_NOT_IMPLEMENTED;
 }
 
-extern mama_status 
+extern mama_status
    tick42rmdsBridgeMamaTransport_forceClientDisconnect (transportBridge* transports,
    int              numTransports,
    const char*      ipAddress,
@@ -394,7 +394,7 @@ mama_status RMDSTransportBridge::Start()
 
    if (started_)
    {
-      // its probably OK if we are already started 
+      // its probably OK if we are already started
       return MAMA_STATUS_OK;
    }
 
@@ -424,9 +424,9 @@ mama_status RMDSTransportBridge::Start()
 #ifdef ENABLE_TICK42_ENHANCED
        // Additional functionality provided by the enhanced bridge is available as part of a a support package
        // please contact support@tick42.com
-       subscriber_ = boost::shared_ptr<RMDSSubscriber> (new T42Enh_RMDSSubscriber(*gNotify)); 
+       subscriber_ = boost::shared_ptr<RMDSSubscriber> (new T42Enh_RMDSSubscriber(*gNotify));
 #else
-       subscriber_ = boost::shared_ptr<RMDSSubscriber> (new RMDSSubscriber(*gNotify)); 
+       subscriber_ = boost::shared_ptr<RMDSSubscriber> (new RMDSSubscriber(*gNotify));
 #endif    //ENABLE_TICK42_ENHANCED
 
        subscriber_->Initialize((mamaBridge)bridgeImpl, transport_, name_);
@@ -481,33 +481,40 @@ mama_status RMDSTransportBridge::Stop()
 {
    mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s)\n", name_.c_str());
 
-   // stop all the services
-   stopped_ = true;
-
+   if (!stopped_)
    {
-      T42Lock lock(&cs_);
-      if (subscriber_)
-      {
-         subscriber_->Stop();
-         mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s) - subscriber stopped\n", name_.c_str());
-      }
+       // stop all the services
+       stopped_ = true;
+
+       {
+           T42Lock lock(&cs_);
+
+           if (subscriber_)
+           {
+              subscriber_->Stop();
+              mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s) - subscriber stopped\n", name_.c_str());
+           }
+       }
+
+       if (!subscriber_->Done())
+       {
+           mama_log(MAMA_LOG_LEVEL_ERROR, "RMDSTransportBridge::Stop - subscriber didn't finished");
+       }
+       subscriber_.reset();
+
+       // shutdown rssl
+       rsslUninitialize();
+
+       mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s) - rssl uninitialised\n", name_.c_str());
    }
 
-   // shutdown rssl
-   rsslUninitialize();
-
-   subscriber_.reset();
-
-   mama_log (MAMA_LOG_LEVEL_NORMAL, "RMDSTransportBridge::Stop(%s) - rssl uninitialised\n", name_.c_str());
-
-
-   return MAMA_STATUS_OK;   
+   return MAMA_STATUS_OK;
 }
 
 void RMDSTransportBridge::setDictionaryReply( boost::shared_ptr<DictionaryReply_t> dictionaryReply )
 {
-   DictionaryReply_ = dictionaryReply; 
-   
+   DictionaryReply_ = dictionaryReply;
+
    T42Lock lock(&cs_);
    if (subscriber_)
    {
@@ -522,17 +529,30 @@ mama_status RMDSTransportBridge::Pause()
    // stop the statistics logger thread now, in case we are shutting down the whole bridge
    StatisticsLogger::PauseUpdates();
 
-   T42Lock lock(&cs_);
-   if (subscriber_)
+   if (paused_ ||
+       stopped_)
    {
-      subscriber_->PauseUpdates();
+       // the transport is already stopped or paused
+       // nothing to do
    }
-   paused_ = true;
+   else
+   {
+       T42Lock lock(&cs_);
+       // only when the transport is not yet stopped or paused
+       if (subscriber_)
+       {
+          subscriber_->PauseUpdates();
+       }
+
+       paused_ = true;
+   }
+
    return MAMA_STATUS_OK;
 }
 
 mama_status RMDSTransportBridge::Resume()
 {
+   T42Lock lock(&cs_);
    t42log_info("RMDSTransportBridge::Resume: stopped=%d paused=%d", stopped_, paused_);
 
    if (stopped_)
@@ -545,9 +565,9 @@ mama_status RMDSTransportBridge::Resume()
       // Treat the first Resume() just like a Start()
       return Start();
    }
+
    paused_ = false;
-   
-   T42Lock lock(&cs_);
+
    if (subscriber_)
    {
       subscriber_->ResumeUpdates();
@@ -559,7 +579,6 @@ mama_status RMDSTransportBridge::Resume()
 
 void RMDSTransportBridge::SendSnapshotRequest( SnapshotReply_ptr_t snapReply )
 {
-
     // should lock this to avoid shutdown issues
     T42Lock lock(&cs_);
     if (subscriber_)

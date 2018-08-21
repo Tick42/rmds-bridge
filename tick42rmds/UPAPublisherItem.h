@@ -3,8 +3,6 @@
 #include "rmdsBridgeTypes.h"
 #include "RMDSSubscriber.h"
 
-using namespace std;
-
 typedef struct PubFieldListClosure
 {
     UPAPublisherItem_ptr_t publisher;
@@ -19,7 +17,7 @@ class UPAPublisherItem
 public:
 
     // static factory
-    static UPAPublisherItem_ptr_t CreatePublisherItem(RsslChannel * chnl, RsslUInt32 streamId, string source, string symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher );
+    static UPAPublisherItem_ptr_t CreatePublisherItem(RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher );
 
     virtual bool Initialise(UPAPublisherItem_ptr_t ptr,  RMDSPublisherBase * publisher );
     bool Shutdown()
@@ -43,7 +41,7 @@ public:
     // returns true if item should be letp open
     bool RemoveChannel(RsslChannel * chnl, RsslUInt32 streamId);
 
-    static RsslRet SendItemRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslUInt8 domainType, RsslStateCodes code, std::string stateText,  RsslBool isPrivateStream);
+    static RsslRet SendItemRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslUInt8 domainType, RsslStateCodes code, const std::string& stateText,  RsslBool isPrivateStream, unsigned int maxMessageSize);
 
     void ProcessRecapMessage( mamaMsg msg );
     mama_status PublishMessage(mamaMsg msg , std::string& errorText);
@@ -58,14 +56,14 @@ public:
     RsslRealHints MamaPrecisionToRsslHint(mamaPricePrecision p,  uint16_t fid);
 
 private:
-    UPAPublisherItem(RsslChannel * chnl, RsslUInt32 streamId,  string source, string symbol, RsslUInt32 serviceId);
+    UPAPublisherItem(RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId);
 
     UPAPublisherItem_ptr_t sharedptr_;
 
     // manage multiplex onto several channels
     // If we have multiple connections then we may get the same item connected on multiple channels
 
-    // when we add a channel to the item then we require a refresh to be sent on that channel. So put channels on pendingRefreshist until there 
+    // when we add a channel to the item then we require a refresh to be sent on that channel. So put channels on pendingRefreshist until there
     // has been a refresh sent. Then move them onto the update list
 
     // we need to maintain a stream list per channel as there might be more than one request for the same thing on different streams
@@ -92,6 +90,8 @@ private:
     mamaDictionary mamaDictionary_;
     UpaMamaFieldMap_ptr_t upaFieldMap_;
     RsslDataDictionary * rmdsDictionary_;
+
+    unsigned int maxMessageSize_;
 
     // flag used to set Rssl message flags. messages from interactive publisher are unsolicited
     bool solicitedMessages_;

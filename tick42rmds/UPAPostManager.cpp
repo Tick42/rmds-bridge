@@ -44,7 +44,7 @@ RsslUInt32 UPAPostManager::AddPost(UPABridgePoster_ptr_t poster, const Publisher
     return ret;
 }
 
-bool UPAPostManager::RemovePost(RsslUInt32 AckId, UPABridgePoster_ptr_t & poster, PublisherPostMessageReply *& reply)
+bool UPAPostManager::RemovePost(RsslUInt32 AckId, UPABridgePoster_ptr_t & poster, PublisherPostMessageReply_ptr_t& reply)
 {
     bool ret = false;
     // search the list for the post ID

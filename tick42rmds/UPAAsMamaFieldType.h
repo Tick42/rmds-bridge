@@ -26,9 +26,13 @@
 #ifndef __UPAASMAMAFIELDTYPE_H__
 #define __UPAASMAMAFIELDTYPE_H__
 
+#include <string>
+#include <rtr/rsslTypes.h>
+#include <mama/types.h>
+
 #include "UPAAsMamaFieldTypeEnum.h"
 
-bool UpaToMamaFieldType(RsslUInt8 rwfType, RsslUInt8 mfType, UpaAsMamaFieldType &to);
+bool UpaToMamaFieldType(RsslUInt8 rwfType, RsslUInt8 mfType, UpaAsMamaFieldType& to);
 
 /*
  *  MamaField_t encapsulate one OpenMAMA field information (name, FID & type)
@@ -37,9 +41,9 @@ bool UpaToMamaFieldType(RsslUInt8 rwfType, RsslUInt8 mfType, UpaAsMamaFieldType 
 
 struct MamaField_t
 {
-    mama_fid_t             mama_fid;
-    UpaAsMamaFieldType     mama_field_type;
-    std::string            mama_field_name; 
+    mama_fid_t          mama_fid;
+    UpaAsMamaFieldType  mama_field_type;
+    std::string         mama_field_name;
     bool                has_no_mama_fid;
 };
 
