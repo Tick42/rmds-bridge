@@ -38,13 +38,9 @@ class UPAItem
 {
 
 public:
-   UPAItem(RsslUInt32 streamId, UPASubscription_ptr_t sub);
+   UPAItem(RsslUInt32 streamId, const UPASubscription_ptr_t& sub);
 
-   ~UPAItem()
-   {
-   }
-
-   UPASubscription_ptr_t Subscription() { return sub_; }
+   const UPASubscription_ptr_t& Subscription() { return sub_; }
 
 private:
 
@@ -64,7 +60,7 @@ public:
    ~UPAStreamManager();
 
    // subscriber items
-   RsslUInt32 AddItem(UPASubscription_ptr_t sub);
+   RsslUInt32 AddItem(const UPASubscription_ptr_t& sub);
 
    UPAItem_ptr_t GetItem(RsslUInt32 streamId);
 
@@ -81,7 +77,7 @@ public:
    {
       utils::thread::T42Lock lock(&streamLock_);
 
-      pendingItems_.insert(sub);
+      pendingItems_.emplace(sub);
    }
 
    bool removePendingItem(UPASubscription *sub)
@@ -92,8 +88,8 @@ public:
       pending_items_t::iterator it = pendingItems_.find(sub);
       if (pendingItems_.end() != it)
       {
-           found = true;
-         pendingItems_.erase(it);
+          found = true;
+          pendingItems_.erase(it);
       }
       return found;
    }
@@ -101,39 +97,39 @@ public:
    // The number of items that have been opened
    RsslUInt64 OpenItems() const
    {
-      utils::thread::T42Lock lock(&streamLock_);
-      return  openItems_;
+       utils::thread::T42Lock lock(&streamLock_);
+       return openItems_;
    }
 
    RsslUInt64 IncOpenItems()
    {
-      utils::thread::T42Lock lock(&streamLock_);
-      return ++openItems_;
+       utils::thread::T42Lock lock(&streamLock_);
+       return ++openItems_;
    }
 
    RsslUInt64 DecOpenItems()
    {
-      utils::thread::T42Lock lock(&streamLock_);
-      return --openItems_;
+       utils::thread::T42Lock lock(&streamLock_);
+       return --openItems_;
    }
 
    // The number of items that are waiting to be closed
    RsslUInt64 PendingCloses() const
    {
-      utils::thread::T42Lock lock(&streamLock_);
-      return  pendingCloses_;
+       utils::thread::T42Lock lock(&streamLock_);
+       return pendingCloses_;
    }
 
    RsslUInt64 IncPendingCloses()
    {
-      utils::thread::T42Lock lock(&streamLock_);
-      return ++pendingCloses_;
+       utils::thread::T42Lock lock(&streamLock_);
+       return ++pendingCloses_;
    }
 
    RsslUInt64 DecPendingCloses()
    {
-      utils::thread::T42Lock lock(&streamLock_);
-      return --pendingCloses_;
+       utils::thread::T42Lock lock(&streamLock_);
+       return --pendingCloses_;
    }
 
 private:
@@ -156,3 +152,4 @@ private:
 };
 
 #endif //__UPASTREAMMANAGER_H__
+

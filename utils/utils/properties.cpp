@@ -26,9 +26,9 @@
 #include <utils/properties.h>
 #include <utils/t42log.h>
 
-namespace utils { 
+namespace utils {
 
-bool getProperty(const std::string &property_name, std::string &value)
+bool getProperty(const std::string& property_name, std::string& value)
 {
     // First time or when no default value was given in the past
     const char* property = properties_Get( mamaInternal_getProperties(), property_name.c_str());
@@ -36,23 +36,23 @@ bool getProperty(const std::string &property_name, std::string &value)
     if (property)
     {
         value = property;
-        t42log_debug("getProperty: property %s [%s]", property_name.c_str(), value.c_str()); 
+        t42log_debug("getProperty: property %s [%s]", property_name.c_str(), value.c_str());
     }
     else
-        t42log_debug("getProperty: Could not find property %s!", property_name.c_str()); 
-    
+        t42log_debug("getProperty: Could not find property %s!", property_name.c_str());
+
     return property != 0;
 }
 
-bool propertyExists(const std::string &property_name)
+bool propertyExists(const std::string& property_name)
 {
     return properties_Get( mamaInternal_getProperties(), property_name.c_str()) ? true : false;
 }
 
-bool propertyAsBool(std::string value)
+bool propertyAsBool(const std::string& value)
 {
-    // OpenMAMA parse as true value only the following values "1/y/Y/yes/YES/true/TRUE/t/T" all 
-    // the rest is considered as false and no warning will be issued for weird values that are 
+    // OpenMAMA parse as true value only the following values "1/y/Y/yes/YES/true/TRUE/t/T" all
+    // the rest is considered as false and no warning will be issued for weird values that are
     // not expected as false values to the reasonable reader of the properties file.
     return properties_GetPropertyValueAsBoolean(value.c_str()) ? true : false;
 }

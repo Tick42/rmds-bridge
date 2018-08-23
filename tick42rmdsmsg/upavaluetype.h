@@ -40,7 +40,7 @@
 struct mama_datetime
 {
     uint64_t dt;
-    friend std::ostream & operator<<(std::ostream& out, const mama_datetime & val);    
+    friend std::ostream & operator<<(std::ostream& out, const mama_datetime & val);
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -49,33 +49,32 @@ std::ostream& operator<<(std::ostream& out, const MamaMsgVectorWrapper_ptr_t v);
 
 //////////////////////////////////////////////////////////////////////////
 //
-                                                               //which()
-typedef boost::variant  <int8_t                        //0   | MAMA_FIELD_TYPE_I8
-                        ,uint8_t                             //1   | MAMA_FIELD_TYPE_U8
-                        ,int16_t                             //2   | MAMA_FIELD_TYPE_I16
-                        ,uint16_t                             //3   | MAMA_FIELD_TYPE_U16
-                        ,int32_t                             //4    | MAMA_FIELD_TYPE_I32
-                        ,uint32_t                             //5    | MAMA_FIELD_TYPE_U32
-                        ,int64_t                             //6    | MAMA_FIELD_TYPE_I64
-                        ,uint64_t                             //7    | MAMA_FIELD_TYPE_U64
-                        ,float                                 //8    | MAMA_FIELD_TYPE_F32
-                        ,double                                //9    | MAMA_FIELD_TYPE_F64
-                        ,MamaDateTimeWrapper_ptr_t    //10    | MAMA_FIELD_TYPE_TIME
-                        ,MamaPriceWrapper_ptr_t        //11    | MAMA_FIELD_TYPE_PRICE
+                                                        //which()
+typedef boost::variant  <int8_t                         //0     | MAMA_FIELD_TYPE_I8
+                        ,uint8_t                        //1     | MAMA_FIELD_TYPE_U8
+                        ,int16_t                        //2     | MAMA_FIELD_TYPE_I16
+                        ,uint16_t                       //3     | MAMA_FIELD_TYPE_U16
+                        ,int32_t                        //4     | MAMA_FIELD_TYPE_I32
+                        ,uint32_t                       //5     | MAMA_FIELD_TYPE_U32
+                        ,int64_t                        //6     | MAMA_FIELD_TYPE_I64
+                        ,uint64_t                       //7     | MAMA_FIELD_TYPE_U64
+                        ,float                          //8     | MAMA_FIELD_TYPE_F32
+                        ,double                         //9     | MAMA_FIELD_TYPE_F64
+                        ,MamaDateTimeWrapper_ptr_t      //10    | MAMA_FIELD_TYPE_TIME
+                        ,MamaPriceWrapper_ptr_t         //11    | MAMA_FIELD_TYPE_PRICE
                         ,MamaMsgPayloadWrapper_ptr_t    //12    | ?
-                        ,MamaMsgVectorWrapper_ptr_t    //13    | ?
-                        ,std::string                        //14    | MAMA_FIELD_TYPE_STRING
-                        ,bool                                //15    | MAMA_FIELD_TYPE_BOOL
-                        ,char                                //16    | MAMA_FIELD_TYPE_CHAR
-                        ,MamaOpaqueWrapper_ptr_t            // 17    | MAMA_FIELD_TYPE_OPAQUE
+                        ,MamaMsgVectorWrapper_ptr_t     //13    | ?
+                        ,std::string                    //14    | MAMA_FIELD_TYPE_STRING
+                        ,bool                           //15    | MAMA_FIELD_TYPE_BOOL
+                        ,char                           //16    | MAMA_FIELD_TYPE_CHAR
+                        ,MamaOpaqueWrapper_ptr_t        //17    | MAMA_FIELD_TYPE_OPAQUE
                         > ValueType_t;
-                        
+
 /*************************************************************************************************
  *                                     ValueTypeToString                                         *
  *************************************************************************************************/
 struct ValueTypeToString : public boost::static_visitor<std::string>
 {
-
     inline std::string operator()(int8_t value) const
     {
         std::string result;
@@ -166,29 +165,29 @@ struct ValueTypeToString : public boost::static_visitor<std::string>
      * The timezone must to set to UTC if calling this from multiple
      * threads concurrently to avoid contention in strftime.
      */
-    inline std::string operator()(MamaDateTimeWrapper_ptr_t value) const
+    inline std::string operator()(const MamaDateTimeWrapper_ptr_t& value) const
     {
         char buf[56]={0};
         memset (buf, 0, sizeof(buf));
         mamaDateTime_getAsString(value->getMamaDateTime(),buf, sizeof(buf));
         return buf;
     }
-    inline std::string operator()(MamaPriceWrapper_ptr_t value) const
+    inline std::string operator()(const MamaPriceWrapper_ptr_t& value) const
     {
         char buf[56]={0};
         memset (buf, 0, sizeof(buf));
         mamaPrice_getAsString(value->getMamaPrice(),buf,sizeof(buf));
         return buf;
     }
-    inline std::string operator()(MamaMsgPayloadWrapper_ptr_t value) const
+    inline std::string operator()(const MamaMsgPayloadWrapper_ptr_t& value) const
     {
         return "MamaMsgPayload_N/A";
     }
-    inline std::string operator()(MamaMsgVectorWrapper_ptr_t value) const
+    inline std::string operator()(const MamaMsgVectorWrapper_ptr_t& value) const
     {
         return "MamaMsgVector_N/A";
     }
-    inline std::string operator()(std::string value) const
+    inline std::string operator()(const std::string& value) const
     {
         return value;
     }
@@ -199,11 +198,12 @@ struct ValueTypeToString : public boost::static_visitor<std::string>
     inline std::string operator()(char value) const
     {
         char buf [2] = {0};
-        buf[0]=value; 
+        buf[0]=value;
         buf[1]=0;
         return buf;
     }
-    inline std::string operator()(MamaOpaqueWrapper_ptr_t value) const
+
+    inline std::string operator()(const MamaOpaqueWrapper_ptr_t& value) const
     {
         return "MamaOpaqueWrapper_ptr_t";
     }

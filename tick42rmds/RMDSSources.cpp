@@ -33,7 +33,6 @@
 
 #include <utils/t42log.h>
 
-using namespace std;
 using namespace utils::thread;
 
 //////////////////////////////////////////////////////////////////////////
@@ -50,7 +49,7 @@ RMDSSources::RMDSSources()
 //////////////////////////////////////////////////////////////////////////
 // The default factory instantiates an RMDSSource object
 //
-RMDSSource_ptr_t RMDSSources::DefaultFactory(RsslUInt64 keyId, string keyName, UPAConsumer_ptr_t consumer)
+RMDSSource_ptr_t RMDSSources::DefaultFactory(RsslUInt64 keyId, const std::string& keyName, const UPAConsumer_ptr_t& consumer)
 {
    return RMDSSource_ptr_t(new RMDSSource(keyName, keyId, consumer));
 }
@@ -58,7 +57,7 @@ RMDSSource_ptr_t RMDSSources::DefaultFactory(RsslUInt64 keyId, string keyName, U
 //////////////////////////////////////////////////////////////////////////
 // refresh an existing source
 //
-RMDSSource_ptr_t RMDSSources::UpdateOrCreate(RsslUInt64 keyId, string keyName, ServiceState value, SourceFactory Creator)
+RMDSSource_ptr_t RMDSSources::UpdateOrCreate(RsslUInt64 keyId, const std::string& keyName, ServiceState value, SourceFactory Creator)
 {
     // No check is done if keyName is already exists for a  different keyId, since it is guaranteed that in one session or running the numbers won't change.
     // However in case of such error the new keyId is mapped to the keyName and the old one is overridden.
@@ -74,25 +73,26 @@ RMDSSource_ptr_t RMDSSources::UpdateOrCreate(RsslUInt64 keyId, string keyName, S
 
     // and set the state
     s->SetState(value);
-   return s;
+
+    return s;
 }
 
-bool RMDSSources::Find(RsslUInt64 keyId, RMDSSource_ptr_t &value) const
+bool RMDSSources::Find(RsslUInt64 keyId, RMDSSource_ptr_t& value) const
 {
     services_t::const_iterator it = servicesMap_.find(keyId);
-    if (it != servicesMap_.end()) 
+    if (it != servicesMap_.end())
         value = it->second;
     return it != servicesMap_.end();
 }
 
 
-bool RMDSSources::Find(string keyName, RMDSSource_ptr_t &value) const 
-    {
-        ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
-        if (itId == serviceNameMap_.end()) 
-            return false;
-        return Find(itId->second, value);
-    }
+bool RMDSSources::Find(const std::string& keyName, RMDSSource_ptr_t& value) const
+{
+    ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
+    if (itId == serviceNameMap_.end())
+        return false;
+    return Find(itId->second, value);
+}
 
 
 bool RMDSSources::Exists(RsslUInt64 keyId) const
@@ -101,15 +101,15 @@ bool RMDSSources::Exists(RsslUInt64 keyId) const
     return it != servicesMap_.end();
 }
 
-bool RMDSSources::Exists(string keyName) const 
+bool RMDSSources::Exists(const std::string& keyName) const
 {
     ServiceNameMap::const_iterator itId = serviceNameMap_.find(keyName);
-    if (itId == serviceNameMap_.end()) 
+    if (itId == serviceNameMap_.end())
         return false;
     return Exists(itId->second);
 }
 
-void RMDSSources::Initialise(UPAConsumer_ptr_t consumer)
+void RMDSSources::Initialise(const UPAConsumer_ptr_t& consumer)
 {
    consumer_ = consumer;
 
@@ -186,7 +186,7 @@ void RMDSSources::ResumeUpdates()
 //////////////////////////////////////////////////////////////////////////
 // Snapshot the list of services and their current status
 //
-size_t RMDSSources::SnapshotNames(service_snapshot_t &names)
+size_t RMDSSources::SnapshotNames(service_snapshot_t& names)
 {
    names.clear();
    for (services_t::iterator itSources = servicesMap_.begin();

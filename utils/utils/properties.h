@@ -34,13 +34,12 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/type_traits/is_unsigned.hpp>
 #include <mama/mama.h>
-#include <utils/properties.h>
 #include "utils/t42log.h"
 
-namespace utils { 
+namespace utils {
 
 // Helper templates utils for lexical_cast to handle unsigned cast from string so when there is a negative number it should throw bad_lexical_cast
-// Please see boost FAQ for more information why negative number do cast "correctly" as 2 complements to unsigned 
+// Please see boost FAQ for more information why negative number do cast "correctly" as 2 complements to unsigned
     template <bool is_unsigned>
     struct unsigned_checker
     {
@@ -72,11 +71,11 @@ namespace utils {
  * @param: value is the property if exist
  * @return: true if property exists
  */
-bool getProperty(const std::string &property_name, std::string &value);
+bool getProperty(const std::string& property_name, std::string& value);
 
-bool propertyExists(const std::string &property_name);
+bool propertyExists(const std::string& property_name);
 
-bool propertyAsBool(std::string value);
+bool propertyAsBool(const std::string& value);
 
 class properties
 {
@@ -120,7 +119,7 @@ public:
     {
         std::string tmpValue;
         if (!getProperty(name, tmpValue))
-        {    
+        {
             std::stringstream os;
             os << "properties::get Property [" << name << "] defaults to: [" << std::string((default_value) ? "true" : "false")  << "]";
             t42log_debug ( os.str().c_str());
@@ -135,14 +134,14 @@ public:
         MamaLogLevel result;
         std::string tmpValue;
         if (!getProperty(name, tmpValue))
-        {    
+        {
             std::stringstream os;
             os << "properties::get Property [" << name << "] defaults to: [" << mama_logLevelToString(default_value)  << "]";
             t42log_debug ( os.str().c_str());
             return default_value;
         }
         if (!mama_tryStringToLogLevel(tmpValue.c_str(), &result))
-        {    
+        {
             std::stringstream os;
             os << "Could not convert property value for " << name << "] defaults to: [" << "] defaults to: [" << mama_logLevelToString(default_value)  << "]";
             t42log_warn ( os.str().c_str());
@@ -155,7 +154,7 @@ public:
     {
         std::string result;
         if (!getProperty(name, result))
-        {    
+        {
             std::stringstream os;
             os << "properties::get Property [" << name << "] defaults to: [" << default_value << "]";
             t42log_debug ( os.str().c_str());
@@ -179,6 +178,6 @@ public:
     }
 };
 
-} /*namespace utils*/ 
+} /*namespace utils*/
 
 #endif //__UTILS_GLOBAL_PROPERTIES_H__

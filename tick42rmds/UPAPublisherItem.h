@@ -19,7 +19,7 @@ public:
     // static factory
     static UPAPublisherItem_ptr_t CreatePublisherItem(RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher );
 
-    virtual bool Initialise(UPAPublisherItem_ptr_t ptr,  RMDSPublisherBase * publisher );
+    virtual bool Initialise(const UPAPublisherItem_ptr_t& ptr,  RMDSPublisherBase * publisher );
     bool Shutdown()
     {
         sharedptr_.reset();
@@ -28,20 +28,20 @@ public:
 
     virtual ~UPAPublisherItem();
 
-    UPAPublisherItem_ptr_t Shared_ptr()
+    const UPAPublisherItem_ptr_t& Shared_ptr() const
     {
         return sharedptr_;
     }
 
-    std::string Symbol() const { return symbol_; }
-    std::string Source() const { return source_; }
+    const std::string& Symbol() const { return symbol_; }
+    const std::string& Source() const { return source_; }
 
     void AddChannel(RsslChannel * chnl, RsslUInt32 streamId);
 
     // returns true if item should be letp open
     bool RemoveChannel(RsslChannel * chnl, RsslUInt32 streamId);
 
-    static RsslRet SendItemRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslUInt8 domainType, RsslStateCodes code, const std::string& stateText,  RsslBool isPrivateStream, unsigned int maxMessageSize);
+    static RsslRet SendItemRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslUInt8 domainType, RsslStateCodes code, const std::string& stateText, RsslBool isPrivateStream, unsigned int maxMessageSize);
 
     void ProcessRecapMessage( mamaMsg msg );
     mama_status PublishMessage(mamaMsg msg , std::string& errorText);
@@ -76,7 +76,7 @@ private:
         StreamList_t refreshStreamList_;
     } UpaChannel_t;
 
-    typedef std::map<RsslChannel*, UpaChannel_t *> ChannelMap_t;
+    typedef utils::collection::unordered_map<RsslChannel*, UpaChannel_t *> ChannelMap_t;
     ChannelMap_t channelMap_;
 
     std::string symbol_;

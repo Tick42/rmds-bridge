@@ -70,23 +70,20 @@ protected:
     // We can reasonably use a nested map here because this is only accessed on new item and item close events, which are relatively infrequent
     //
     // these are also now used by on-stream posts so may want to consider a more efficient lookup
-    typedef std::map<RsslUInt32, UPAPublisherItem_ptr_t> ChannelStreamIdMap_t;
-    typedef struct  
+    typedef utils::collection::unordered_map<RsslUInt32, UPAPublisherItem_ptr_t> ChannelStreamIdMap_t;
+    typedef struct
     {
         RsslChannel * chnl_;
         ChannelStreamIdMap_t streamIdMap_;
-
     } ChannelDictionaryItem_t;
 
-    typedef std::map<RsslChannel *, ChannelDictionaryItem_t *> ChannelDictionary_t;
+    typedef utils::collection::unordered_map<RsslChannel *, ChannelDictionaryItem_t *> ChannelDictionary_t;
 
     ChannelDictionary_t channelDictionary_;
 
     RMDSPublisher * owner_;
 
 private:
-
-
         // rssl connection
     fd_set    readfds_;
     fd_set    exceptfds_;
@@ -124,7 +121,7 @@ private:
     // clear the connection struct
     void ResetClientConnection(UPAClientConnection_t * connection);
 
-    // Close the client connection 
+    // Close the client connection
     void ShutdownClientConnection(UPAClientConnection_t * connection);
 
     // close the rssl channel

@@ -28,15 +28,15 @@
 
 #include "msg.h"
 
-// Message types 
+// Message types
 
-typedef struct 
+typedef struct
 {
     std::string source_;
     std::string symbol_;
 } RMDSBridgeMsgReplyHandle_t;
 
-typedef struct 
+typedef struct
 {
     mamaMsg                     parent_;
     RMDSBridgeMsgType_t         msgType_;
@@ -45,13 +45,17 @@ typedef struct
 
     RMDSBridgeMsgReplyHandle_t    replyHandle_;
 
+    mutable utils::thread::lock_t refSync_;
+    size_t references_;
+    bool detached_;
+
 } RMDSBridgeMsgImpl_t;
 
- 
+
   /*=========================================================================
    =                        Recommended Functions                           =
    =========================================================================*/
- 
+
  mama_status
  tick42rmdsBridgeMamaMsg_create (msgBridge* msg, mamaMsg parent)
  {
@@ -82,13 +86,16 @@ typedef struct
      impl->replyHandle_.symbol_ = "";
      impl->sendSubject_ = "";
 
+     impl->references_ = 0;
+     impl->detached_ = false;
+
      /* Populate the msgBridge pointer with the implementation */
      *msg = (msgBridge) impl;
 
      return MAMA_STATUS_OK;
  }
 
- 
+
  mama_status
  tick42rmdsBridgeMamaMsg_destroy (msgBridge msg, int destroyMsg)
  {
@@ -101,8 +108,8 @@ typedef struct
 
      return MAMA_STATUS_OK;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_destroyMiddlewareMsg (msgBridge msg)
  {
@@ -110,14 +117,16 @@ typedef struct
      // The bridge message is never responsible for the memory associated with
      // the underlying middleware message (it's owned by publishers and
      // transports) so no need to do anything here
-     
+
     return MAMA_STATUS_OK;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_detach (msgBridge msg)
  {
+     RMDSBridgeMsgImpl_t* impl     = (RMDSBridgeMsgImpl_t*) msg;
+     impl->detached_ = true;
 
       //The bridge message is never responsible for the memory associated with
       //the underlying middleware message (it's owned by publishers and
@@ -125,8 +134,8 @@ typedef struct
 
     return MAMA_STATUS_OK;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_getPlatformError (msgBridge msg, void** error)
  {
@@ -137,21 +146,21 @@ typedef struct
      }
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsgImpl_setReplyHandle (msgBridge msg, void* result)
  {
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsgImpl_setReplyHandleAndIncrement (msgBridge msg, void* result)
  {
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
+
  int
  tick42rmdsBridgeMamaMsg_isFromInbox (msgBridge msg)
  {
@@ -166,13 +175,13 @@ typedef struct
 
      return 0;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_setSendSubject (msgBridge  msg,
                                  const char* symbol,
                                  const char* subject)
- { 
+ {
      RMDSBridgeMsgImpl_t* impl     = (RMDSBridgeMsgImpl_t*) msg;
      mama_status        status   = MAMA_STATUS_OK;
 
@@ -181,7 +190,7 @@ typedef struct
          return MAMA_STATUS_NULL_ARG;
      }
 
-      //Update the MAMA message with the send subject if it has a parent 
+      //Update the MAMA message with the send subject if it has a parent
      if (NULL != impl->parent_)
      {
          status = mamaMsg_updateString (impl->parent_,
@@ -191,8 +200,8 @@ typedef struct
      }
      return status;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_getNativeHandle (msgBridge msg, void** result)
  {
@@ -204,29 +213,29 @@ typedef struct
      *result = impl;
      return MAMA_STATUS_OK;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_duplicateReplyHandle (msgBridge msg, void** result)
  {
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_copyReplyHandle (void* src, void** dest)
  {
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsg_destroyReplyHandle (void* result)
  {
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaMsgImpl_setAttributesAndSecure (msgBridge msg, void* attributes, uint8_t secure)
  {
@@ -291,3 +300,64 @@ typedef struct
      return MAMA_STATUS_OK;
  }
 
+mama_status tick42rmdsBridgeMamaMsgImpl_increaseReferences(msgBridge msg)
+{
+    RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
+
+    if (NULL == impl)
+    {
+        return MAMA_STATUS_NULL_ARG;
+    }
+
+    utils::thread::T42Lock lock(&impl->refSync_);
+
+    ++ impl->references_;
+
+    return MAMA_STATUS_OK;
+}
+
+mama_status tick42rmdsBridgeMamaMsgImpl_decreaseReferences(msgBridge msg)
+{
+    RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
+
+    if (NULL == impl)
+    {
+        return MAMA_STATUS_NULL_ARG;
+    }
+
+    utils::thread::T42Lock lock(&impl->refSync_);
+
+    -- impl->references_;
+
+    return MAMA_STATUS_OK;
+}
+
+mama_status tick42rmdsBridgeMamaMsgImpl_getReferences(msgBridge msg, size_t& references)
+{
+    RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
+
+    if (NULL == impl)
+    {
+        return MAMA_STATUS_NULL_ARG;
+    }
+
+    utils::thread::T42Lock lock(&impl->refSync_);
+
+    references = impl->references_;
+
+    return MAMA_STATUS_OK;
+}
+
+mama_status tick42rmdsBridgeMamaMsgImpl_isDetached(msgBridge msg, bool& detached)
+{
+    RMDSBridgeMsgImpl_t*  impl   = (RMDSBridgeMsgImpl_t*) msg;
+
+    if (NULL == impl)
+    {
+        return MAMA_STATUS_NULL_ARG;
+    }
+
+    detached = impl->detached_;
+
+    return MAMA_STATUS_OK;
+}

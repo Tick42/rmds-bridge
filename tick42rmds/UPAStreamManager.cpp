@@ -45,7 +45,7 @@ inline RsslUInt32 StreamId2Index( RsslUInt32 streamId)
 void* UPAStreamManager::Track(void* p)
 {
     UPAStreamManager* s = (UPAStreamManager*) p;
-    StatisticsLogger_ptr_t statsLogger_ = StatisticsLogger::GetStatisticsLogger();
+    const StatisticsLogger_ptr_t& statsLogger_ = StatisticsLogger::GetStatisticsLogger();
     while (true)
     {
         sleep(10);
@@ -102,7 +102,7 @@ UPAStreamManager::~UPAStreamManager(void)
     delete [] ItemArray_;
 }
 
-RsslUInt32 UPAStreamManager::AddItem( UPASubscription_ptr_t sub )
+RsslUInt32 UPAStreamManager::AddItem(const UPASubscription_ptr_t& sub )
 {
     utils::thread::T42Lock lock(&streamLock_);
 
@@ -161,7 +161,7 @@ bool UPAStreamManager::ReleaseStreamId( RsslUInt32 streamId )
 
 
 
-UPAItem::UPAItem(RsslUInt32 streamId, UPASubscription_ptr_t sub )
+UPAItem::UPAItem(RsslUInt32 streamId, const UPASubscription_ptr_t& sub )
     : sub_(sub), itemName_(sub->Symbol()), streamId_(streamId)
 {
 

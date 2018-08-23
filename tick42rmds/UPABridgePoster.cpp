@@ -131,7 +131,7 @@ void UPABridgePublisher::raiseOnError(mama_status status, const char* info)
 // factory
 UPABridgePublisher_ptr_t UPABridgePoster::CreatePoster(const std::string & root, const std::string& sourceName,
    const std::string& symbol, mamaTransport transport, mamaPublisher parent,
-   const RMDSSubscriber_ptr_t& subscriber, const TransportConfig_t& config )
+   const RMDSSubscriber_ptr_t& subscriber, const TransportConfig_t& config)
 {
    UPABridgePoster* newPoster = new UPABridgePoster(root, sourceName, symbol, transport, parent, subscriber);
    UPABridgePoster_ptr_t p = UPABridgePoster_ptr_t(newPoster);
@@ -145,7 +145,6 @@ UPABridgePublisher_ptr_t UPABridgePoster::CreatePoster(const std::string & root,
 
 UPABridgePoster::UPABridgePoster(const std::string & root, const std::string& sourceName, const std::string& symbol,
       mamaTransport transport, mamaPublisher parent, const RMDSSubscriber_ptr_t& subscriber)
-
    : UPABridgePublisher(root, sourceName, symbol, transport, parent)
    , subscriber_(subscriber), gotServiceId_(false), lastMsgStatus_(MAMA_MSG_STATUS_OK)
    , useCallbacks_(false), sendAckMessages_(true), maxMessageSize_(Default_maxMessageSize)
@@ -165,12 +164,12 @@ void UPABridgePoster::Shutdown()
         inFlightPosts_.clear();
     }
 
-   sharedPtr_.reset();
+    sharedPtr_.reset();
 }
 
-bool UPABridgePoster::Initialise(const UPABridgePoster_ptr_t& shared_ptr, const TransportConfig_t& config)
+bool UPABridgePoster::Initialise(const UPABridgePoster_ptr_t& poster, const TransportConfig_t& config)
 {
-   sharedPtr_ = shared_ptr;
+   sharedPtr_ = poster;
 
    // Should we copy the Mama seqNum field?
    useSeqNum_ = config.getBool("useseqnum", Default_UseSeqNum);
@@ -448,7 +447,7 @@ bool UPABridgePoster::BuildPostMessage(RsslChannel * chnl, RsslBuffer* rsslMessa
 
    {
        utils::thread::T42Lock lock(&inFlightListLock_);
-       inFlightPosts_.push_back(postId);
+       inFlightPosts_.emplace_back(postId);
    }
    return true;
 }
@@ -565,9 +564,9 @@ void UPABridgePoster::PrintMsg(RsslBuffer* buffer)
 
 RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  PublisherPostMessageReply * reply)
 {
-   bool nak = false;
-   std::string nakText;
-   RsslUInt8 nakCode = RSSL_NAKC_NONE;
+    bool nak = false;
+    std::string nakText;
+    RsslUInt8 nakCode = RSSL_NAKC_NONE;
 
     // make sure the message is still in the inflight list
     RsslUInt32 id = msg->ackMsg.ackId;
@@ -591,92 +590,88 @@ RsslRet UPABridgePoster::ProcessAck(RsslMsg* msg, RsslDecodeIterator* dIter,  Pu
         }
     }
 
-
-
     if(!found)
     {
         // list is empty, the publisher has gone away
         return RSSL_RET_SUCCESS;
     }
 
-   const CommonFields &commonFields = UpaMamaCommonFields::CommonFields();
+    const CommonFields& commonFields = UpaMamaCommonFields::CommonFields();
 
-   // see if we have a nak code and extract it
-   if (  rsslAckMsgCheckHasNakCode(&msg->ackMsg))
-   {
-      // have a NAK code
+    // see if we have a nak code and extract it
+    if (  rsslAckMsgCheckHasNakCode(&msg->ackMsg))
+    {
+        // have a NAK code
 
-      nakCode = msg->ackMsg.nakCode;
-      if (nakCode != RSSL_NAKC_NONE)
-      {
+        nakCode = msg->ackMsg.nakCode;
+        if (nakCode != RSSL_NAKC_NONE)
+        {
+            nak = true;
+            // this is a nak so log as warning
+            if (rsslAckMsgCheckHasText(&msg->ackMsg))
+            {
+                nakText = std::string(msg->ackMsg.text.data, msg->ackMsg.text.length);
+            }
+        }
+    }
 
-         nak = true;
-         // this is a nak so log as warning
-         if (rsslAckMsgCheckHasText(&msg->ackMsg))
-         {
+    if (reply != 0 && reply->Inbox() != 0 && sendAckMessages_)
+    {
+        // build a message for the inbox
+        mamaMsg msg;
+        mamaMsg_createForPayload(&msg, MAMA_PAYLOAD_TICK42RMDS);
+        mamaMsg_addI32(msg,MamaFieldMsgType.mName, MamaFieldMsgType.mFid, MAMA_MSG_TYPE_SEC_STATUS);
+
+        mamaMsgStatus status = MAMA_MSG_STATUS_OK;
+        if (nakCode != RSSL_NAKC_NONE)
+        {
+            status = RsslNakCode2MamaMsgStatus(nakCode);
+        }
+
+        mamaMsg_addI32(msg, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, status);
+        mamaMsg_addString(msg, commonFields.wIssueSymbol.mama_field_name.c_str(), commonFields.wIssueSymbol.mama_fid, symbol_.c_str());
+        mamaMsg_addString(msg, commonFields.wSymbol.mama_field_name.c_str(), commonFields.wSymbol.mama_fid, symbol_.c_str());
+
+        rmdsMamaInbox_send(reply->Inbox(), msg);
+
+        mamaMsg_destroy(msg);
+    }
+    if (rsslAckMsgCheckHasNakCode(&msg->ackMsg))
+    {
+    // have a NAK code
+    if (msg->ackMsg.nakCode != RSSL_NAKC_NONE)
+    {
+        nak = true;
+        // this is a nak so log as warning
+        std::string nakText;
+
+        if (rsslAckMsgCheckHasText(&msg->ackMsg))
+        {
             nakText = std::string( msg->ackMsg.text.data, msg->ackMsg.text.length);
-         }
-      }
-   }
+        }
 
-   if (reply != 0 && reply->Inbox() != 0 && sendAckMessages_)
-   {
-      // build a message for the inbox
-      mamaMsg msg;
-      mamaMsg_createForPayload(&msg, MAMA_PAYLOAD_TICK42RMDS);
-      mamaMsg_addI32(msg,MamaFieldMsgType.mName, MamaFieldMsgType.mFid, MAMA_MSG_TYPE_SEC_STATUS);
+        mama_status status = MAMA_STATUS_OK;
+        if (nakCode != RSSL_NAKC_NONE)
+        {
+            status = RsslNakCode2MamaStatus(nakCode);
+        }
 
-      mamaMsgStatus status = MAMA_MSG_STATUS_OK;
-      if (nakCode != RSSL_NAKC_NONE)
-      {
-          status = RsslNakCode2MamaMsgStatus(nakCode);
-      }
-
-      mamaMsg_addI32(msg, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, status);
-      mamaMsg_addString(msg, commonFields.wIssueSymbol.mama_field_name.c_str(), commonFields.wIssueSymbol.mama_fid, symbol_.c_str());
-      mamaMsg_addString(msg, commonFields.wSymbol.mama_field_name.c_str(), commonFields.wSymbol.mama_fid, symbol_.c_str());
-
-      rmdsMamaInbox_send(reply->Inbox(), msg);
-
-      mamaMsg_destroy(msg);
-   }
-   if (  rsslAckMsgCheckHasNakCode(&msg->ackMsg))
-   {
-      // have a NAK code
-      if (msg->ackMsg.nakCode != RSSL_NAKC_NONE)
-      {
-         nak = true;
-         // this is a nak so log as warning
-         std::string nakText;
-
-         if (rsslAckMsgCheckHasText(&msg->ackMsg))
-         {
-            nakText = std::string( msg->ackMsg.text.data, msg->ackMsg.text.length);
-         }
-
-         mama_status status = MAMA_STATUS_OK;
-         if (nakCode != RSSL_NAKC_NONE)
-         {
-             status = RsslNakCode2MamaStatus(nakCode);
-         }
-
-         if (useCallbacks_)
-         {
+        if (useCallbacks_)
+        {
             raiseOnError(status, nakText.c_str());
-         }
+        }
 
-         t42log_warn("Received NAK for postid %d for %s : %s - NAK code is %d (%s)\n", msg->ackMsg.ackId, sourceName_.c_str(), symbol_.c_str(), msg->ackMsg.nakCode, nakText.c_str());
-      }
-   }
+        t42log_warn("Received NAK for postid %d for %s : %s - NAK code is %d (%s)\n", msg->ackMsg.ackId, sourceName_.c_str(), symbol_.c_str(), msg->ackMsg.nakCode, nakText.c_str());
+        }
+    }
 
-   if ( ! nak)
-   {
-      // was an ACK
+    if ( ! nak)
+    {
+        // was an ACK
+        t42log_debug("Received ACK for postid %d for %s : %s \n", msg->ackMsg.ackId, sourceName_.c_str(), symbol_.c_str());
+    }
 
-      t42log_debug("Received ACK for postid %d for %s : %s \n", msg->ackMsg.ackId, sourceName_.c_str(), symbol_.c_str());
-   }
-
-   return RSSL_RET_SUCCESS;
+    return RSSL_RET_SUCCESS;
 }
 
 mamaMsgStatus UPABridgePoster::RsslNakCode2MamaMsgStatus(RsslUInt8 nakCode)
@@ -778,9 +773,9 @@ mama_status UPABridgePoster::RsslNakCode2MamaStatus(RsslUInt8 nakCode)
 
 UPABridgePublisherItem_ptr_t UPABridgePublisherItem::CreatePublisherItem(const std::string & root, const std::string& sourceName, const std::string& symbol,
                                                                          mamaTransport transport, mamaPublisher parent,
-                                                                         const RMDSPublisherBase_ptr_t& RMDSPublisher, TransportConfig_t config, bool interactive )
+                                                                         const RMDSPublisherBase_ptr_t& RMDSPublisher, const TransportConfig_t& config, bool interactive)
 {
-   UPABridgePublisherItem* newItem = new UPABridgePublisherItem(root, sourceName, symbol, transport, parent, RMDSPublisher );
+   UPABridgePublisherItem* newItem = new UPABridgePublisherItem(root, sourceName, symbol, transport, parent, RMDSPublisher);
    UPABridgePublisherItem_ptr_t p = UPABridgePublisherItem_ptr_t(newItem);
    UPABridgePublisherItem_ptr_t ret = p;
 
@@ -795,9 +790,9 @@ void MAMACALLTYPE UPABridgePublisherItem::InboxOnMessageCB(mamaMsg msg, void *cl
    ((UPABridgePublisherItem*)closure)->InboxOnMessage(msg);
 }
 
-bool UPABridgePublisherItem::Initialise(const UPABridgePublisherItem_ptr_t& shared_ptr, const TransportConfig_t& config, bool interactive)
+bool UPABridgePublisherItem::Initialise(const UPABridgePublisherItem_ptr_t& publisherItem, const TransportConfig_t& config, bool interactive)
 {
-   sharedPtr_ = shared_ptr;
+   sharedPtr_ = publisherItem;
 
    RMDSPublisherSource *source = RMDSPublisher_->GetSource();
 
@@ -1134,3 +1129,4 @@ RsslRet UPABridgePoster::SetPostUserInfo(RsslPostUserInfo &postUserInfo)
    postUserInfo.postUserId = getpid();
    return RSSL_RET_SUCCESS;
 }
+

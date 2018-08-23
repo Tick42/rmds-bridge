@@ -37,10 +37,9 @@ class RMDSPublisherSource;
 class RMDSPublisher : public RMDSPublisherBase, public ConnectionListener
 {
 public:
-    RMDSPublisher(UPATransportNotifier &notify);
-    ~RMDSPublisher(void);
+    RMDSPublisher(const UPATransportNotifier& notify);
 
-    bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string &transport_name);
+    bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string& transport_name);
 
     virtual bool Start();
     const char *PortNumber()
@@ -64,12 +63,12 @@ public:
 
     void SentLoginResponse();
 
-    bool RequestItem(std::string source, std::string symbol, bool refresh);
+    bool RequestItem(const std::string& source, const std::string& symbol, bool refresh);
 
-    bool CloseItem(std::string source, std::string symbol);
+    bool CloseItem(const std::string& source, const std::string& symbol);
 
     // get hold of the subscriber. This is where new item messages get sent to and where we get dictionaries and field map from
-    RMDSSubscriber_ptr_t Subscriber() const { return subscriber_; }
+    const RMDSSubscriber_ptr_t& Subscriber() const { return subscriber_; }
 
     // interactive publisher doesn't really need to do this
     virtual RsslChannel *GetChannel()

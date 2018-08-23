@@ -26,6 +26,8 @@
 #ifndef __DICTIONARYREPLY_H__
 #define __DICTIONARYREPLY_H__
 
+#include <boost/shared_ptr.hpp>
+
 /*
  * DictionaryReply_t is an abstract class providing a Send method. Concrete instances wrap the response to a data dictionary subscription
 )
@@ -39,5 +41,7 @@ public:
         //printf("destructor DictionaryReply_t");
     } //<- in case there are some bound variables need cleaning.
 };
+
+typedef boost::shared_ptr<DictionaryReply_t> DictionaryReply_ptr_t;
 
 #endif //__DICTIONARYREPLY_H__

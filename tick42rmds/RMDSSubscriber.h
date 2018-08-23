@@ -59,10 +59,10 @@ class UPABridgePoster;
 class RMDSSubscriber : public LoginResponseListener, public ConnectionListener, public SourceDirectoryResponseListener, public DictionaryResponseListener
 {
 public:
-    RMDSSubscriber(UPATransportNotifier &notify);
+    RMDSSubscriber(const UPATransportNotifier& notify);
     virtual ~RMDSSubscriber();
 
-    bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string &transport_name);
+    bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string& transport_name);
 
     bool Start(const char* interfaceName, RsslConnectionTypes connType );
     bool Stop();
@@ -70,24 +70,23 @@ public:
 
     // accessors
     const std::string& GetTransportName() const {return transport_name_;}
-    char* InterfaceName() const {return interfaceName_;}
-    RsslConnectionTypes ConnType() const {return connType_;}
+    const char* InterfaceName() const;
+    RsslConnectionTypes ConnType() {return connType_;}
 
-    mamaQueue GetRequestQueue() const {return upaRequestQueue_;}
-
-    const TransportConfig_ptr_t& Config() const {return config_;}
-
-    UPAConsumer_ptr_t Consumer() const { return consumer_; }
-    void Consumer(UPAConsumer_ptr_t val) { consumer_ = val; }
+    const UPAConsumer_ptr_t& Consumer() const { return consumer_; }
+    void Consumer(const UPAConsumer_ptr_t& val) { consumer_ = val; }
 
     // subscription & snapshots
     virtual bool AddSubscription(subscriptionBridge* subscriber, const char* source, const char* symbol, mamaTransport transport, mamaQueue queue, mamaMsgCallbacks callback, mamaSubscription subscription, void* closure);
-    bool RemoveSubscription(RMDSBridgeSubscription * pSubscription);
-    void SendSnapshotRequest(SnapshotReply_ptr_t snap);
-    bool FindSubscription(const std::string & source, const std::string & symbol, UPASubscription_ptr_t & sub);
+    bool RemoveSubscription(RMDSBridgeSubscription* pSubscription);
+    void SendSnapshotRequest(const SnapshotReply_ptr_t& snap);
+    bool FindSubscription(const std::string& source, const std::string& symbol, UPASubscription_ptr_t& sub);
+
+    mamaQueue GetRequestQueue() const {return upaRequestQueue_;}
 
     // dictionary reply
-    void SetDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply);
+    void SetDictionaryReply(const DictionaryReply_ptr_t& dictionaryReply);
+    const TransportConfig_ptr_t& Config() const {return config_;}
 
     static void loginSuccessCallBack(RsslChannel* chnl);
 
@@ -114,8 +113,7 @@ public:
     void SetLive();
 
     // Sources
-
-    RsslUInt32 GetServiceId(const std::string & sourceName) const;
+    RsslUInt32 GetServiceId(const std::string& sourceName) const;
 
     // Listener functions
     virtual void LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, bool loginSucceeded, const char* extraInfo);
@@ -125,8 +123,8 @@ public:
     virtual void DictionaryUpdate(bool dictionaryComplete);
 
     //Dictionaries related (RMDS and UPA to MAMA)
-    const UPADictionary *GetUpaDictionary() const {return consumer_ ? (consumer_->UpaDictionary()) : NULL;}
-    UPADictionary *GetUpaDictionary() {return consumer_ ? (consumer_->UpaDictionary()) : NULL;}
+    const UPADictionary* GetUpaDictionary() const {return consumer_ ? (consumer_->UpaDictionary()) : NULL;}
+    UPADictionary* GetUpaDictionary() {return consumer_ ? (consumer_->UpaDictionary()) : NULL;}
     bool UpdateUpaMamaFieldMap();
 
     const UpaMamaFieldMap_ptr_t& FieldMap() const
@@ -152,6 +150,8 @@ public:
    // deal with any pending subscriptions
    void ProcessPendingSubcriptions();
 
+    mamaBridge Bridge() const;
+
 protected:
     UPAConsumer_ptr_t consumer_;
 
@@ -168,7 +168,7 @@ private:
     std::string transport_name_;
 
     // connection configuration
-    char* interfaceName_;
+    std::string interfaceName_;
     RsslConnectionTypes connType_;
 
     bool recovering_;
@@ -176,17 +176,15 @@ private:
 
     // upa consumer thread
     wthread_t hConsumerThread_;
-    //mutable utils::thread::lock_t cs_;
 
     mutable utils::thread::lock_t pendingListLock_;
-
 
     mamaQueue upaRequestQueue_;
 
     boost::shared_ptr<RMDSSources> sources_;
 
     //map for "special" subscribers for publisher new item requests
-    typedef std::map<std::string, mamaSubscription> PublisherRequestSubMap_t;
+    typedef utils::collection::unordered_map<std::string, mamaSubscription> PublisherRequestSubMap_t;
     PublisherRequestSubMap_t publisherRequestSubMap_;
 
     TransportConfig_ptr_t config_;
@@ -203,15 +201,12 @@ private:
 
     // need to keep a map of subscriptions that are created on an invalid source. Although the subscription failure sends an error code to the caller, there is nothing to prevent
     // calling unsubscribe later. This holds onto the boost pointer
-    typedef std::map<RMDSBridgeSubscription *, RMDSBridgeSubscription_ptr_t> BadSourceFailuresMap_t;
+    typedef utils::collection::unordered_map<RMDSBridgeSubscription *, RMDSBridgeSubscription_ptr_t> BadSourceFailuresMap_t;
     BadSourceFailuresMap_t badSourceFailures_;
 
     bool AddSubscriptionToSource(RMDSBridgeSubscription_ptr_t sub);
     bool AddSnaphotToSource(RMDSBridgeSnapshot_ptr_t snap);
-
-
 };
-
 
 class SnapshotReply
 {
@@ -227,26 +222,24 @@ class SnapshotReply
 
 
 public:
-    SnapshotReply ( publisherBridge mamaPublisher, const char* replyAddr, mamaInbox inbox, std::string sourceName, std::string symbol)
+    SnapshotReply(publisherBridge mamaPublisher, const char* replyAddr, mamaInbox inbox, const std::string& sourceName, const std::string& symbol)
         : publisher(mamaPublisher)
         , replyAddr(replyAddr)
         , inbox(inbox)
         , sourceName_(sourceName)
         , symbol_(symbol)
-    {
-    }
+    { }
 
-    std::string Symbol() const { return symbol_; }
+    const std::string& Symbol() const { return symbol_; }
     void Symbol(std::string val) { symbol_ = val; }
 
-    std::string SourceName() const { return sourceName_; }
+    const std::string& SourceName() const { return sourceName_; }
     void SourceName(std::string val) { sourceName_ = val; }
 
     void OnMsg(mamaMsg msg)
     {
-        rmdsMamaInbox_send( inbox,  msg );
+            rmdsMamaInbox_send( inbox,  msg );
     }
-
 };
 
 

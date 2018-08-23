@@ -29,13 +29,7 @@
 
 RMDSPublisherSource::RMDSPublisherSource( const std::string & name )
     :name_(name)
-{
-}
-
-
-RMDSPublisherSource::~RMDSPublisherSource(void)
-{
-}
+{ }
 
 bool RMDSPublisherSource::InitialiseSource()
 {
@@ -100,67 +94,59 @@ bool RMDSPublisherSource::InitialiseSource()
 }
 
 
-UPAPublisherItem_ptr_t RMDSPublisherSource::GetItem( std::string symbol )
+const UPAPublisherItem_ptr_t& RMDSPublisherSource::GetItem(const std::string& symbol) const
 {
-    UPAPublisherItem_ptr_t ret;
+    PublisherItemMap_t::const_iterator itItem = publisherItemMap_.find(symbol);
 
-    PublisherItemMap_t::iterator it = publisherItemMap_.find(symbol);
-
-    if (it != publisherItemMap_.end())
+    if (itItem != publisherItemMap_.end())
     {
-        ret = it->second;
+        return itItem->second;
     }
 
-    return ret;
+    static UPAPublisherItem_ptr_t emptyResult;
+    return emptyResult;
 }
 
 
 // add a new item or add the channel and stream to an existing item. Return the item
-UPAPublisherItem_ptr_t RMDSPublisherSource::AddItem( RsslChannel * chnl, RsslUInt32 streamID, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher, bool & isNew )
+const UPAPublisherItem_ptr_t& RMDSPublisherSource::AddItem(RsslChannel * chnl, RsslUInt32 streamID,
+                                                           const std::string& source, const std::string& symbol,
+                                                           RsslUInt32 serviceId, RMDSPublisherBase* publisher,
+                                                           bool& isNew)
 {
-    UPAPublisherItem_ptr_t ret;
-
     t42log_debug("RMDSPublisherSource::AddItem - %s \n", symbol.c_str());
 
-    PublisherItemMap_t::iterator it = publisherItemMap_.find(symbol);
+    PublisherItemMap_t::const_iterator itItem = publisherItemMap_.find(symbol);
 
-    if (it != publisherItemMap_.end())
+    if (itItem != publisherItemMap_.end())
     {
-        ret = it->second;
-
-
         t42log_debug("RMDSPublisherSource::AddItem - %s - already in map so just add channel \n", symbol.c_str());
         // so we already have an item for this symbol, just add the channel / stream
-        ret->AddChannel(chnl, streamID);
         isNew = false;
     }
     else
     {
         t42log_debug("RMDSPublisherSource::AddItem - %s - create new item \n", symbol.c_str());
 
-        ret = UPAPublisherItem::CreatePublisherItem(chnl, streamID, source, symbol, serviceId, publisher);
-        publisherItemMap_[symbol] = ret;
+        itItem = publisherItemMap_.emplace(symbol, UPAPublisherItem::CreatePublisherItem(chnl, streamID, source, symbol, serviceId, publisher)).first;
         isNew = true;
     }
 
-    return ret;
-
-}
-
-bool RMDSPublisherSource::HasItem( std::string symbol )
-{
-    PublisherItemMap_t::iterator it = publisherItemMap_.find(symbol);
-
-    if (it != publisherItemMap_.end())
+    const UPAPublisherItem_ptr_t& item = itItem->second;
+    if (!isNew)
     {
-        return true;
+        item->AddChannel(chnl, streamID);
     }
 
-
-    return false;
+    return item;
 }
 
-void RMDSPublisherSource::RemoveItem( std::string symbol )
+bool RMDSPublisherSource::HasItem(const std::string& symbol)
+{
+    return publisherItemMap_.find(symbol) != publisherItemMap_.end();
+}
+
+void RMDSPublisherSource::RemoveItem(const std::string& symbol)
 {
     publisherItemMap_.erase(symbol);
 }

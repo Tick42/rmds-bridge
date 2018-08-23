@@ -406,19 +406,12 @@ upaMsg_getDateTime(
         mamaDateTime   result);
 
 
-//mama_status
-//    upaMsg_setDateTime(
-//    const msgPayload    msg,
-//    const char*         name,
-//    mama_fid_t          fid,
-//    const mamaDateTime  value);
-
 mama_status
     upaMsg_setDateTime(
     const msgPayload    msg,
     const char*         name,
     mama_fid_t          fid,
-    const MamaDateTimeWrapper_ptr_t  value);
+    const MamaDateTimeWrapper_ptr_t&  value);
 
 mama_status
 upaMsg_getVectorDateTime (
@@ -441,7 +434,7 @@ upaMsg_setPrice(
     const msgPayload    msg,
     const char*         name,
     mama_fid_t          fid,
-    const MamaPriceWrapper_ptr_t     value);
+    const MamaPriceWrapper_ptr_t&     value);
 
 mama_status
 upaMsg_setVectorPrice (

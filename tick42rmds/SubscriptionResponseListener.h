@@ -33,9 +33,8 @@
 class SubscriptionResponseListener
 {
 public:
-
     // send a message on the mama subscription
-    virtual void OnMessage(mamaMsg msg, mamaMsgType msgType) = 0;
+    virtual void OnMessage(mamaMsg msg, mamaMsgType msgType, bool async) = 0;
 
     // send a status message on the mama subcription
     virtual void OnStatusMessage(mamaMsgStatus statusCode) = 0;

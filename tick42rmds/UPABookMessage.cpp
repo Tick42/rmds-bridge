@@ -99,7 +99,7 @@ UPABookByOrderMessage::~UPABookByOrderMessage(void)
 {
 }
 
-bool UPABookByOrderMessage::AddEntry( UPABookEntry_ptr_t entry )
+bool UPABookByOrderMessage::AddEntry(const UPABookEntry_ptr_t& entry )
 {
 
     // look up the level on the key (price)
@@ -176,7 +176,7 @@ bool UPABookByOrderMessage::AddEntry( UPABookEntry_ptr_t entry )
 
 }
 
-bool UPABookByOrderMessage::UpdateEntry( UPABookEntry_ptr_t entry )
+bool UPABookByOrderMessage::UpdateEntry(const UPABookEntry_ptr_t& entry )
 {
     t42log_debug("updating entry price %llu, order id %s\n", entry->Price().value, entry->Orderid().c_str());
 
@@ -321,7 +321,7 @@ bool UPABookByOrderMessage::UpdateEntry( UPABookEntry_ptr_t entry )
 
 
 
-bool UPABookByOrderMessage::RemoveEntry(UPABookEntry_ptr_t entry )
+bool UPABookByOrderMessage::RemoveEntry(const UPABookEntry_ptr_t& entry )
 {
 
 
@@ -647,10 +647,6 @@ UPABookEntry::UPABookEntry(void)
 }
 
 
-UPABookEntry::~UPABookEntry(void)
-{
-}
-
 char UPABookEntry::ActionCode() const
 {
     return actionCode_;
@@ -671,23 +667,23 @@ void UPABookEntry::SideCode( char val )
     sideCode_ = val;
 }
 
-string UPABookEntry::Orderid() const
+const string& UPABookEntry::Orderid() const
 {
     return orderid_;
 }
 
-void UPABookEntry::Orderid( std::string val )
+void UPABookEntry::Orderid(const std::string& val )
 {
     orderid_ = val;
 }
 
 // ----------------------------------------------
-string UPABookEntry::OrderTone() const
+const string& UPABookEntry::OrderTone() const
 {
     return orderTone_;
 }
 
-void UPABookEntry::OrderTone( std::string val )
+void UPABookEntry::OrderTone( const std::string& val )
 {
     orderTone_ = val;
     haveOrderTone_ = true;
@@ -699,12 +695,12 @@ bool UPABookEntry::HaveOrderTone()
 }
 
 // ----------------------------------------------
-string UPABookEntry::Mmid() const
+const string& UPABookEntry::Mmid() const
 {
     return mmid_;
 }
 
-void UPABookEntry::Mmid( std::string val )
+void UPABookEntry::Mmid(const std::string& val )
 {
     mmid_ = val;
     haveMmid_ = true;
@@ -757,7 +753,7 @@ void UPABookEntry::Price( RsslReal val )
 }
 
 
-void UPABookEntry::Price( std::string val )
+void UPABookEntry::Price(const std::string& val)
 {
     // set the price from a string
     RsslBuffer b;
@@ -783,9 +779,8 @@ bool UPABookEntry::HasSide()
     return sideCode_ != 'Z';
 }
 
-void UPALevel::AddEntry( UPABookEntry_ptr_t entry )
+void UPALevel::AddEntry(const UPABookEntry_ptr_t& entry)
 {
-
     if (entry->ActionCode()== 'D')
     {
         // if itd a delete then erase the order from this level
@@ -798,9 +793,7 @@ void UPALevel::AddEntry( UPABookEntry_ptr_t entry )
     }
     // and if its an update then it should already be there
 
-
-
-    entryListDelta_.push_back(entry);
+    entryListDelta_.emplace_back(entry);
 }
 
 void UPALevel::ClearDeltas()
@@ -879,7 +872,7 @@ UPALevel::~UPALevel()
     }
 }
 
-UPALevel::UPALevel(RsslReal price, RsslUInt64 time, char sideCode, RsslInt size,UpaMamaFieldMap_ptr_t fieldmap)
+UPALevel::UPALevel(RsslReal price, RsslUInt64 time, char sideCode, RsslInt size, const UpaMamaFieldMap_ptr_t& fieldmap)
    : price_(price), time_(time), dirty_(true), sideCode_(sideCode), fieldmap_(fieldmap)
    , actionCode_('A'), size_(size) // initialise the action code in the constructor to Add
 {
@@ -909,30 +902,31 @@ void UPALevel::ClearMessageVector(mamaMsg msg)
 ///////////////////////////////////////////////////////////////
 
 UPABookByPriceMessage::UPABookByPriceMessage()
-    {
+{
 
-    }
+}
+
 UPABookByPriceMessage::~UPABookByPriceMessage()
-    {
+{
 
-    }
+}
 
 bool UPABookByPriceMessage::StartUpdate()
-    {
-        entries_.erase(entries_.begin(), entries_.end());
-        return true;
-    }
+{
+    entries_.erase(entries_.begin(), entries_.end());
+    return true;
+}
 
 
-bool UPABookByPriceMessage::AddEntry(UPABookEntry_ptr_t entry)
-    {
-        entries_.push_back(entry);
-        return true;
-    }
+bool UPABookByPriceMessage::AddEntry(const UPABookEntry_ptr_t& entry)
+{
+    entries_.emplace_back(entry);
+    return true;
+}
 
 
 bool UPABookByPriceMessage::BuildMamdaMessage(mamaMsg msg)
-    {
+{
     int numLevels = 0;
     const BookFields &bookFields = UpaMamaCommonFields::BookFields();
 
@@ -1031,6 +1025,4 @@ bool UPABookByPriceMessage::BuildMamdaMessage(mamaMsg msg)
 
     return true;
 
-    }
-
-
+}

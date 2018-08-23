@@ -27,7 +27,7 @@
 #define __RMDS_FILESYSTEM_H__
 
 // insert environment var WOMBAT_PATH as fallback
-std::string GetActualPath( std::string path );
+std::string GetActualPath(const std::string& path );
 
 #endif //__RMDS_FILESYSTEM_H__
 

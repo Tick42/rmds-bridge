@@ -44,7 +44,7 @@ public:
     }
 
     // add a post to the list and get the ID
-    RsslUInt32 AddPost(UPABridgePoster_ptr_t poster, const PublisherPostMessageReply_ptr_t& reply);
+    RsslUInt32 AddPost(const UPABridgePoster_ptr_t& poster, const PublisherPostMessageReply_ptr_t& reply);
 
     // get the poster back from the AckId
     //UPABridgePoster_ptr_t RemovePost(RsslUInt32 AckId);
@@ -57,7 +57,7 @@ private:
     {
 
     public:
-        UPAPostRecord(RsslUInt32 postId, UPABridgePoster_ptr_t poster, const PublisherPostMessageReply_ptr_t& reply)
+        UPAPostRecord(RsslUInt32 postId, const UPABridgePoster_ptr_t& poster, const PublisherPostMessageReply_ptr_t& reply)
             : poster_(poster), id_(postId), reply_(reply) {}
 
         UPABridgePoster_ptr_t Poster() const { return poster_; }

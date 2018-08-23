@@ -42,7 +42,7 @@ public:
     bool Initialize(mamaBridge bridge, mamaTransport transport, const std::string &transport_name);
     bool Start();
 
-    boost::shared_ptr<TransportConfig_t> Config(void)
+    const TransportConfig_ptr_t& Config() const
     {
         return config_;
     }
@@ -50,12 +50,12 @@ public:
     char * InterfaceName() {return interfaceName_;}
     RsslConnectionTypes ConnType() {return connType_;}
 
-    std::string GetTransportName() {return transportName_;}
+    const std::string& GetTransportName() const {return transportName_;}
 
     // Listener functions
     virtual void LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseInfo, bool loginSucceeded, const char* extraInfo);
 
-    UPANIProvider_ptr_t NIProvider() const { return niProvider_; }
+    const UPANIProvider_ptr_t& NIProvider() const { return niProvider_; }
 
     virtual  RsslChannel * GetChannel()
     {
@@ -73,8 +73,8 @@ private:
     mamaBridgeImpl* bridgeImpl_;
 
     // source
-    void InitialiseSource(const std::string source);
-    boost::shared_ptr<TransportConfig_t> config_;
+    void InitialiseSource(const std::string& source);
+    TransportConfig_ptr_t config_;
 
     // connection configuration
     char* interfaceName_;
@@ -83,7 +83,7 @@ private:
     // login
     UPALogin::RsslLoginResponseInfo responseInfo_;
     // log the login details
-    void LogResponseInfo(const UPALogin::RsslLoginResponseInfo &responseInfo);
+    void LogResponseInfo(const UPALogin::RsslLoginResponseInfo& responseInfo);
 
     // listeners
     virtual void ConnectionNotification(bool connected, const char* extraInfo);

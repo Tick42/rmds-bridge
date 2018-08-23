@@ -66,7 +66,7 @@ private:
     fd_set    wrtfds_;
 
     // manage connection
-    RsslChannel* ConnectToRsslServer(const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error);
+    RsslChannel* ConnectToRsslServer(const std::string &hostname, const std::string &port, const char* interfaceName, RsslConnectionTypes connType, RsslError* error);
 
     void RecoverConnection();
     void RemoveChannel(RsslChannel* chnl);
@@ -76,7 +76,7 @@ private:
     RsslBool receivedServerMsg_;
     void WaitReconnectionDelay();
     void LogReconnection();
-    
+
     void InitPingHandler(RsslChannel* chnl);
 
     RsslUInt32 pingTimeoutServer_;

@@ -36,31 +36,31 @@ namespace utils { namespace filesystem {
  * @param: any relative path
  * @return: absolute path
  */
-std::string absolute_path(std::string path);
+std::string absolute_path(const std::string& path);
 
 /**
  * @param path: any path to file or directory
  * @return: if path exists
  */
-bool path_exists(std::string path);
+bool path_exists(const std::string& path);
 
 
 /**
  * @param path: any path
  * @return: if path is relative
  */
-bool has_relative_path(std::string path);
+bool has_relative_path(const std::string& path);
 /**
  * @param path: any path
  * @return: if path is complete
  */
-bool has_complete_path(std::string path);
+bool has_complete_path(const std::string& path);
 /**
  * @param path_prefix: left side of the path (e.g. the branch)
  * @param path_suffix: right side of the path (e.g. file name)
  * @return: complete path
  */
-std::string complete_path(const std::string &path_prefix, const std::string &path_suffix);
+std::string complete_path(const std::string& path_prefix, const std::string& path_suffix);
 
 
 /**
@@ -75,7 +75,7 @@ std::string complete_path(const std::string &path_prefix, const std::string &pat
  * @param path: any path (full path, relative path or just a filename)
  * @return: complete path
  */ 
-std::string getActualPath(std::string path);
+std::string getActualPath(const std::string& path);
 
 
 } /*namespace utils*/ } /*namespace filesystem*/ 

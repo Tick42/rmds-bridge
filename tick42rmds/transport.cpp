@@ -93,8 +93,6 @@ mama_status
        return MAMA_STATUS_INVALID_ARG;
    }
 
-
-
    // get hold of the bridge implementation
    mamaBridgeImpl* bridgeImpl = mamaTransportImpl_getBridgeImpl(mamaTport);
    if (!bridgeImpl) {
@@ -109,15 +107,12 @@ mama_status
       return status;
    }
 
-
    gNotify = new UPATransportNotifier(mamaTport);
-
 
    // create out transport implemententation and hook it to the mama object
    boost::shared_ptr<RMDSTransportBridge> transport(new RMDSTransportBridge(name));
 
    transport->SetTransport(mamaTport);
-
 
    *result = (transportBridge)transport.get();
 
@@ -135,11 +130,9 @@ mama_status
 
 }
 
-
 mama_status
    tick42rmdsBridgeMamaTransport_destroy (transportBridge transport)
 {
-
    RMDSTransportBridge * bridgeTransport = (RMDSTransportBridge *)transport;
    bridgeTransport->Stop();
 
@@ -150,7 +143,6 @@ mama_status
    }
    return MAMA_STATUS_OK;
 }
-
 
 int
    tick42rmdsBridgeMamaTransport_isValid (transportBridge transport)
@@ -379,10 +371,6 @@ RMDSExpDll RMDSTransportBridge::RMDSTransportBridge(const std::string &name)
 
 }
 
-RMDSTransportBridge::~RMDSTransportBridge()
-{
-}
-
 mama_status RMDSTransportBridge::Start()
 {
    //shouldn't be stopped if haven't started yet!
@@ -509,6 +497,11 @@ mama_status RMDSTransportBridge::Stop()
    }
 
    return MAMA_STATUS_OK;
+}
+
+bool RMDSTransportBridge::Stopped() const
+{
+    return stopped_;
 }
 
 void RMDSTransportBridge::setDictionaryReply( boost::shared_ptr<DictionaryReply_t> dictionaryReply )

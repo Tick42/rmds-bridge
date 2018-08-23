@@ -108,23 +108,10 @@ public:
     {}
 
     ~MamaMsgVectorWrapper();
-    //{
-    //    for(int i = 0; i < (int)length_; i++)
-    //    {
-    //        msgPayload p = payloadvector_[i];
-    //        msgPayload_destroy(msgPayload(p)); 
-    //    }
 
-    //}
-
-    //msgPayload * getMamaMsgVector() const
-    //{
-    //    return msgVector_;
-    //}
-
-    void addMessage(msgPayload payload)
+    void addMessage(const msgPayload& payload)
     {
-        payloadvector_.push_back(payload);
+        payloadvector_.emplace_back(payload);
         ++length_;
     }
     mama_size_t getVectorLength() const
@@ -132,10 +119,11 @@ public:
         return length_;
     }
 
-    msgPayload * GetVector()
+    msgPayload* GetVector()
     {
         return payloadvector_.data();
     }
+
 private:
 
     typedef std::vector<msgPayload> MsgPayloadVector_t;

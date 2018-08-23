@@ -37,8 +37,8 @@ const RsslUInt32 StateTextLen = 128;
 
 utils::collection::unordered_set<int> suppressBadEnumWarnings_;
 
-UPAPublisherItem::UPAPublisherItem( RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId )
-   :  source_(source), symbol_(symbol), serviceId_(serviceId), solicitedMessages_(true)
+UPAPublisherItem::UPAPublisherItem(RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId)
+   : source_(source), symbol_(symbol), serviceId_(serviceId), solicitedMessages_(true)
 {
     // This gets created in one of 2 contexts -
     // either (a) handling a RSSL_MC_REQUEST message from the TREP, in which case it has a channel and stream id
@@ -64,7 +64,7 @@ UPAPublisherItem::~UPAPublisherItem()
    Shutdown();
 }
 
-bool UPAPublisherItem::Initialise( UPAPublisherItem_ptr_t ptr,  RMDSPublisherBase * publisher  )
+bool UPAPublisherItem::Initialise( const UPAPublisherItem_ptr_t& ptr,  RMDSPublisherBase * publisher  )
 {
    sharedptr_ = ptr;
 
@@ -78,7 +78,7 @@ bool UPAPublisherItem::Initialise( UPAPublisherItem_ptr_t ptr,  RMDSPublisherBas
    return true;
 }
 
-UPAPublisherItem_ptr_t UPAPublisherItem::CreatePublisherItem( RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher )
+UPAPublisherItem_ptr_t UPAPublisherItem::CreatePublisherItem(RsslChannel * chnl, RsslUInt32 streamId, const std::string& source, const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher)
 {
    UPAPublisherItem * newItem  = new UPAPublisherItem(chnl, streamId, source, symbol, serviceId);
    UPAPublisherItem_ptr_t ret = UPAPublisherItem_ptr_t(newItem);

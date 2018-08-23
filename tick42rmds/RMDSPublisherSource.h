@@ -11,8 +11,7 @@ const size_t MaxSourceCapabilities = 10;
 class RMDSPublisherSource
 {
 public:
-    RMDSPublisherSource(const std::string & name);
-    ~RMDSPublisherSource(void);
+    RMDSPublisherSource(const std::string& name);
 
     bool InitialiseSource();
 
@@ -59,13 +58,13 @@ public:
     RsslUInt64 LinkCode() const {return linkCode_;}
     void LinkCode(RsslUInt64 val) {linkCode_ = val;}
 
-    std::string LinkText() const {return linkText_;}
+    const std::string& LinkText() const {return linkText_;}
     void LinkText(const std::string & val) {linkText_ = val;}
 
-    std::string FieldDictionaryName() const { return fieldDictionaryName_; }
+    const std::string& FieldDictionaryName() const { return fieldDictionaryName_; }
     void FieldDictionaryName(std::string val) { fieldDictionaryName_ = val; }
 
-    std::string EnumTypeDictionaryName() const { return enumTypeDictionaryName_; }
+    const std::string& EnumTypeDictionaryName() const { return enumTypeDictionaryName_; }
     void EnumTypeDictionaryName(std::string val) { enumTypeDictionaryName_ = val; }
 
     RsslQos Qos() const { return qos_; }
@@ -79,13 +78,15 @@ public:
 
 
     // add and remove items
-    UPAPublisherItem_ptr_t GetItem(std::string symbol);
+    const UPAPublisherItem_ptr_t& GetItem(const std::string& symbol) const;
 
-    UPAPublisherItem_ptr_t AddItem(RsslChannel * chnl, RsslUInt32 streamID, const std::string& source,
-        const std::string& symbol, RsslUInt32 serviceId, RMDSPublisherBase * publisher, bool & isNew);
+    const UPAPublisherItem_ptr_t& AddItem(RsslChannel* chnl, RsslUInt32 streamID,
+                                          const std::string& source, const std::string& symbol,
+                                          RsslUInt32 serviceId, RMDSPublisherBase* publisher,
+                                          bool& isNew);
 
-    void RemoveItem(std::string symbol);
-    bool HasItem(std::string symbol);
+    void RemoveItem(const std::string& symbol);
+    bool HasItem(const std::string& symbol);
 
 private:
     RsslUInt32 serviceId_;
@@ -122,7 +123,7 @@ private:
     // accept consumer status
     bool acceptConsumerStatus_;
 
-    typedef std::map<std::string, UPAPublisherItem_ptr_t> PublisherItemMap_t;
+    typedef utils::collection::unordered_map<std::string, UPAPublisherItem_ptr_t> PublisherItemMap_t;
     PublisherItemMap_t publisherItemMap_;
 };
 

@@ -31,7 +31,7 @@
 // When we post to the RMDS we want a PostID that is inserted into the Rssl Message. This is returned in the response message as the Ack ID
 // we can use this identify the poster and route the ack message to it
 
-RsslUInt32 UPAPostManager::AddPost(UPABridgePoster_ptr_t poster, const PublisherPostMessageReply_ptr_t& reply)
+RsslUInt32 UPAPostManager::AddPost(const UPABridgePoster_ptr_t& poster, const PublisherPostMessageReply_ptr_t& reply)
 {
     RsslUInt32 ret = GetNextPostId();
 

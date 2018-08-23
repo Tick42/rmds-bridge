@@ -35,7 +35,7 @@
 class RMDSPublisherBase
 {
 public:
-    RMDSPublisherBase(UPATransportNotifier &notify)
+    RMDSPublisherBase(const UPATransportNotifier& notify)
         : notify_(notify)
     { }
 

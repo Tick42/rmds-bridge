@@ -41,10 +41,7 @@ class RMDSSubscriber;
 class RMDSTransportBridge
 {
 public:
-
-   RMDSExpDll RMDSTransportBridge(const std::string &name);
-
-   ~RMDSTransportBridge();
+   RMDSExpDll RMDSTransportBridge(const std::string& name);
 
    // set the mama transport handle
    void SetTransport(mamaTransport transport)
@@ -52,9 +49,8 @@ public:
       if (!stopped_)
          transport_ = transport;
       else
-         transport_=0;
+         transport_= 0;
    }
-
 
    //get  MAMA transport handle
    mamaTransport GetTransport() const
@@ -71,24 +67,24 @@ public:
 
    // Stops RMDS Session.
    RMDSExpDll mama_status Stop();
+   bool Stopped() const;
 
    RMDSExpDll mama_status Pause();
    RMDSExpDll mama_status Resume();
 
-   RMDSSubscriber_ptr_t Subscriber() const { return subscriber_; }
-   RMDSPublisherBase_ptr_t Publisher() const { return publisher_; }
-   RMDSPublisherBase_ptr_t NIPublisher() const {return niPublisher_;}
+   const RMDSSubscriber_ptr_t& Subscriber() const { return subscriber_; }
+   const RMDSPublisherBase_ptr_t& Publisher() const { return publisher_; }
+   const RMDSPublisherBase_ptr_t& NIPublisher() const {return niPublisher_;}
 
-   std::string Name() const
+   const std::string& Name() const
    {
       return name_;
    }
 
-public:
-   static RMDSTransportBridge* GetTransport(mamaTransport transport);
+   void setDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply);
+   void SendSnapshotRequest(SnapshotReply_ptr_t snapReply);
 
-private:
-   void ProcessSubscriptions();
+   static RMDSTransportBridge* GetTransport(mamaTransport transport);
 
 private:
    mamaTransport transport_;
@@ -102,13 +98,12 @@ private:
    bool stopped_;
    bool paused_;
 
-
    std::string name_;
    boost::shared_ptr<DictionaryReply_t> DictionaryReply_;
-public:
-    void setDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply);
-    void SendSnapshotRequest(SnapshotReply_ptr_t snapReply);
 
+   void ProcessSubscriptions();
 };
+
+typedef boost::shared_ptr<RMDSTransportBridge> RMDSTransportBridge_ptr_t;
 
 #endif

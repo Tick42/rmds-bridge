@@ -59,13 +59,10 @@ StatisticsLogger::StatisticsLogger()
     loggerThread_ = 0;
     runThread_ = false;
     lastSampleTime_ = 0;
+    queueEventsCount_ = 0;
 }
 
-StatisticsLogger::~StatisticsLogger()
-{
-}
-
-StatisticsLogger_ptr_t StatisticsLogger::GetStatisticsLogger()
+const StatisticsLogger_ptr_t& StatisticsLogger::GetStatisticsLogger()
 {
     // create one on first call
     if (gLogger.get() == 0)
@@ -338,7 +335,7 @@ void StatisticsLogger::Run()
       {
          sprintf(buffer,"Time,Updates (Total),Updates (Last),Update Rate"
             ",Subscriptions (Total),Subscriptions (Successful)"
-            ",Subscriptions (Failed),Request Queue Length,Pending Opens,Open Items");
+            ",Subscriptions (Failed),Request Queue Length,Pending Opens,Open Items,Events In Queues");
          logFile << buffer << endl;
       }
 
@@ -353,10 +350,11 @@ void StatisticsLogger::Run()
         RsslUInt64 intervalMessages = incomingMessageCount_ - lastMessageCount_;
         double updateRate = ((double)intervalMessages * 1000) / interval;
 
-        snprintf(buffer, BUFFERSIZE, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d", strDate.c_str()
+        snprintf(buffer, BUFFERSIZE, "%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d", strDate.c_str()
          , (int)incomingMessageCount_, (int)intervalMessages, int(updateRate + 1)
          , (int)totalSubscriptions_, (int)totalSubscriptionsSucceeded_
-         , (int)totalSubscriptionsFailed_, (int)requestQueueLength_, (int)pendingOpens_, (int)openItems_ );
+         , (int)totalSubscriptionsFailed_, (int)requestQueueLength_
+         , (int)pendingOpens_, (int)openItems_, (int)queueEventsCount_ );
 
         logFile << buffer << endl;
         logFile.close();

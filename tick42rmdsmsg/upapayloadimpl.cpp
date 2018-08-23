@@ -105,22 +105,6 @@ msgFieldPayload
 /******************************************************************************
 * bridge functions
 *******************************************************************************/
-extern mama_status
-    tick42rmdsmsgPayload_destroyImpl (mamaPayloadBridge mamaPayloadBridge)
-{
-    /* Returns. */
-    mama_status ret = MAMA_STATUS_NULL_ARG;
-    if (NULL != mamaPayloadBridge)
-    {
-        /* Get the impl. */
-        mamaPayloadBridgeImpl *impl = (mamaPayloadBridgeImpl *)mamaPayloadBridge;
-
-        /* Free the impl. */
-        free(impl);
-    }
-
-    return ret;
-}
 
 extern mama_status
     tick42rmdsmsgPayload_init(mamaPayloadBridge payloadBridge, char* identifier)
@@ -247,7 +231,7 @@ mama_status
 //}
 
 mama_status
-    tick42rmdsmsgPayload_destroy           (msgPayload          msg)
+    tick42rmdsmsgPayload_destroy(msgPayload msg)
 {
     CHECK_PAYLOAD(msg);
 
@@ -509,25 +493,18 @@ mama_status
 }
 
 mama_status
-    tick42rmdsmsgPayload_apply            (msgPayload          dest,
-    const msgPayload    src)
+    tick42rmdsmsgPayload_apply(msgPayload dest,
+                               const msgPayload src)
 {
     CHECK_PAYLOAD(dest);
     CHECK_PAYLOAD(src);
 
-
     UpaPayload* payloadDest = reinterpret_cast<UpaPayload*>(dest);
-    UpaPayload* payloadSrc = reinterpret_cast<UpaPayload*>(src);
+    const UpaPayload* payloadSrc = reinterpret_cast<const UpaPayload*>(src);
 
     payloadDest->apply(payloadSrc);
 
-
-
-
-
     return MAMA_STATUS_OK;
-
-
 }
 
 mama_status
@@ -717,7 +694,7 @@ mama_status
         return MAMA_STATUS_NULL_ARG;
     mamaDateTime dt;
     mamaDateTime_create(&dt);
-    MamaDateTimeWrapper_ptr_t pdt = MamaDateTimeWrapper_ptr_t(new MamaDateTimeWrapper(dt));
+    MamaDateTimeWrapper_ptr_t pdt(new MamaDateTimeWrapper(dt));
     pdt->SetValue(value);
     return upaMsg_setDateTime(upaPayload(msg), name, fid, pdt);
 }
@@ -735,7 +712,7 @@ mama_status
     mamaPrice price;
     mamaPrice_create(&price);
     mamaPrice_copy(price, value);
-    MamaPriceWrapper_ptr_t pPrice = MamaPriceWrapper_ptr_t(new MamaPriceWrapper(price));
+    MamaPriceWrapper_ptr_t pPrice(new MamaPriceWrapper(price));
     return upaMsg_setPrice(upaPayload(msg), name, fid, pPrice);
 }
 
@@ -1138,7 +1115,7 @@ mama_status
         return MAMA_STATUS_NULL_ARG;
     mamaDateTime dt;
     mamaDateTime_create(&dt);
-    MamaDateTimeWrapper_ptr_t pdt = MamaDateTimeWrapper_ptr_t(new MamaDateTimeWrapper(dt));
+    MamaDateTimeWrapper_ptr_t pdt(new MamaDateTimeWrapper(dt));
     pdt->SetValue(value);
     return upaMsg_setDateTime(upaPayload(msg), name, fid, pdt);
 }
@@ -1156,7 +1133,7 @@ mama_status
     mamaPrice price;
     mamaPrice_create(&price);
     mamaPrice_copy(price, value);
-    MamaPriceWrapper_ptr_t pPrice = MamaPriceWrapper_ptr_t(new MamaPriceWrapper(price));
+    MamaPriceWrapper_ptr_t pPrice(new MamaPriceWrapper(price));
     return upaMsg_setPrice(upaPayload(msg), name, fid, pPrice);
 }
 
@@ -2130,7 +2107,7 @@ mama_status
     CHECK_MESSAGE(msg);
     mamaDateTime dt;
     mamaDateTime_create(&dt);
-    MamaDateTimeWrapper_ptr_t pDt = MamaDateTimeWrapper_ptr_t(new MamaDateTimeWrapper(dt));
+    MamaDateTimeWrapper_ptr_t pDt(new MamaDateTimeWrapper(dt));
     pDt->SetValue(value);
     return upaField(field)->set(pDt);
 }
@@ -2145,7 +2122,7 @@ mama_status
     mamaPrice price;
     mamaPrice_create(&price);
     mamaPrice_copy(price, value);
-    MamaPriceWrapper_ptr_t pPrice = MamaPriceWrapper_ptr_t(new MamaPriceWrapper(price));
+    MamaPriceWrapper_ptr_t pPrice(new MamaPriceWrapper(price));
     return upaField(field)->set(pPrice);
 }
 

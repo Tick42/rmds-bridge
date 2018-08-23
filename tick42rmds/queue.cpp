@@ -27,14 +27,14 @@
 #include "utils/t42log.h"
 
 
-typedef struct upaQueueBridge_t 
+typedef struct upaQueueBridge_t
 {
     mamaQueue          parent_;
     wombatQueue        queue_;
     uint8_t            isNative_;
 } upaQueueBridge_t;
 
-typedef struct upaQueueClosure_t 
+typedef struct upaQueueClosure_t
 {
     upaQueueBridge_t* impl_;
     mamaQueueEventCB cb_;
@@ -52,7 +52,7 @@ typedef struct upaQueueClosure_t
   /*=========================================================================
    =                         Mandatory Functions                            =
    =========================================================================*/
- 
+
  mama_status
  tick42rmdsBridgeMamaQueue_create (queueBridge*  queue,
                             mamaQueue     parent)
@@ -78,8 +78,8 @@ typedef struct upaQueueClosure_t
 
 
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_destroy (queueBridge queue)
  {
@@ -91,8 +91,8 @@ typedef struct upaQueueClosure_t
      return MAMA_STATUS_OK;
 
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_dispatch (queueBridge queue)
  {
@@ -122,8 +122,8 @@ typedef struct upaQueueClosure_t
      return MAMA_STATUS_OK;
 
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_timedDispatch (queueBridge queue, uint64_t timeout)
  {
@@ -148,8 +148,8 @@ typedef struct upaQueueClosure_t
      return MAMA_STATUS_OK;
 
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_dispatchEvent (queueBridge queue)
  {
@@ -171,58 +171,61 @@ typedef struct upaQueueClosure_t
      return MAMA_STATUS_OK;
 
  }
- 
- 
+
+
  // call back for queued event
- static void MAMACALLTYPE queueCb (void *ignored, void* closure)
+ static void MAMACALLTYPE queueCb(void* ignored, void* closure)
  {
      upaQueueClosure_t* cl = (upaQueueClosure_t*)closure;
      if (NULL ==cl) return;
      try
      {
-         cl->cb_ (cl->impl_->parent_, cl->userClosure_);
+         cl->cb_(cl->impl_->parent_, cl->userClosure_);
      }
      catch (...)
      {
          t42log_warn("Caught exception in queue callback\n");
      }
 
-
      free (cl);
  }
 
 
-
  mama_status
- tick42rmdsBridgeMamaQueue_enqueueEvent (queueBridge      queue,
-                                  mamaQueueEventCB callback,
-                                  void*            closure)
+ tick42rmdsBridgeMamaQueue_enqueueEvent(queueBridge      queue,
+                                        mamaQueueEventCB callback,
+                                        void*            closure)
  {
      wombatQueueStatus status;
      upaQueueClosure_t* cl = NULL;
      CHECK_QUEUE(queue);
 
      cl = (upaQueueClosure_t*)calloc(1, sizeof(upaQueueClosure_t));
-     if (NULL == cl) return MAMA_STATUS_NOMEM;
+     if (NULL == cl)
+         return MAMA_STATUS_NOMEM;
 
      cl->impl_ = upaQueue(queue);
-     cl->cb_    = callback;
+     cl->cb_ = callback;
      cl->userClosure_ = closure;
 
      status = wombatQueue_enqueue (upaQueue(queue)->queue_,
-         queueCb, NULL, cl);
+                                   queueCb,
+                                   NULL,
+                                   cl);
 
      if (status != WOMBAT_QUEUE_OK)
-    {
-       //!!! DP Does this happen often - will it cause a memory leak?
+     {
+         //!!! DP Does this happen often - will it cause a memory leak?
+
+         free (cl);
+
          return MAMA_STATUS_PLATFORM;
-    }
+     }
 
      return MAMA_STATUS_OK;
-
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_stopDispatch (queueBridge queue)
  {
@@ -244,11 +247,11 @@ typedef struct upaQueueClosure_t
      return MAMA_STATUS_OK;
 
  }
- 
+
   /*=========================================================================
    =                        Recommended Functions                           =
    =========================================================================*/
- 
+
  mama_status
  tick42rmdsBridgeMamaQueue_create_usingNative (queueBridge*  queue,
                                         mamaQueue     parent,
@@ -273,8 +276,8 @@ typedef struct upaQueueClosure_t
      return MAMA_STATUS_OK;
 
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_setEnqueueCallback (queueBridge        queue,
                                         mamaQueueEnqueueCB callback,
@@ -283,16 +286,16 @@ typedef struct upaQueueClosure_t
     CHECK_QUEUE(queue);
     return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_removeEnqueueCallback (queueBridge queue)
  {
      CHECK_QUEUE(queue);
     return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_getNativeHandle (queueBridge  queue,
                                      void**       result)
@@ -302,8 +305,8 @@ typedef struct upaQueueClosure_t
 
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_setHighWatermark (queueBridge  queue,
                                       size_t       highWatermark)
@@ -311,8 +314,8 @@ typedef struct upaQueueClosure_t
     CHECK_QUEUE(queue);
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_setLowWatermark (queueBridge  queue,
                                      size_t       lowWatermark)
@@ -320,8 +323,8 @@ typedef struct upaQueueClosure_t
     CHECK_QUEUE(queue);
      return MAMA_STATUS_NOT_IMPLEMENTED;
  }
- 
- 
+
+
  mama_status
  tick42rmdsBridgeMamaQueue_getEventCount (queueBridge queue, size_t* count)
  {

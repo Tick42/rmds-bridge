@@ -36,43 +36,41 @@
 #include <utils/namespacedefines.h>
 
 // todo make this externally configurable
-size_t fieldMapSize = 0x10000;
-
-using namespace std;
-
+static const size_t fieldMapSize = 0x10000;
 
 using namespace utils::mama;
 
-UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t(std::string fieldMapPath,  mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, std::string mamaDictPath, UPADictionaryWrapper_ptr_t &spUPADictionaryHandler)
+UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, const std::string& mamaDictPath, const UPADictionaryWrapper_ptr_t& spUPADictionaryHandler)
     : spUPADictionaryHandler_(spUPADictionaryHandler)
     , NonTranslatedFieldFid_CurrentValue_(nonTranslatedFieldFid_Start)
     , ShouldPassNonTranslated_(shouldPassNonTranslated)
     , fieldMapPath_(fieldMapPath)
     , mamaDictPath_(mamaDictPath)
-        , builtCombinedDictionary_(false)
+    , builtCombinedDictionary_(false)
 {
     fieldMapSize_ = fieldMapSize;
     offset_ = fieldMapSize / 2;
     CreateAll(fieldMapPath, mamaDictPath);
 }
-UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t(std::string fieldMapPath,  mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, std::string mamaDictPath)
+
+UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, const std::string& mamaDictPath)
     : spUPADictionaryHandler_(boost::make_shared<UPADictionaryWrapper>())
     , NonTranslatedFieldFid_CurrentValue_(nonTranslatedFieldFid_Start)
     , ShouldPassNonTranslated_(shouldPassNonTranslated)
     , fieldMapPath_(fieldMapPath)
     , mamaDictPath_(mamaDictPath)
-        , builtCombinedDictionary_(false)
+    , builtCombinedDictionary_(false)
 {
     CreateAll(fieldMapPath, mamaDictPath);
 }
 
-UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t( std::string fieldMapPath, bool shouldPassNonTranslated, std::string mamaDictPath, UPADictionaryWrapper_ptr_t &spUPADictionaryHandler)
+UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, bool shouldPassNonTranslated, const std::string& mamaDictPath, const UPADictionaryWrapper_ptr_t& spUPADictionaryHandler)
     : spUPADictionaryHandler_(spUPADictionaryHandler)
     , NonTranslatedFieldFid_CurrentValue_(0)
     , ShouldPassNonTranslated_(shouldPassNonTranslated)
     , fieldMapPath_(fieldMapPath)
     , mamaDictPath_(mamaDictPath)
-        , builtCombinedDictionary_(false)
+    , builtCombinedDictionary_(false)
 {
     fieldMapSize_ = fieldMapSize;
     offset_ = fieldMapSize / 2;
@@ -95,7 +93,7 @@ UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t( std::string fieldMapPath, bo
     CreateFieldMap(fieldMapPath);
 }
 
-UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t( std::string fieldMapPath, bool shouldPassNonTranslated, std::string mamaDictPath)
+UpaMamaFieldMapHandler_t::UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, bool shouldPassNonTranslated, const std::string& mamaDictPath)
     : spUPADictionaryHandler_(boost::make_shared<UPADictionaryWrapper>())
     , NonTranslatedFieldFid_CurrentValue_(0)
     , ShouldPassNonTranslated_(shouldPassNonTranslated)
@@ -150,27 +148,33 @@ bool UpaMamaFieldMapHandler_t::LoadPredefinedUpaMamaFieldsMap( std::ifstream &in
 
         typedef boost::tokenizer< boost::escaped_list_separator<char> > tokenizer_t;
 
-        string line;
+        std::string line;
         const int number_of_fields = bmcfe_max_fields;
 
         // logged_items - items used later on for logging needs.
         struct {
-            string				source_field_fid;
-            string				source_field_acronym;
-            string				mama_field_name;
-            string		  		mama_fid;
-            string		 		mama_field_type;
+            std::string source_field_fid;
+            std::string source_field_acronym;
+            std::string mama_field_name;
+            std::string mama_fid;
+            std::string mama_field_type;
             void clear() {source_field_fid.clear(); source_field_acronym.clear(); mama_field_name.clear(); mama_fid.clear(); mama_field_type.clear(); }
         } logged_items;
 
         // tokenize the file line by line
-        for (;std::getline(in_dict_file,line); ++line_offset)
+        for (;std::getline(in_dict_file, line); ++line_offset)
         {
+            boost::trim(line);
+            if (line.empty())
+            {
+                continue;
+            }
+
             // Init
             logged_items.clear();
             tokenizer_t tokens(line);
 
-            string tok;
+            std::string tok;
 
             int i=0;
             source_key_t key;
@@ -332,7 +336,7 @@ bool UpaMamaFieldMapHandler_t::LoadPredefinedUpaMamaFieldsMap( std::ifstream &in
                         mamaDictPath_.c_str(),
                         result.value.getFid(),
                         mama_field.mama_fid);
-                    mamaFieldMapConflictingFields_.insert(mama_field.mama_field_name);
+                    mamaFieldMapConflictingFields_.emplace(mama_field.mama_field_name);
                 }
             }
 
@@ -351,14 +355,15 @@ bool UpaMamaFieldMapHandler_t::LoadPredefinedUpaMamaFieldsMap( std::ifstream &in
             mama_log (MAMA_LOG_LEVEL_FINEST, "loadPredefinedUpaMamaFieldsMap New field from line [%05d]: %s[%s] -> %s[%s] as %s", line_offset, logged_items.source_field_acronym.c_str(), logged_items.source_field_fid.c_str(), logged_items.mama_field_name.c_str(), logged_items.mama_fid.c_str(), logged_items.mama_field_type.c_str());
         }
     }
-    catch(...){
+    catch(...)
+    {
         return false;
         mama_log (MAMA_LOG_LEVEL_WARN, "loadPredefinedUpaMamaFieldsMap couldn't translate line [%d]", line_offset);
     }
     return true;
 }
 
-bool UpaMamaFieldMapHandler_t::CreateFieldMap(std::string path)
+bool UpaMamaFieldMapHandler_t::CreateFieldMap(const std::string& path)
 {
     using namespace boost;
     using namespace utils::filesystem;
@@ -374,7 +379,7 @@ bool UpaMamaFieldMapHandler_t::CreateFieldMap(std::string path)
     {
         MamaField_t& newValue = fieldsMap_[index];
         newValue.mama_fid = 0;
-        newValue.mama_field_name = string("");
+        newValue.mama_field_name = std::string("");
         newValue.mama_field_type = AS_MAMA_FIELD_TYPE_UNKNOWN;
         newValue.has_no_mama_fid = true;
     }
@@ -439,10 +444,10 @@ bool UpaMamaFieldMapHandler_t::CreateFieldMap(std::string path)
     return result;
 }
 
-bool UpaMamaFieldMapHandler_t::CreateMamaDictionary(std::string path)
+bool UpaMamaFieldMapHandler_t::CreateMamaDictionary(const std::string& path)
 {
     using namespace utils::mama;
-    string actualPath= GetActualPath(path);
+    std::string actualPath= GetActualPath(path);
     if (!actualPath.empty())
     {
         mamaDictionary_ = mamaDictionaryWrapper(actualPath);
@@ -474,7 +479,7 @@ bool UpaMamaFieldMapHandler_t::CreateMamaDictionary(std::string path)
 
 }
 
-bool UpaMamaFieldMapHandler_t::CreateAll( std::string fieldMapPath, std::string mamaDictPath )
+bool UpaMamaFieldMapHandler_t::CreateAll(const std::string& fieldMapPath, const std::string& mamaDictPath)
 {
     bool result = CreateMamaDictionary(mamaDictPath);
 
@@ -541,10 +546,10 @@ static bool IsInitSpecialConversionMap = false;
 static void InitializeSpecialConversionMap()
 {
     // Maintain here all future combinations needed for UPA
-    SpecialConversionMap.insert(std::make_pair(from_to_key(RSSL_DT_REAL,MAMA_FIELD_TYPE_F32),RSSL_DT_REAL_AS_MAMA_FIELD_TYPE_F32));
-    SpecialConversionMap.insert(std::make_pair(from_to_key(RSSL_DT_ENUM,MAMA_FIELD_TYPE_STRING),RSSL_DT_ENUM_AS_MAMA_FIELD_TYPE_STRING));
-    SpecialConversionMap.insert(std::make_pair(from_to_key(RSSL_DT_DATE,MAMA_FIELD_TYPE_TIME),RSSL_DT_DATE_AS_MAMA_FIELD_TYPE_TIME));
-    SpecialConversionMap.insert(std::make_pair(from_to_key(RSSL_DT_TIME,MAMA_FIELD_TYPE_TIME),RSSL_DT_TIME_AS_MAMA_FIELD_TYPE_TIME));
+    SpecialConversionMap.emplace(from_to_key(RSSL_DT_REAL,MAMA_FIELD_TYPE_F32),RSSL_DT_REAL_AS_MAMA_FIELD_TYPE_F32);
+    SpecialConversionMap.emplace(from_to_key(RSSL_DT_ENUM,MAMA_FIELD_TYPE_STRING),RSSL_DT_ENUM_AS_MAMA_FIELD_TYPE_STRING);
+    SpecialConversionMap.emplace(from_to_key(RSSL_DT_DATE,MAMA_FIELD_TYPE_TIME),RSSL_DT_DATE_AS_MAMA_FIELD_TYPE_TIME);
+    SpecialConversionMap.emplace(from_to_key(RSSL_DT_TIME,MAMA_FIELD_TYPE_TIME),RSSL_DT_TIME_AS_MAMA_FIELD_TYPE_TIME);
     IsInitSpecialConversionMap = true;
 }
 
@@ -629,7 +634,7 @@ UpaMamaFieldMapHandler_t::DictionaryMap_ptr_t UpaMamaFieldMapHandler_t::CombineD
                         //
                         // put everything into a mama_fielsd structure
                         MamaField_t mamafld;
-                        string fldName(pEntry->acronym.data, pEntry->acronym.length);
+                        std::string fldName(pEntry->acronym.data, pEntry->acronym.length);
                         mamafld.mama_field_name = fldName;
                         UpaAsMamaFieldType targetType;
                         UpaToMamaFieldType(pEntry->rwfType, pEntry->fieldType, targetType);
@@ -718,12 +723,12 @@ utils::mama::mamaDictionaryWrapper UpaMamaFieldMapHandler_t::GetCombinedMamaDict
 /**
  * Linear search of the mama fields to get a fid from a name
  */
-mama_fid_t UpaMamaFieldMapHandler_t::GetMamaFid(string mamaFieldName)
+mama_fid_t UpaMamaFieldMapHandler_t::GetMamaFid(const std::string& mamaFieldName)
 {
     size_t len = fieldsMap_.size();
     for (size_t i = 0; i < len; ++i)
     {
-        MamaField_t v = fieldsMap_[i];
+        const MamaField_t& v = fieldsMap_[i];
         if (mamaFieldName == v.mama_field_name)
         {
             return v.mama_fid;

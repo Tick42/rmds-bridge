@@ -36,7 +36,7 @@
 // Mostly this doesnt matter and we can just deliver bloomberg fields by name but there is set of fields whose values are requested by fid.
 // So in the short term we work around this with a small hardcoded dictionary to lookup these fields
 
-typedef std::map<int, std::string> fid2nameMap_t;
+typedef utils::collection::unordered_map<int, std::string> fid2nameMap_t;
 
 static fid2nameMap_t fid2names;
 
@@ -60,24 +60,24 @@ void InitFidMap()
         , BRIDGE_NAME_STRING, BRIDGE_VERSION_STRING);
 
 
-    fid2names.insert(fid2nameMap_t::value_type(1 , "MdMsgType")); 
-    fid2names.insert(fid2nameMap_t::value_type(2 , "MdMsgStatus")); 
-    fid2names.insert(fid2nameMap_t::value_type(7 , "MdMsgNum")); 
-    fid2names.insert(fid2nameMap_t::value_type(8 , "MdMsgTotal")); 
-    fid2names.insert(fid2nameMap_t::value_type(10 , "MdSeqNum")); 
-    fid2names.insert(fid2nameMap_t::value_type(11 , "MdFeedName"));
-    fid2names.insert(fid2nameMap_t::value_type(12 , "MdFeedHost"));
-    fid2names.insert(fid2nameMap_t::value_type(13 , "MdFeedGroup"));
-    fid2names.insert(fid2nameMap_t::value_type(15 , "MdItemSeq"));
-    fid2names.insert(fid2nameMap_t::value_type(16 , "MamaSendTime"));
-    fid2names.insert(fid2nameMap_t::value_type(17 , "MamaAppDataType"));
-    fid2names.insert(fid2nameMap_t::value_type(18 , "MamaAppMsgType"));
-    fid2names.insert(fid2nameMap_t::value_type(20 , "MamaSenderId"));
-    fid2names.insert(fid2nameMap_t::value_type(21 , "wMsgQual"));
-    fid2names.insert(fid2nameMap_t::value_type(22 , "wConflateCount"));
-    fid2names.insert(fid2nameMap_t::value_type(23 , "wConflateQuoteCount"));
-    fid2names.insert(fid2nameMap_t::value_type(24 , "wConflateTradeCount"));
-    fid2names.insert(fid2nameMap_t::value_type(305 , "wIssueSymbol"));
+    fid2names.emplace(1 , "MdMsgType");
+    fid2names.emplace(2 , "MdMsgStatus");
+    fid2names.emplace(7 , "MdMsgNum");
+    fid2names.emplace(8 , "MdMsgTotal");
+    fid2names.emplace(10 , "MdSeqNum");
+    fid2names.emplace(11 , "MdFeedName");
+    fid2names.emplace(12 , "MdFeedHost");
+    fid2names.emplace(13 , "MdFeedGroup");
+    fid2names.emplace(15 , "MdItemSeq");
+    fid2names.emplace(16 , "MamaSendTime");
+    fid2names.emplace(17 , "MamaAppDataType");
+    fid2names.emplace(18 , "MamaAppMsgType");
+    fid2names.emplace(20 , "MamaSenderId");
+    fid2names.emplace(21 , "wMsgQual");
+    fid2names.emplace(22 , "wConflateCount");
+    fid2names.emplace(23 , "wConflateQuoteCount");
+    fid2names.emplace(24 , "wConflateTradeCount");
+    fid2names.emplace(305 , "wIssueSymbol");
 
     fidMapIsInit = true;
 }
@@ -475,7 +475,7 @@ mama_status
     if (!name) 
         name = empty_buf;
 
-    MamaMsgPayloadWrapper_ptr_t wrapper = MamaMsgPayloadWrapper_ptr_t(new MamaMsgPayloadWrapper(value));
+    MamaMsgPayloadWrapper_ptr_t wrapper(new MamaMsgPayloadWrapper(value));
     upaPayload(msg)->setMsg(fid, name, wrapper);
 
     return MAMA_STATUS_OK;
@@ -506,7 +506,7 @@ mama_status
     // now what we actually need to put into the stored message vector is msgPayloads, not the messages themselves
     // Open mama is a bit inconsistent here
 
-    MamaMsgVectorWrapper_ptr_t wrapper = MamaMsgVectorWrapper_ptr_t(new MamaMsgVectorWrapper());
+    MamaMsgVectorWrapper_ptr_t wrapper(new MamaMsgVectorWrapper());
     for(size_t index = 0; index < numElements; index ++)
     {
         msgPayload payload;
@@ -664,7 +664,7 @@ mama_status
     msgPayload     msg,
     const char*         name,
     mama_fid_t          fid,
-    const MamaDateTimeWrapper_ptr_t  value)
+    const MamaDateTimeWrapper_ptr_t&  value)
 {
 
     if (!name) 
@@ -702,7 +702,7 @@ mama_status
     msgPayload     msg,
     const char*         name,
     mama_fid_t          fid,
-    const MamaPriceWrapper_ptr_t     value)
+    const MamaPriceWrapper_ptr_t&     value)
 {
     if (!name) 
         name = empty_buf;

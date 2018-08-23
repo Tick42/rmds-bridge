@@ -42,22 +42,21 @@ class UPABookEntry
 {
 public:
     UPABookEntry();
-    ~UPABookEntry();
 
     // accessors
     char ActionCode() const;
     void ActionCode(char val);
     char SideCode() const;
     void SideCode(char val);
-    std::string Orderid() const;
-    void Orderid(std::string val);
+    const std::string& Orderid() const;
+    void Orderid(const std::string& val);
 
-    std::string OrderTone() const;
-    void OrderTone(std::string val);
+    const std::string& OrderTone() const;
+    void OrderTone(const std::string& val);
     bool HaveOrderTone();
 
-    std::string Mmid() const;
-    void Mmid(std::string val);
+    const std::string& Mmid() const;
+    void Mmid(const std::string& val);
     bool HaveMmid();
 
     RsslInt Size() const;
@@ -68,7 +67,7 @@ public:
     void Status(RsslState val);
     RsslReal Price() const;
     void Price(RsslReal val);
-    void Price( std::string val );
+    void Price(const std::string& val);
     RsslUInt64 NumOrders() const;
     void NumOrders(RsslUInt64 val);
 
@@ -130,11 +129,11 @@ typedef utils::collection::unordered_set<std::string> OrderIDSet_t;
 class UPALevel
 {
 public:
-    UPALevel(RsslReal price, RsslUInt64 time, char sideCode, RsslInt size, UpaMamaFieldMap_ptr_t fieldmap);
+    UPALevel(RsslReal price, RsslUInt64 time, char sideCode, RsslInt size, const UpaMamaFieldMap_ptr_t& fieldmap);
 
     ~UPALevel();
 
-    void AddEntry(UPABookEntry_ptr_t entry);
+    void AddEntry(const UPABookEntry_ptr_t& entry);
 
     void ClearDeltas();
 
@@ -209,17 +208,17 @@ public:
     UPABookByOrderMessage(void);
     ~UPABookByOrderMessage(void);
 
-    void Fieldmap(UpaMamaFieldMap_ptr_t val) { fieldmap_ = val; }
+    void Fieldmap(const UpaMamaFieldMap_ptr_t& val) { fieldmap_ = val; }
     bool StartUpdate();
     bool EndUpdate(mamaMsg msg);
 
     // add an entry from the rssl message
-    bool AddEntry(UPABookEntry_ptr_t entry);
+    bool AddEntry(const UPABookEntry_ptr_t& entry);
 
     // update an entry fromn the rssl message
-    bool UpdateEntry(UPABookEntry_ptr_t entry);
+    bool UpdateEntry(const UPABookEntry_ptr_t& entry);
 
-    bool RemoveEntry(UPABookEntry_ptr_t entry );
+    bool RemoveEntry(const UPABookEntry_ptr_t& entry );
 
     // build the mamda message
     bool BuildMamdaMessage(mamaMsg msg);
@@ -246,12 +245,10 @@ public:
     UPABookByPriceMessage();
     ~UPABookByPriceMessage();
 
-    void Fieldmap(UpaMamaFieldMap_ptr_t val) { fieldmap_ = val; }
-
+    void Fieldmap(const UpaMamaFieldMap_ptr_t& val) { fieldmap_ = val; }
     bool StartUpdate();
 
-    bool AddEntry(UPABookEntry_ptr_t entry);
-
+    bool AddEntry(const UPABookEntry_ptr_t& entry);
     bool BuildMamdaMessage(mamaMsg msg);
 
     const EntryList_t& getEntryList() const { return entries_; }

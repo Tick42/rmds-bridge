@@ -38,22 +38,21 @@ public:
     RMDSSources();
 
     virtual ~RMDSSources()
-    {
+    { }
 
-    }
-    void Initialise(UPAConsumer_ptr_t consumer);
+    void Initialise(const UPAConsumer_ptr_t& consumer);
     void Shutdown();
 
     // create sources
-    typedef RMDSSource_ptr_t (*SourceFactory)(RsslUInt64 keyId, std::string keyName, UPAConsumer_ptr_t consumer);
-    static RMDSSource_ptr_t DefaultFactory(RsslUInt64 keyId, std::string keyName, UPAConsumer_ptr_t consumer);
-    RMDSSource_ptr_t UpdateOrCreate(RsslUInt64 keyId, std::string keyName, ServiceState value, SourceFactory Creator = DefaultFactory);
+    typedef RMDSSource_ptr_t (*SourceFactory)(RsslUInt64 keyId, const std::string& keyName, const UPAConsumer_ptr_t& consumer);
+    static RMDSSource_ptr_t DefaultFactory(RsslUInt64 keyId, const std::string& keyName, const UPAConsumer_ptr_t& consumer);
+    RMDSSource_ptr_t UpdateOrCreate(RsslUInt64 keyId, const std::string& keyName, ServiceState value, SourceFactory Creator = DefaultFactory);
 
     // locate sources
     bool Exists(RsslUInt64 keyId) const;
-    bool Exists(std::string keyName) const ;
+    bool Exists(const std::string& keyName) const ;
     bool Find(RsslUInt64 keyId, RMDSSource_ptr_t &value) const;
-    bool Find(std::string keyName, RMDSSource_ptr_t &value) const;
+    bool Find(const std::string& keyName, RMDSSource_ptr_t &value) const;
 
     // manage state
     bool SetAllStale();
@@ -63,16 +62,16 @@ public:
     void PauseUpdates();
     void ResumeUpdates();
 
-    UPAConsumer_ptr_t Consumer() { return consumer_; }
+    const UPAConsumer_ptr_t& Consumer() const { return consumer_; }
     typedef std::vector< std::pair<std::string, ServiceState> > service_snapshot_t;
-    size_t SnapshotNames(service_snapshot_t &names);
+    size_t SnapshotNames(service_snapshot_t& names);
 
 private:
-    typedef std::map<std::string, RsslUInt64> ServiceNameMap;
+    typedef utils::collection::unordered_map<std::string, RsslUInt64> ServiceNameMap;
     ServiceNameMap serviceNameMap_;
 
-   typedef std::map<RsslUInt64, RMDSSource_ptr_t> services_t;
-   services_t servicesMap_;
+    typedef utils::collection::unordered_map<RsslUInt64, RMDSSource_ptr_t> services_t;
+    services_t servicesMap_;
 
     UPAConsumer_ptr_t consumer_;
 

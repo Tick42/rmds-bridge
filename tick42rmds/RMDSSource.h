@@ -67,18 +67,18 @@ struct ServiceState
 class RMDSSource
 {
 public:
-    RMDSSource(const std::string & serviceName, const RsslUInt64 serviceId, UPAConsumer_ptr_t consumer);
+    RMDSSource(const std::string& serviceName, const RsslUInt64 serviceId, const UPAConsumer_ptr_t& consumer);
     virtual ~RMDSSource(void);
 
     // properties
-    std::string ServiceName() const { return serviceName_; }
+    const std::string& ServiceName() const { return serviceName_; }
     RsslUInt64 ServiceId() const { return serviceId_; }
 
     ServiceState State() const { return state_; }
 
     // add/remove subscriptions
-    virtual UPASubscription_ptr_t CreateSubscription(const std::string &symbol, bool logRmdsValues);
-    bool AddSubscription(UPASubscription_ptr_t sub);
+    virtual UPASubscription_ptr_t CreateSubscription(const std::string& symbol, bool logRmdsValues);
+    bool AddSubscription(const UPASubscription_ptr_t& sub);
     bool RemoveSubscription( const std::string & symbol);
 
     bool FindSubscription(const std::string & symbol, UPASubscription_ptr_t & sub);
@@ -119,7 +119,7 @@ private:
 
     UPAConsumer_ptr_t consumer_;
 
-    typedef std::map<std::string, UPASubscription_ptr_t> SubscriptionMap_t;
+    typedef utils::collection::unordered_map<std::string, UPASubscription_ptr_t> SubscriptionMap_t;
     SubscriptionMap_t subscriptions_;
 
     typedef std::list<UPASubscription_ptr_t> SubscriptionList_t;

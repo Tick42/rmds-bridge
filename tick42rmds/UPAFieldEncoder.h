@@ -35,7 +35,7 @@
 class UPAFieldEncoder
 {
 public:
-    UPAFieldEncoder(mamaDictionary dictionary, UpaMamaFieldMap_ptr_t upaFieldMap,
+    UPAFieldEncoder(mamaDictionary dictionary, const UpaMamaFieldMap_ptr_t& upaFieldMap,
         RsslDataDictionary *rmdsDictionary, const std::string &sourceName, const std::string &symbol);
     bool encode(mamaMsg msg, RsslChannel *chnl, RsslMsg *rsslMsg, RsslBuffer *buffer);
 

@@ -40,6 +40,7 @@
 #include "UPABridgePoster.h"
 #include "UPAMamaCommonFields.h"
 #include "UPADecodeUtils.h"
+#include "msg.h"
 
 extern "C"
 {
@@ -56,7 +57,7 @@ int MonthFromName(char * monthName);
 UPASubscription::UPASubscription(const std::string&  sourceName, const std::string& symbol, bool logRmdsValues )
     :sourceName_(sourceName), symbol_(symbol),  msgTotal_(0), streamId_(0),    msgNum_(0), msgSeqNum_(0), state_(SubscriptionStateInactive), subscriptionType_(SubscriptionTypeUnknown), logRmdsValues_(logRmdsValues),
     numDecodeFailures_(0), numDecodeFailuresLast_(0), timeLastReport_(0),openCloseCount_(0), gotInitial_(false), isSnapshot_(false),isRefresh_(false),
-    reportedMFeedNotSupported_(false), reportedAnsiNotSupported_(false), sendRecap_(true), useCallbacks_(false), sendAckMessages_(true)
+    reportedMFeedNotSupported_(false), reportedAnsiNotSupported_(false), sendRecap_(true), useCallbacks_(false), sendAckMessages_(true), asyncMessaging_(false)
 {
     t42log_debug("created new subscription for %s on stream %d\n", symbol_.c_str(), streamId_);
 }
@@ -65,7 +66,7 @@ UPASubscription::~UPASubscription()
 {
 }
 
-bool UPASubscription::Open( UPAConsumer_ptr_t consumer )
+bool UPASubscription::Open(const UPAConsumer_ptr_t& consumer )
 {
     SetSubscriptionState(SubscriptionStateSubscribing);
     consumer_ = consumer;
@@ -74,7 +75,11 @@ bool UPASubscription::Open( UPAConsumer_ptr_t consumer )
     msg_ = consumer_->MamaMsg();
 
     // get the field map
-    fieldmap_ = consumer_->GetOwner()->FieldMap();
+    if (consumer_->GetOwner()->FieldMap() != fieldmap_)
+    {
+        fieldmap_ = consumer_->GetOwner()->FieldMap();
+        decoder_.reset(new UPAFieldDecoder(consumer_, fieldmap_, symbol_, sourceName_));
+    }
 
     // initialise the book message structures
     bookByPriceMessage_.Fieldmap(fieldmap_);
@@ -86,6 +91,7 @@ bool UPASubscription::Open( UPAConsumer_ptr_t consumer )
     sendRecap_ = (sendDup == "" || sendDup == "true");
     useCallbacks_ = config_->getBool("use-callbacks", Default_useCallbacks);
     sendAckMessages_ = config_->getBool("send-ack-messages", Default_sendAckMessage);
+    asyncMessaging_ = config_->getBool("async-messaging", Default_asyncMessaging);
 
     t42log_debug("queue open request for %s on stream %d\n", symbol_.c_str(), streamId_);
     QueueOpenRequest();
@@ -100,7 +106,7 @@ void UPASubscription::QueueOpenRequest()
     mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionOpenRequestCb, (void*) closure);
 }
 
-bool UPASubscription::Snapshot( UPAConsumer_ptr_t consumer, RMDSBridgeSnapshot_ptr_t snapRequest )
+bool UPASubscription::Snapshot(const UPAConsumer_ptr_t& consumer, const RMDSBridgeSnapshot_ptr_t& snapRequest )
 {
     SetSubscriptionState(SubscriptionStateSubscribing);
     consumer_ = consumer;
@@ -111,8 +117,12 @@ bool UPASubscription::Snapshot( UPAConsumer_ptr_t consumer, RMDSBridgeSnapshot_p
 
     isSnapshot_ = true;
     snapShot_ = snapRequest;
-    fieldmap_ = consumer_->GetOwner()->FieldMap();
 
+    if (consumer_->GetOwner()->FieldMap() != fieldmap_)
+    {
+        fieldmap_ = consumer_->GetOwner()->FieldMap();
+        decoder_.reset(new UPAFieldDecoder(consumer_, fieldmap_, symbol_, sourceName_));
+    }
 
     t42log_debug("queue open request for %s on stream %d\n", symbol_.c_str(), streamId_);
     QueueSnapRequest();
@@ -120,12 +130,17 @@ bool UPASubscription::Snapshot( UPAConsumer_ptr_t consumer, RMDSBridgeSnapshot_p
     return true;
 }
 
-bool UPASubscription::Refresh( UPAConsumer_ptr_t consumer, RMDSBridgeSubscription_ptr_t subRequest )
+bool UPASubscription::Refresh(const UPAConsumer_ptr_t& consumer, const RMDSBridgeSubscription_ptr_t& subRequest )
 {
     consumer_ = consumer;
     isRefresh_ = true;
     subscription_ = subRequest;
-    fieldmap_ = consumer_->GetOwner()->FieldMap();
+
+    if (consumer_->GetOwner()->FieldMap() != fieldmap_)
+    {
+        fieldmap_ = consumer_->GetOwner()->FieldMap();
+        decoder_.reset(new UPAFieldDecoder(consumer_, fieldmap_, symbol_, sourceName_));
+    }
 
     t42log_debug("queue refresh request for %s on stream %d\n", symbol_.c_str(), streamId_);
     QueueRefreshRequest();
@@ -501,14 +516,13 @@ RsslRet UPASubscription::InternalProcessMarketPriceResponse(RsslMsg* msg, RsslDe
                 // use the rssl field list decoder to decode the fields
                 if ((ret = rsslDecodeFieldList(dIter, &fList, 0)) == RSSL_RET_SUCCESS)
                 {
-                    UPAFieldDecoder decoder(consumer_, fieldmap_, symbol_, sourceName_);
                     // decode each field entry in list
                     while ((ret = rsslDecodeFieldEntry(dIter, &fEntry)) != RSSL_RET_END_OF_CONTAINER)
                     {
                         if (ret == RSSL_RET_SUCCESS)
                         {
                             // then process each field
-                            if (decoder.DecodeFieldEntry(&fEntry, dIter, msg_) != RSSL_RET_SUCCESS)
+                            if (decoder_->DecodeFieldEntry(&fEntry, dIter, msg_) != RSSL_RET_SUCCESS)
                             {
                                 ReportDecodeFailure("DecodeFieldEntry()", ret );
                                 // return RSSL_RET_SUCCESS otherwise it will shut down the thread
@@ -1250,8 +1264,6 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
             RsslLocalFieldSetDefDb localFieldSetDefDb;  // this must be cleared using the clear function below
             rsslClearLocalFieldSetDefDb(&localFieldSetDefDb);
 
-            UPAFieldDecoder decoder(consumer_, fieldmap_, symbol_, sourceName_);
-
             // level 2 market by order is a map of field lists
             if ((ret = rsslDecodeMap(dIter, &map)) == RSSL_RET_SUCCESS)
             {
@@ -1280,7 +1292,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                             {
                                 // decode each field
                                 // these are regular fields so get decodeed into the mama message like any L1 fields
-                                if (decoder.DecodeFieldEntry(&fEntry, dIter, msg_) != RSSL_RET_SUCCESS)
+                                if (decoder_->DecodeFieldEntry(&fEntry, dIter, msg_) != RSSL_RET_SUCCESS)
                                 {
                                     ReportDecodeFailure("DecodeFieldEntry()", ret );
                                     // return RSSL_RET_SUCCESS otherwise it will shut down the thread
@@ -1342,7 +1354,6 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                         }
 
                         // each entry in the map corresponds to an order
-                        //
                         std::string orderId(mapKey.data,  mapKey.length);
                         entry->Orderid(orderId);
 
@@ -1358,7 +1369,7 @@ RsslRet UPASubscription::InternalProcessMarketByOrderResponse(RsslMsg* msg, Rssl
                                 {
                                     if (ret == RSSL_RET_SUCCESS)
                                     {
-                                        if (decoder.DecodeBookFieldEntry(&fEntry, dIter, entry) != RSSL_RET_SUCCESS)
+                                        if (decoder_->DecodeBookFieldEntry(&fEntry, dIter, entry) != RSSL_RET_SUCCESS)
                                         {
                                             ReportDecodeFailure("decodeBookFieldEntry()", ret );
                                             // return RSSL_RET_SUCCESS otherwise it will shut down the thread
@@ -1611,8 +1622,6 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
             RsslLocalFieldSetDefDb localFieldSetDefDb;  // this must be cleared using the clear function below
             rsslClearLocalFieldSetDefDb(&localFieldSetDefDb);
 
-            UPAFieldDecoder decoder(consumer_, fieldmap_, symbol_, sourceName_);
-
             /* level 2 market by price is a map of field lists */
             if ((ret = rsslDecodeMap(dIter, &map)) == RSSL_RET_SUCCESS)
             {
@@ -1641,7 +1650,7 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                             {
                                 // decode each field
                                 // these are regular fields so get decodeed into the mama message like any L1 fields
-                                if (decoder.DecodeFieldEntry(&fEntry, dIter, msg_) != RSSL_RET_SUCCESS)
+                                if (decoder_->DecodeFieldEntry(&fEntry, dIter, msg_) != RSSL_RET_SUCCESS)
                                 {
                                     ReportDecodeFailure("DecodeFieldEntry()", ret );
                                     // return RSSL_RET_SUCCESS otherwise it will shut down the thread
@@ -1723,7 +1732,7 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                                 {
                                     if (ret == RSSL_RET_SUCCESS)
                                     {
-                                        if (decoder.DecodeBookFieldEntry(&fEntry, dIter, entry) != RSSL_RET_SUCCESS)
+                                        if (decoder_->DecodeBookFieldEntry(&fEntry, dIter, entry) != RSSL_RET_SUCCESS)
                                         {
                                             t42log_warn("DecodeBookFieldEntry() failed\n");
                                             // return RSSL_RET_SUCCESS otherwise it will shut down the thread
@@ -1749,7 +1758,7 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                                         side = ExtractSideCode(mapKey);
                                     }
 
-                                    PricePoint_ptr_t pp = PricePoint_ptr_t(new PricePoint(entry->Price(), entry->SideCode()));
+                                    PricePoint_ptr_t pp(new PricePoint(entry->Price(), entry->SideCode()));
                                     PPMap_.insert(PricePointMap_t::value_type(pricePointKey, pp));
                                 }
 
@@ -1772,7 +1781,6 @@ RsslRet UPASubscription::InternalProcessMarketByPriceResponse(RsslMsg* msg, Rssl
                                     }
 
                                 }
-
 
                                 if (mapEntry.action == RSSL_MPEA_ADD_ENTRY )
                                 {
@@ -1950,6 +1958,79 @@ void UPASubscription::SendStatusMsg(mamaMsgStatus secStatus)
 
 void UPASubscription::NotifyListenersMessage( mamaMsg msg, mamaMsgType msgType )
 {
+    if (asyncMessaging_)
+    {
+        NotifyListenersMessageAsync(msg, msgType);
+    }
+    else
+    {
+        NotifyListenersMessageSync(msg, msgType);
+    }
+}
+
+void UPASubscription::NotifyListenersMessageAsync(mamaMsg msg, mamaMsgType msgType) const
+{
+    SubscriptionResponseListenersVector_t listenersSnap;
+    {
+        T42Lock l(&subscriptionLock_);
+        // take a snap of the vector in case anything gets removed on the other thread
+        listenersSnap = listeners_;
+    }
+
+    msgPayload payload;
+    mamaMsgImpl_getPayload(msg, &payload);
+
+    mamaMsg newMsg;
+    mamaPayloadBridge bridge = mamaInternal_findPayload(MAMA_PAYLOAD_TICK42RMDS);
+    mamaMsg_createForPayloadBridge(&newMsg, bridge);
+//    mamaMsgImpl_useBridgePayload(newMsg, consumer_->GetOwner()->Bridge());
+    mamaMsgImpl_setBridgeImpl(newMsg, consumer_->GetOwner()->Bridge());
+
+    msgBridge newBridgeMessage;
+    mamaMsgImpl_getBridgeMsg(newMsg, &newBridgeMessage);
+
+//    msgPayload emptyPayload;
+//    mamaMsgImpl_getPayload(newMsg, &emptyPayload);
+
+//    mamaMsgImpl_setPayload(newMsg, payload, 1);
+//    mamaMsgImpl_setPayload(msg, emptyPayload, 1);
+
+    mamaMsg_copy(msg, &newMsg);
+
+    typedef utils::collection::unordered_set<mamaQueue> QueuesMap;
+    QueuesMap queues;
+
+    SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
+    while(it != listenersSnap.end() )
+    {
+        RMDSBridgeSubscription_ptr_t sub = *it;
+        it++;
+
+        tick42rmdsBridgeMamaMsgImpl_increaseReferences(newBridgeMessage);
+
+        sub->OnMessage(newMsg, msgType, true);
+
+        queues.insert(sub->Queue());
+    }
+
+    size_t queuesSize = 0;
+    for (const QueuesMap::value_type& queueValue : queues)
+    {
+        size_t queueSize = 0;
+        mama_status status = mamaQueue_getEventCount(queueValue, &queueSize);
+        if (status != MAMA_STATUS_OK)
+        {
+            queueSize = 0;
+        }
+
+        queuesSize += queueSize;
+    }
+
+    consumer_->SetQueueEventsCount(queuesSize);
+}
+
+void UPASubscription::NotifyListenersMessageSync(mamaMsg msg, mamaMsgType msgType) const
+{
     SubscriptionResponseListenersVector_t listenersSnap;
     {
         T42Lock l(&subscriptionLock_);
@@ -1963,12 +2044,12 @@ void UPASubscription::NotifyListenersMessage( mamaMsg msg, mamaMsgType msgType )
         RMDSBridgeSubscription_ptr_t sub = *it;
         it++;
 
-        sub->OnMessage(msg, msgType);
+        sub->OnMessage(msg, msgType, false);
     }
 }
 
 
-void UPASubscription::NotifyListenersRefreshMessage(mamaMsg msg, RMDSBridgeSubscription_ptr_t sub, bool bookMessage)
+void UPASubscription::NotifyListenersRefreshMessage(mamaMsg msg, const RMDSBridgeSubscription_ptr_t& sub, bool bookMessage)
 {
     // send an in-stream snapshot to all the listeners. The subscription that requested the refresh gets a msg type initial and
     // the rest get a message type recap.
@@ -1981,12 +2062,12 @@ void UPASubscription::NotifyListenersRefreshMessage(mamaMsg msg, RMDSBridgeSubsc
         listenersSnap = listeners_;
     }
 
-    SubscriptionResponseListenersVector_t::iterator it = listenersSnap.begin();
-    while(it != listenersSnap.end() )
+    SubscriptionResponseListenersVector_t::const_iterator itListener = listenersSnap.begin();
+    while(itListener != listenersSnap.end() )
     {
         // have to update the message type in here as this is where we know whether we are sending it to an existing subscription or one we have added to the stream
-        RMDSBridgeSubscription_ptr_t listener = *it;
-        it++;
+        const RMDSBridgeSubscription_ptr_t& listener = *itListener;
+        itListener++;
 
         mamaMsgType msgType = MAMA_MSG_TYPE_UNKNOWN;
         if(sub == listener)
@@ -2009,7 +2090,7 @@ void UPASubscription::NotifyListenersRefreshMessage(mamaMsg msg, RMDSBridgeSubsc
         if (msgType != MAMA_MSG_TYPE_UNKNOWN)
         {
             mamaMsg_updateU8(msg_, MamaFieldMsgType.mName, MamaFieldMsgType.mFid, msgType);
-            listener->OnMessage(msg, msgType);
+            listener->OnMessage(msg, msgType, false);
         }
     }
 }
@@ -2074,13 +2155,13 @@ void UPASubscription::NotifyListenersQuality(mamaQuality quality, short cause)
     }
 }
 
-void UPASubscription::AddListener( RMDSBridgeSubscription_ptr_t listener )
+void UPASubscription::AddListener(const RMDSBridgeSubscription_ptr_t& listener )
 {
     T42Lock l(&subscriptionLock_);
     listeners_.push_back(listener);
 }
 
-void UPASubscription::RemoveListener( RMDSBridgeSubscription_ptr_t listener )
+void UPASubscription::RemoveListener( const RMDSBridgeSubscription_ptr_t& listener )
 {
     T42Lock l(&subscriptionLock_);
     SubscriptionResponseListenersVector_t::iterator it;
@@ -2114,7 +2195,7 @@ void UPASubscription::RemoveListener( RMDSBridgeSubscription * listener )
 
 
 // Request an image for this subscription
-void UPASubscription::RequestImage(RMDSBridgeSubscription_ptr_t sub)
+void UPASubscription::RequestImage(const RMDSBridgeSubscription_ptr_t& sub)
 {
     T42Lock l(&subscriptionLock_);
     // We obtain a new image by making a refresh request to the rmds
@@ -2323,7 +2404,7 @@ void MAMACALLTYPE UPASubscription::SubscriptionDestroyCb(mamaQueue queue,void *c
 
 }
 
-void UPASubscription::QueueSubscriptionDestroy(RMDSBridgeSubscription_ptr_t & sub)
+void UPASubscription::QueueSubscriptionDestroy(const RMDSBridgeSubscription_ptr_t& sub)
 {
     if(0 != consumer_)
     {
@@ -2332,9 +2413,4 @@ void UPASubscription::QueueSubscriptionDestroy(RMDSBridgeSubscription_ptr_t & su
         mamaQueue_enqueueEvent(consumer_->RequestQueue(),  UPASubscription::SubscriptionDestroyCb, (void*) closure);
     }
 
-}
-
-UPASubscription::RMDSBridgeSubscriptionClosure::~RMDSBridgeSubscriptionClosure()
-{
-    sub_.reset();
 }

@@ -135,6 +135,7 @@ public:
 
     mamaMsg MamaMsg() const { return msg_; }
 
+    void SetQueueEventsCount(size_t count);
 
 private:
     // rssl connection

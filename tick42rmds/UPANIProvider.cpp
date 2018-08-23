@@ -346,7 +346,7 @@ void UPANIProvider::Run()
 
 }
 
-RsslChannel* UPANIProvider::ConnectToRsslServer( const std::string &hostname, const std::string &port, char* interfaceName, RsslConnectionTypes connType, RsslError* error )
+RsslChannel* UPANIProvider::ConnectToRsslServer( const std::string &hostname, const std::string &port, const char* interfaceName, RsslConnectionTypes connType, RsslError* error )
 {
     // todo
 
@@ -365,7 +365,7 @@ RsslChannel* UPANIProvider::ConnectToRsslServer( const std::string &hostname, co
 
     connectOpts.connectionInfo.unified.address = const_cast<char *>(hostname.c_str());
     connectOpts.connectionInfo.unified.serviceName = const_cast<char *>(port.c_str());
-    connectOpts.connectionInfo.unified.interfaceName = interfaceName;
+    connectOpts.connectionInfo.unified.interfaceName = const_cast<char *>(interfaceName);
     connectOpts.connectionType = connType;
     connectOpts.majorVersion = RSSL_RWF_MAJOR_VERSION;
     connectOpts.minorVersion = RSSL_RWF_MINOR_VERSION;
@@ -385,7 +385,6 @@ RsslChannel* UPANIProvider::ConnectToRsslServer( const std::string &hostname, co
     }
 
     return chnl;
-
 }
 
 void UPANIProvider::WaitReconnectionDelay()

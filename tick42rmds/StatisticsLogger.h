@@ -36,10 +36,7 @@ class StatisticsLogger
 public:
 
     // static factory
-    static StatisticsLogger_ptr_t GetStatisticsLogger();
-
-    StatisticsLogger();
-    virtual ~StatisticsLogger();
+    static const StatisticsLogger_ptr_t& GetStatisticsLogger();
 
     void Initialise();
 
@@ -70,20 +67,20 @@ public:
         ++incomingMessageCount_;
     }
 
-   void SetPendingOpens(int value)
-   {
-      pendingOpens_ = value;
-   }
+    void SetPendingOpens(int value)
+    {
+        pendingOpens_ = value;
+    }
 
-   void SetOpenItems(int value)
-   {
-      openItems_ = value;
-   }
+    void SetOpenItems(int value)
+    {
+        openItems_ = value;
+    }
 
-   void SetPendingCloses(int value)
-   {
-      pendingCloses_ = value;
-   }
+    void SetPendingCloses(int value)
+    {
+        pendingCloses_ = value;
+    }
 
     void SetRequestQueueLength(int value)
     {
@@ -95,16 +92,25 @@ public:
         return requestQueueLength_;
     }
 
+    void SetQueueEventsCount(size_t count)
+    {
+        queueEventsCount_ = count;
+    }
+
+    RsslUInt64 GetQueueEventsCount()
+    {
+        return queueEventsCount_;
+    }
+
    static void PauseUpdates();
    static void ResumeUpdates();
 
 private:
-   bool buildRemoveNames(const boost::filesystem::path &directory
-      , std::list<boost::filesystem::path> &removeNames);
-   void deleteOldFiles();
-   bool waitForInterval();
+    StatisticsLogger();
 
-private:
+    bool buildRemoveNames(const boost::filesystem::path& directory, std::list<boost::filesystem::path>& removeNames);
+    void deleteOldFiles();
+    bool waitForInterval();
 
     bool enabled_;
     int maxAgeDays_;
@@ -138,7 +144,6 @@ private:
     RsslUInt64 openItems_;
     RsslUInt64 pendingCloses_;
 
+    RsslUInt64 queueEventsCount_;
 };
-
-
 

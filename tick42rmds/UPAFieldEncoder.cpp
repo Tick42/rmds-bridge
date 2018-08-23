@@ -33,7 +33,7 @@ utils::collection::unordered_set<int> UPAFieldEncoder::suppressBadEnumWarnings_;
 
 //////////////////////////////////////////////////////////////////////////////
 //
-UPAFieldEncoder::UPAFieldEncoder(mamaDictionary dictionary, UpaMamaFieldMap_ptr_t upaFieldMap,
+UPAFieldEncoder::UPAFieldEncoder(mamaDictionary dictionary, const UpaMamaFieldMap_ptr_t& upaFieldMap,
         RsslDataDictionary *rmdsDictionary, const string &sourceName, const string &symbol)
     : dictionary_(dictionary)
     , upaFieldMap_(upaFieldMap)

@@ -26,8 +26,8 @@
 #ifndef __UPATRANSPORTNOTIFIER_H__
 #define __UPATRANSPORTNOTIFIER_H__
 
-/** 
- * @brief Thin wrapper class over the transport callback notification  
+/**
+ * @brief Thin wrapper class over the transport callback notification
  *
  */
 class UPATransportNotifier
@@ -35,7 +35,6 @@ class UPATransportNotifier
     mamaTransport transport;
 public:
     UPATransportNotifier(mamaTransport  transport);
-    ~UPATransportNotifier();
     // Notify the client that connection failed
     void onConnectionFailed(const char* extraInfo = "");
     // Notify the client that Connection failed

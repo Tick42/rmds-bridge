@@ -118,7 +118,7 @@ bool RMDSNIPublisher::Initialize( mamaBridge bridge, mamaTransport transport, co
 
 }
 
-void RMDSNIPublisher::InitialiseSource( const std::string sourceName)
+void RMDSNIPublisher::InitialiseSource( const std::string& sourceName)
 {
     utils::properties config;
 
@@ -226,7 +226,7 @@ void RMDSNIPublisher::LoginResponse(UPALogin::RsslLoginResponseInfo * pResponseI
 }
 
 // Will create string representation of the important part of RsslLoginResponseInfo
-void RMDSNIPublisher::LogResponseInfo(const UPALogin::RsslLoginResponseInfo &responseInfo)
+void RMDSNIPublisher::LogResponseInfo(const UPALogin::RsslLoginResponseInfo& responseInfo)
 {
     t42log_debug("Got Login Response:" );
     t42log_debug("\tStreamId [%u]", responseInfo.StreamId);

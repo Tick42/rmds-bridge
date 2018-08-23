@@ -40,12 +40,12 @@
 
 extern "C"
 {
-   fd_set    wrtfds;
+   fd_set wrtfds;
 }
 
-RMDSSubscriber::RMDSSubscriber(UPATransportNotifier &notify)
+RMDSSubscriber::RMDSSubscriber(const UPATransportNotifier &notify)
    : notify_(notify)
-   , interfaceName_(NULL), hConsumerThread_(0)
+   , hConsumerThread_(0)
 
 {
    sources_ = boost::make_shared<RMDSSources>();
@@ -58,10 +58,7 @@ RMDSSubscriber::RMDSSubscriber(UPATransportNotifier &notify)
 }
 
 RMDSSubscriber::~RMDSSubscriber()
-{
-   if (interfaceName_)
-      free(interfaceName_);
-}
+{ }
 
 bool RMDSSubscriber::Initialize( mamaBridge bridgeImpl, mamaTransport transport, const std::string &transport_name )
 {
@@ -80,8 +77,9 @@ bool RMDSSubscriber::Initialize( mamaBridge bridgeImpl, mamaTransport transport,
    if (MAMA_STATUS_OK !=
       (status =  mamaQueue_create (&upaRequestQueue_, bridgeImpl)))
    {
-      mama_log (MAMA_LOG_LEVEL_ERROR, "RMDSSubscriber::Initialize:"
-         "Failed to create upa command queue.");
+      mama_log (MAMA_LOG_LEVEL_ERROR,
+                "RMDSSubscriber::Initialize:"
+                "Failed to create upa command queue.");
       return false;
    }
 
@@ -110,11 +108,7 @@ bool RMDSSubscriber::Start(const char* interfaceName, RsslConnectionTypes connTy
 
    if (interfaceName)
    {
-      interfaceName_ = ::strdup(interfaceName);
-   }
-   else
-   {
-      interfaceName_ = NULL;
+      interfaceName_.assign(interfaceName);
    }
 
    // initialise from config
@@ -168,6 +162,14 @@ bool RMDSSubscriber::Done()
     }
 
     return true;
+}
+
+const char * RMDSSubscriber::InterfaceName() const
+{
+    if (interfaceName_.size() > 0)
+        return interfaceName_.c_str();
+
+    return NULL;
 }
 
 // Will create string representation of the important part of RsslLoginResponseInfo
@@ -224,6 +226,7 @@ void RMDSSubscriber::ConnectionNotification(bool connected, const char* extraInf
 
    if (connected_)
    {
+
       if (!consumer_->RequestLogin(upaRequestQueue_))
       {
          subscriberState_ = unconnected;
@@ -248,28 +251,25 @@ void RMDSSubscriber::ConnectionNotification(bool connected, const char* extraInf
          subscriberState_ = unconnected;
          notify_.onConnectionFailed(extraInfo);
       }
-
    }
 }
 
 void RMDSSubscriber::SourceDirectoryUpdate( RsslSourceDirectoryResponseInfo * pResponseInfo, bool isRefresh )
 {
 
-   const char * state = (int)pResponseInfo->ServiceStateInfo.ServiceState == 0 ? "DOWN" : "UP";
-   const char * acceptingRequests = (int)pResponseInfo->ServiceStateInfo.AcceptingRequests == 0 ? "FALSE" : "TRUE";
+   const char* state = (int)pResponseInfo->ServiceStateInfo.ServiceState == 0 ? "DOWN" : "UP";
+   const char* acceptingRequests = (int)pResponseInfo->ServiceStateInfo.AcceptingRequests == 0 ? "FALSE" : "TRUE";
    int sid = (int)pResponseInfo->ServiceId;
 
 
-    t42log_info("Received SourceInfo for %s, service ID is %d, state = %s, accepting requests = %s\n" ,
-        pResponseInfo->ServiceGeneralInfo.ServiceName, sid, state, acceptingRequests);
+    t42log_info("Received SourceInfo for %s, service ID is %d, state = %s, accepting requests = %s\n",
+                pResponseInfo->ServiceGeneralInfo.ServiceName, sid, state, acceptingRequests);
 
     // The update to the source will propagate any state changes through to all the subscriptions active on the source
-    sources_->UpdateOrCreate(
-        pResponseInfo->ServiceId,
-        pResponseInfo->ServiceGeneralInfo.ServiceName,
-        ServiceState(
-        pResponseInfo->ServiceStateInfo.ServiceState != 0,
-        pResponseInfo->ServiceStateInfo.AcceptingRequests != 0 ) );
+    sources_->UpdateOrCreate(pResponseInfo->ServiceId,
+                             pResponseInfo->ServiceGeneralInfo.ServiceName,
+                             ServiceState(pResponseInfo->ServiceStateInfo.ServiceState != 0,
+                                          pResponseInfo->ServiceStateInfo.AcceptingRequests != 0));
 
 }
 
@@ -418,17 +418,13 @@ bool RMDSSubscriber::AddSubscription( subscriptionBridge* subscriber, const char
          t42log_warn("Attempt to add duplicate newItem subscription for source %s\n", source);
          return false;
       }
-
-
    }
 
    //now trim the symbol
    std::string strSymbol(symbol);
    boost::algorithm::trim(strSymbol);
 
-
-   RMDSBridgeSubscription_ptr_t sub = RMDSBridgeSubscription_ptr_t(
-      new RMDSBridgeSubscription(strSource, strSymbol, transport, queue, callback, subscription, closure, logrmdsvalues));
+   RMDSBridgeSubscription_ptr_t sub(new RMDSBridgeSubscription(strSource, strSymbol, transport, queue, callback, subscription, closure, logrmdsvalues));
 
    *subscriber = (subscriptionBridge) sub.get();
 
@@ -441,19 +437,14 @@ bool RMDSSubscriber::AddSubscription( subscriptionBridge* subscriber, const char
        pendingSubscriptions_.push_back(sub);
    }
 
-
-
    return true;
 }
-
 
 
 void RMDSSubscriber::SetLive()
 {
    subscriberState_ = live;
-
 }
-
 
 
 void RMDSSubscriber::ProcessPendingSubcriptions()
@@ -484,8 +475,6 @@ void RMDSSubscriber::ProcessPendingSubcriptions()
         pendingListLock_.lock();
     }
 
-
-
     // still holding the lock at this point
     // process pending snapshots
     while(pendingSnapshots_.size() !=0)
@@ -507,7 +496,10 @@ void RMDSSubscriber::ProcessPendingSubcriptions()
 
 }
 
-
+mamaBridge RMDSSubscriber::Bridge() const
+{
+    return bridge_;
+}
 
 
 bool RMDSSubscriber::AddSubscriptionToSource( RMDSBridgeSubscription_ptr_t sub )
@@ -523,7 +515,8 @@ bool RMDSSubscriber::AddSubscriptionToSource( RMDSBridgeSubscription_ptr_t sub )
       t42log_info("Unknown source name '%s' for symbol '%s' \n", sub->SourceName().c_str(), sub->Symbol().c_str());
       sub->Callback().onError(sub->Subscription(), MAMA_STATUS_BAD_SYMBOL, 0, 0, sub->Closure());
 
-      badSourceFailures_.insert(BadSourceFailuresMap_t::value_type(sub.get(), sub));
+      badSourceFailures_.emplace(sub.get(), sub);
+
       return false;
    }
 
@@ -574,12 +567,9 @@ bool RMDSSubscriber::AddSubscriptionToSource( RMDSBridgeSubscription_ptr_t sub )
       upaSub->Open(consumer_);
    }
 
-
    return true;
 
 }
-
-
 
 
 bool RMDSSubscriber::RemoveSubscription( RMDSBridgeSubscription * pSubscription )
@@ -622,12 +612,10 @@ bool RMDSSubscriber::RemoveSubscription( RMDSBridgeSubscription * pSubscription 
    }
 
    return true;
-
-
 }
 
 
-void RMDSSubscriber::SetDictionaryReply(boost::shared_ptr<DictionaryReply_t> dictionaryReply)
+void RMDSSubscriber::SetDictionaryReply(const DictionaryReply_ptr_t& dictionaryReply)
 {
 
    void * pThis = this;
@@ -635,12 +623,9 @@ void RMDSSubscriber::SetDictionaryReply(boost::shared_ptr<DictionaryReply_t> dic
 
    dictionaryReply_ = dictionaryReply;
    consumer_->ClientRequestDictionary(upaRequestQueue_);
-
 }
 
-
-
-bool RMDSSubscriber::FindSubscription( const std::string & source, const std::string & symbol, UPASubscription_ptr_t & sub )
+bool RMDSSubscriber::FindSubscription( const std::string& source, const std::string& symbol, UPASubscription_ptr_t& sub )
 {
    RMDSSource_ptr_t src;
    if (!sources_->Find(source, src))
@@ -725,15 +710,11 @@ void RMDSSubscriber::ResumeUpdates()
    }
 }
 
-void RMDSSubscriber::SendSnapshotRequest( SnapshotReply_ptr_t snapReply )
+void RMDSSubscriber::SendSnapshotRequest(const SnapshotReply_ptr_t& snapReply )
 {
     bool logrmdsvalues = config_->getBool("logrmdsvalues");
 
-
-
-    RMDSBridgeSnapshot_ptr_t snap = RMDSBridgeSnapshot_ptr_t(
-        new RMDSBridgeSnapshot(snapReply, logrmdsvalues));
-
+    RMDSBridgeSnapshot_ptr_t snap(new RMDSBridgeSnapshot(snapReply, logrmdsvalues));
 
     // Add the subscription to the pending queue. This will allow the initialization to complete asynchronously.
     // The open mama subscription creation model requires the subscription to complete without error so we defer the parts that can fail
@@ -743,8 +724,6 @@ void RMDSSubscriber::SendSnapshotRequest( SnapshotReply_ptr_t snapReply )
         utils::thread::T42Lock l(&pendingListLock_);
         pendingSnapshots_.push_back(snap);
     }
-
-
 }
 
 bool RMDSSubscriber::AddSnaphotToSource( RMDSBridgeSnapshot_ptr_t snap )
@@ -778,3 +757,4 @@ bool RMDSSubscriber::SendInsertMessage( const std::string & sourceName, mamaMsg 
     t42log_warn("The enhanced version of the Tick42 RMDS bridge is required to accept posted messages");
     return false;
 }
+

@@ -32,7 +32,7 @@
 
 class SubscriptionResponseListener;
 
-// The RMDSBridgeSubscription maps the mama subscription object onto an underlying UPA subscription. Mama subscriptions to the same source+symbol are mapped onto the same 
+// The RMDSBridgeSubscription maps the mama subscription object onto an underlying UPA subscription. Mama subscriptions to the same source+symbol are mapped onto the same
 // underlying platform subscription and the updates, status etc multiplexed through the subscription response listener interface methods
 
 class RMDSBridgeSubscription : public SubscriptionResponseListener
@@ -40,32 +40,32 @@ class RMDSBridgeSubscription : public SubscriptionResponseListener
 public:
     RMDSBridgeSubscription(void);
 
-    RMDSBridgeSubscription(const std::string&  sourceName, const std::string& symbol, mamaTransport transport, mamaQueue queue, mamaMsgCallbacks callback, 
+    RMDSBridgeSubscription(const std::string&  sourceName, const std::string& symbol, mamaTransport transport, mamaQueue queue, mamaMsgCallbacks callback,
         mamaSubscription subscription, void* closure, bool logRmdsValues);
 
-    virtual ~RMDSBridgeSubscription(void);
+    virtual ~RMDSBridgeSubscription(void) { }
 
     void Shutdown();
 
     // accessors
-    std::string SourceName() const { return sourceName_; }
+    const std::string& SourceName() const { return sourceName_; }
     mamaMsgCallbacks Callback() const { return callback_; }
     mamaSubscription Subscription() const { return subscription_; }
     void* Closure() const { return closure_; }
-    std::string Symbol() const { return symbol_; }
+    const std::string& Symbol() const { return symbol_; }
     bool LogRmdsValues() const { return logRmdsValues_; }
     mamaTransport Transport() const { return transport_; }
 
-    RMDSSource_ptr_t Source() const { return source_; }
-    void Source(RMDSSource_ptr_t val) { source_ = val; }
+    const RMDSSource_ptr_t& Source() const { return source_; }
+    void Source(const RMDSSource_ptr_t& val) { source_ = val; }
 
-    UPASubscription_ptr_t UpaSubscription() const { return UpaSubscription_; }
-    void UpaSubscription(UPASubscription_ptr_t val) { UpaSubscription_ = val; }
+    const UPASubscription_ptr_t& UpaSubscription() const { return UpaSubscription_; }
+    void UpaSubscription(const UPASubscription_ptr_t& val) { UpaSubscription_ = val; }
 
     // mnethods
     void SendStatusMessage(mamaMsgStatus status);
 
-    bool Open(UPAConsumer_ptr_t consumer);
+    bool Open(const UPAConsumer_ptr_t& consumer);
     mamaQueue Queue() const { return queue_; }
 
 
@@ -74,7 +74,7 @@ public:
     // SubscriptionResponseListener implementation
     //
     // send a message on the mama subscription
-    virtual void OnMessage(mamaMsg msg, mamaMsgType msgType);
+    virtual void OnMessage(mamaMsg msg, mamaMsgType msgType, bool async);
 
     // raise an error on the mama subscription
     virtual void OnError(mama_status statusCode);
@@ -86,7 +86,6 @@ public:
     virtual void OnQuality(mamaQuality quality, short cause);
 
     static void MAMACALLTYPE SubscriptionDestroyCb(mamaQueue queue,void *closure);
-
 
 private:
     mamaTransport      transport_;
@@ -115,19 +114,18 @@ private:
 
 // The RMDSBridgeSnapshot maps the mama subscription object onto an underlying UPA subscription. Unlike the RMDSBridgeSubscription it does not multiples onto the underlying platform subscription
 // Thats doesn't really make any sense for a snapshot. Also unlike a subscription the message carrying the data is sent to an inbox rather that through the OnMsg callback
-class RMDSBridgeSnapshot 
+class RMDSBridgeSnapshot
 {
 public:
-    RMDSBridgeSnapshot(SnapshotReply_ptr_t snap, bool logRMDSValues);
+    RMDSBridgeSnapshot(const SnapshotReply_ptr_t& snap, bool logRMDSValues);
     ~RMDSBridgeSnapshot()
-    {
-    }
+    { }
 
-    std::string SourceName() const;
-    std::string Symbol() const;
+    const std::string& SourceName() const;
+    const std::string& Symbol() const;
 
-    UPASubscription_ptr_t Subscription() const { return subscription_; }
-    void Subscription(UPASubscription_ptr_t val) { subscription_ = val; }
+    const UPASubscription_ptr_t& Subscription() const { return subscription_; }
+    void Subscription(const UPASubscription_ptr_t& val) { subscription_ = val; }
 
     bool LogRMDSValues() const { return logRMDSValues_; }
 
@@ -142,7 +140,6 @@ public:
     virtual void OnStatusMessage(mamaMsgStatus statusCode);
 
 private:
-
     SnapshotReply_ptr_t reply_;
 
     //enable logging of incoming data values

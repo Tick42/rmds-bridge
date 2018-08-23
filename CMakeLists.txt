@@ -18,7 +18,7 @@ if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to 'Release' as none was specified.")
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")  
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif ()
 
 project(RmdsBridge)
@@ -83,15 +83,15 @@ set (CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 # Boost Libraries
 #--------------------------------------------------------------------------------------------------
 
-set (Boost_DIR "$ENV{TICK42_BOOST}")
+set(Boost_DIR "$ENV{TICK42_BOOST}")
 message ("Boost root is " ${Boost_DIR})
 
-set (Boost_MULTITHREADED TRUE)
+set(Boost_MULTITHREADED TRUE)
 set(Boost_USE_STATIC_LIBS TRUE CACHE BOOL "Boost libraries are linked statically (default)")
 
-find_package (Boost 1.54 REQUIRED date_time filesystem system)
+find_package(Boost 1.54 REQUIRED date_time filesystem system program_options random)
 
-add_definitions (-DBOOST_FILESYSTEM_VERSION=3 -DBOOST_FILESYSTEM_NO_DEPRECATED)
+add_definitions(-DBOOST_FILESYSTEM_VERSION=3 -DBOOST_FILESYSTEM_NO_DEPRECATED)
 
 #--------------------------------------------------------------------------------------------------
 # Compiler C++11/0x support
@@ -108,7 +108,11 @@ if (CMAKE_COMPILER_IS_GNUCXX AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.3)
 
    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ENABLE_CXX11}")
 else ()
-    set (BOOST_NAMESPACES TRUE)
+    if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    else()
+        set (BOOST_NAMESPACES TRUE CACHE)
+    endif()
 endif ()
 
 if(${BOOST_NAMESPACES})
@@ -135,24 +139,24 @@ set (PEDANTIC OFF CACHE BOOL "$Enable lots of warnings")
 
 if (CMAKE_COMPILER_IS_GNUCXX)
 #	add_compiler_flag_if_supported(-Werror werror)
-	add_compiler_flag_if_supported(-Wwrite-strings wwrite_strings)
-	add_compiler_flag_if_supported(-Wreturn-type wreturn_type)
-	add_compiler_flag_if_supported(-Wunused-value wunused_value)
-	add_compiler_flag_if_supported(-Wtrigraphs wtrigraphs)
-	add_compiler_flag_if_supported(-Wmissing-braces wmissing_braces)
-	add_compiler_flag_if_supported(-Wcomment wcomment)
-	add_compiler_flag_if_supported(-Wtype-limits type_limits)
-	add_compiler_flag_if_supported(-Wempty-body empty_body)
+    add_compiler_flag_if_supported(-Wwrite-strings wwrite_strings)
+    add_compiler_flag_if_supported(-Wreturn-type wreturn_type)
+    add_compiler_flag_if_supported(-Wunused-value wunused_value)
+    add_compiler_flag_if_supported(-Wtrigraphs wtrigraphs)
+    add_compiler_flag_if_supported(-Wmissing-braces wmissing_braces)
+    add_compiler_flag_if_supported(-Wcomment wcomment)
+    add_compiler_flag_if_supported(-Wtype-limits type_limits)
+    add_compiler_flag_if_supported(-Wempty-body empty_body)
     add_compiler_flag_if_supported(-Waddress waddress)
     add_compiler_flag_if_supported(-fPIC fPIC)
 
-	if (PEDANTIC)
+    if (PEDANTIC)
         add_compiler_flag_if_supported(-Wall wall)
         add_compiler_flag_if_supported(-Wextra wextra)
         add_compiler_flag_if_supported(-Wuninitialized wuninitialized)
         add_compiler_flag_if_supported(-Wsign-compare wsign_compare)
         add_compiler_flag_if_supported(-Wchar-subscripts char_subscipts)
-	endif (PEDANTIC)
+    endif (PEDANTIC)
 endif (CMAKE_COMPILER_IS_GNUCXX)
 
 #--------------------------------------------------------------------------------------------------
@@ -161,10 +165,10 @@ endif (CMAKE_COMPILER_IS_GNUCXX)
 
 set (DUMP_VARIABLES OFF CACHE BOOL "Dump all variables")
 if (DUMP_VARIABLES)
-	get_cmake_property(_variableNames VARIABLES)
-	foreach (_variableName ${_variableNames})
-	    message("${_variableName}=${${_variableName}}")
-	endforeach()
+    get_cmake_property(_variableNames VARIABLES)
+    foreach (_variableName ${_variableNames})
+        message("${_variableName}=${${_variableName}}")
+    endforeach()
 endif ()
 #--------------------------------------------------------------------------------------------------
 # Sub projects
@@ -218,5 +222,5 @@ message("INSTALL_CMAKE_DIR=${INSTALL_CMAKE_DIR}")
 
 # Install the export set for use with the install-tree
 install(
-	EXPORT RmdsBridgeTargets DESTINATION
-	"${INSTALL_CMAKE_DIR}" COMPONENT dev)
+    EXPORT RmdsBridgeTargets DESTINATION
+    "${INSTALL_CMAKE_DIR}" COMPONENT dev)

@@ -46,13 +46,9 @@
 
 using namespace std;
 
-RMDSPublisher::RMDSPublisher(UPATransportNotifier &notify)
+RMDSPublisher::RMDSPublisher(const UPATransportNotifier& notify)
     : RMDSPublisherBase(notify),
       connected_(false)
-{
-}
-
-RMDSPublisher::~RMDSPublisher(void)
 {
 }
 
@@ -210,7 +206,7 @@ void RMDSPublisher::SentLoginResponse()
     }
 }
 
-bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool refresh )
+bool RMDSPublisher::RequestItem( const std::string& source, const std::string& symbol, bool refresh )
 {
     // get hold of the subscription for new items
     /// and build a new item reuqest message
@@ -227,7 +223,8 @@ bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool re
     reply.mBridgeImpl = bridgeImpl_;
     reply.replyHandle = (void*)inbox_;
 
-    mamaMsgImpl_useBridgePayload(msg, bridgeImpl_);
+//    mamaMsgImpl_useBridgePayload(msg, bridgeImpl_);
+    mamaMsgImpl_setBridgeImpl(msg, bridgeImpl_);
 
     msgBridge mb;
     mamaMsgImpl_getBridgeMsg(msg, &mb);
@@ -255,7 +252,7 @@ bool RMDSPublisher::RequestItem( std::string source, std::string symbol, bool re
     return true;
 }
 
-bool RMDSPublisher::CloseItem(std::string source, std::string symbol)
+bool RMDSPublisher::CloseItem(const std::string& source, const std::string& symbol)
 {
     // build an unsubscribe message
 
@@ -354,26 +351,20 @@ bool RMDSPublisherBase::createUpaMamaFieldMap()
 
     if (config.exists("fidsoffset"))
     {
-        UpaMamaFieldMap_ptr_t upaMamaFieldMapTmp(
-            new UpaMamaFieldMapHandler_t(
-            config.getString("fieldmap", Default_Fieldmap),
-            config.getUint16("fidsoffset", Default_FieldOffset),
-            config.getBool("unmapdfld", Default_PassUnmappedFields),
-            config.getString("mama_dict"),
-            rmdsDict
-            ));
-        UpaMamaFieldMap_ = upaMamaFieldMapTmp;
+        UpaMamaFieldMap_.reset(new UpaMamaFieldMapHandler_t(config.getString("fieldmap", Default_Fieldmap),
+                                                            config.getUint16("fidsoffset", Default_FieldOffset),
+                                                            config.getBool("unmapdfld", Default_PassUnmappedFields),
+                                                            config.getString("mama_dict"),
+                                                            rmdsDict
+                                                            ));
     }
     else
     {
-        UpaMamaFieldMap_ptr_t upaMamaFieldMapTmp (
-            new UpaMamaFieldMapHandler_t(
-            config.getString("fieldmap", Default_Fieldmap),
-            config.getBool("unmapdfld", Default_PassUnmappedFields),
-            config.getString("mama_dict"),
-            rmdsDict
-            ));
-        UpaMamaFieldMap_ = upaMamaFieldMapTmp;
+        UpaMamaFieldMap_.reset(new UpaMamaFieldMapHandler_t(config.getString("fieldmap", Default_Fieldmap),
+                                                            config.getBool("unmapdfld", Default_PassUnmappedFields),
+                                                            config.getString("mama_dict"),
+                                                            rmdsDict
+                                                            ));
     }
 
     result = UpaMamaFieldMap_ ? true : false;

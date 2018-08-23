@@ -48,6 +48,7 @@ static const int Default_maxdisp = 1000;
 static const int Default_maxPending = 1000;
 static const char * Default_useCallbacks = "0";
 static const char * Default_sendAckMessage = "1";
+static const bool Default_asyncMessaging = false;
 static const int Default_maxMessageSize = 4096;
 static const int Default_waitTimeForSelect = 100000;
 
@@ -162,3 +163,4 @@ typedef boost::shared_ptr<TransportConfig_t> TransportConfig_ptr_t;
 #undef FIELD_GETTER
 
 #endif //__TRANSPORTCONFIG_T_H__
+

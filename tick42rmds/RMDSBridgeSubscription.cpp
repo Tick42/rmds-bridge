@@ -29,6 +29,7 @@
 #include "RMDSSource.h"
 
 #include "UPASubscription.h"
+#include "msg.h"
 #include "utils/t42log.h"
 
 RMDSBridgeSubscription::RMDSBridgeSubscription(void)
@@ -39,14 +40,7 @@ RMDSBridgeSubscription::RMDSBridgeSubscription( const std::string& sourceName, c
     mamaMsgCallbacks callback, mamaSubscription subscription, void* closure, bool logRmdsValues)
     : transport_(transport), queue_(queue), callback_(callback), subscription_(subscription), closure_(closure), logRmdsValues_(logRmdsValues),
         sourceName_(sourceName), symbol_(symbol), gotImage_(false), isShutdown_(false)
-
-{
-
-}
-
-RMDSBridgeSubscription::~RMDSBridgeSubscription(void)
-{
-}
+{ }
 
 void RMDSBridgeSubscription::SendStatusMessage( mamaMsgStatus secStatus )
 {
@@ -57,7 +51,8 @@ void RMDSBridgeSubscription::SendStatusMessage( mamaMsgStatus secStatus )
     }
     // create and send a message containing the (failed) status
     mamaMsg msg;
-    mamaMsg_createForPayload(&msg, MAMA_PAYLOAD_TICK42RMDS);
+    mamaPayloadBridge bridge = mamaInternal_findPayload(MAMA_PAYLOAD_TICK42RMDS);
+    mamaMsg_createForPayloadBridge(&msg, bridge);
 
     mamaMsg_addI32(msg, MamaFieldMsgType.mName, MamaFieldMsgType.mFid, MAMA_MSG_TYPE_SEC_STATUS);
     mamaMsg_addI32(msg, MamaFieldMsgStatus.mName, MamaFieldMsgStatus.mFid, secStatus);
@@ -90,8 +85,55 @@ void RMDSBridgeSubscription::SendStatusMessage( mamaMsgStatus secStatus )
 }
 
 // SubscriptionResponseListener implementation
+extern "C"
+{
+    mama_status
+        mamaMsgImpl_getPayload (const mamaMsg msg, msgPayload* payload);
+};
 
-void RMDSBridgeSubscription::OnMessage( mamaMsg msg, mamaMsgType msgType )
+typedef struct
+{
+    mamaMsg msg;
+    mamaSubscription subscription;
+    UPASubscription_ptr_t upaSubscription;
+} queueCallbackData;
+
+void MAMACALLTYPE
+queueCallback(mamaQueue queue, void* closure)
+{
+    queueCallbackData* data = (queueCallbackData*) closure;
+
+    /* Process the message as normal */
+    mamaMsgImpl_setQueue(data->msg, queue);
+    mama_status status = mamaSubscription_processMsg(data->subscription,
+                                                     data->msg);
+
+    msgBridge bridgeMessage;
+    mamaMsgImpl_getBridgeMsg(data->msg, &bridgeMessage);
+    tick42rmdsBridgeMamaMsgImpl_decreaseReferences(bridgeMessage);
+
+    size_t references = 0;
+    tick42rmdsBridgeMamaMsgImpl_getReferences(bridgeMessage, references);
+    if (references <= 0)
+    {
+        bool detached = false;
+        tick42rmdsBridgeMamaMsgImpl_isDetached(bridgeMessage, detached);
+        if (!detached)
+        {
+            mamaMsg_destroy(data->msg);
+        }
+    }
+
+    if (MAMA_STATUS_OK != status)
+    {
+        mama_log (MAMA_LOG_LEVEL_ERROR,
+                  "mamaSubscription_processMsg() failed. [%d]", status);
+    }
+
+    delete data;
+}
+
+void RMDSBridgeSubscription::OnMessage(mamaMsg msg, mamaMsgType msgType, bool async)
 {
     if (isShutdown_ || ((0 != source_) && source_->IsPausedUpdates()))
     {
@@ -121,7 +163,19 @@ void RMDSBridgeSubscription::OnMessage( mamaMsg msg, mamaMsgType msgType )
 
     try
     {
-        status = mamaSubscription_processMsg(subscription_, msg);
+        if (async)
+        {
+            queueCallbackData* data = new queueCallbackData();
+            data->msg = msg;
+            data->subscription = subscription_;
+            data->upaSubscription = UpaSubscription_;
+
+            status = mamaQueue_enqueueEvent(queue_, queueCallback, data);
+        }
+        else
+        {
+            status = mamaSubscription_processMsg(subscription_, msg);
+        }
     }
     catch (...)
     {
@@ -206,7 +260,7 @@ void MAMACALLTYPE RMDSBridgeSubscription::SubscriptionDestroyCb(mamaQueue queue,
 
 }
 
-bool RMDSBridgeSubscription::Open( UPAConsumer_ptr_t consumer )
+bool RMDSBridgeSubscription::Open(const UPAConsumer_ptr_t& consumer )
 {
     if (UpaSubscription_->GetSubscriptionState() == UPASubscription::SubscriptionStateInactive)
     {
@@ -231,15 +285,13 @@ void RMDSBridgeSubscription::Shutdown()
 // Snapshot implementation
 //
 ///////////////////////////////
-RMDSBridgeSnapshot::RMDSBridgeSnapshot( SnapshotReply_ptr_t snap, bool logRMDSValues)
-    : reply_(snap), logRMDSValues_(logRMDSValues)
-{
-
-}
+RMDSBridgeSnapshot::RMDSBridgeSnapshot(const SnapshotReply_ptr_t& snap, bool logRMDSValues) :
+    reply_(snap),
+    logRMDSValues_(logRMDSValues)
+{ }
 
 void RMDSBridgeSnapshot::OnMessage( mamaMsg msg )
 {
-
     reply_->OnMsg(msg);
 
     subscription_->CompleteSnapshot();
@@ -255,12 +307,12 @@ void RMDSBridgeSnapshot::OnStatusMessage( mamaMsgStatus statusCode )
 
 }
 
-std::string RMDSBridgeSnapshot::SourceName() const
+const std::string& RMDSBridgeSnapshot::SourceName() const
 {
     return reply_->SourceName();
 }
 
-std::string RMDSBridgeSnapshot::Symbol() const
+const std::string& RMDSBridgeSnapshot::Symbol() const
 {
     return reply_->Symbol();
 }

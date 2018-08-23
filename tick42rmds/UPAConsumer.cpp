@@ -39,27 +39,27 @@
 
 const int32_t StatsSampleInterval = 10000;
 
-UPAConsumer::UPAConsumer(RMDSSubscriber * pOwner)
-   : shouldRecoverConnection_(RSSL_TRUE)
-   , rsslConsumerChannel_(NULL)
-   , receivedServerMsg_ (RSSL_FALSE)
-   , connectionConfig_(pOwner->Config()->getString("hosts"), pOwner->Config()->getString("retrysched", Default_retrysched))
-   ,requiresConnection_(true)
+UPAConsumer::UPAConsumer(RMDSSubscriber* pOwner)
+    : shouldRecoverConnection_(RSSL_TRUE)
+    , rsslConsumerChannel_(NULL)
+    , receivedServerMsg_ (RSSL_FALSE)
+    , connectionConfig_(pOwner->Config()->getString("hosts"), pOwner->Config()->getString("retrysched", Default_retrysched))
+    , requiresConnection_(true)
 {
-   isInLoginSuspectState_ = RSSL_FALSE;
-   owner_ = pOwner;
-   if (pOwner->InterfaceName())
-   {
-      interfaceName_ = ::strdup(pOwner->InterfaceName());
-   }
-   else
-   {
-      interfaceName_ = NULL;
-   }
+    isInLoginSuspectState_ = RSSL_FALSE;
+    owner_ = pOwner;
+    if (pOwner->InterfaceName())
+    {
+        interfaceName_ = ::strdup(pOwner->InterfaceName());
+    }
+    else
+    {
+        interfaceName_ = NULL;
+    }
 
-   // if no hosts list dont try and connect
-   // this lets us run a subscriber that is not connected - allows mama to subscribe for special topis such as new item request that are created by the publisher
-   // then marshalled into a subscriber
+    // if no hosts list dont try and connect
+    // this lets us run a subscriber that is not connected - allows mama to subscribe for special topis such as new item request that are created by the publisher
+    // then marshalled into a subscriber
 
     if (connectionConfig_.NumHosts() == 0)
     {
@@ -105,20 +105,23 @@ UPAConsumer::UPAConsumer(RMDSSubscriber * pOwner)
 
 
     // create the shared mama message
-    mamaMsg_createForPayload(&msg_, MAMA_PAYLOAD_TICK42RMDS);
+    mamaPayloadBridge payloadBridge = mamaInternal_findPayload(MAMA_PAYLOAD_TICK42RMDS);
+    mamaMsg_createForPayloadBridge(&msg_, payloadBridge);
+    mamaMsgImpl_setBridgeImpl(msg_, pOwner->Bridge());
 
-
-   runThread_ = true;
-
+    runThread_ = true;
 }
 
 UPAConsumer::~UPAConsumer(void)
 {
-   delete login_;
-   delete sourceDirectory_;
+    delete login_;
+    delete sourceDirectory_;
+
+    if (msg_)
+    {
+        mamaMsg_destroy(msg_);
+    }
 }
-
-
 
 void UPAConsumer::Run()
 {
@@ -989,7 +992,10 @@ void UPAConsumer::NotifyListeners(bool connected, const char* extraInfo )
 
 }
 
-
+void UPAConsumer::SetQueueEventsCount(size_t count)
+{
+    statsLogger_->SetQueueEventsCount(count);
+}
 
 RsslUInt32 UPAConsumer::LoginStreamId() const
 {

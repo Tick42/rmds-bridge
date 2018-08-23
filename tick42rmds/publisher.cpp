@@ -533,8 +533,8 @@ mama_status
             boost::shared_ptr<RMDSTransportBridge> bridge = rmdsBridge->getTransportBridge(upaPublisherBridge->Transport());
 
             TransportConfig_ptr_t config = boost::make_shared<TransportConfig_t>(bridge->Name());
-            bool queudictionary = config->getBool("queuedictionary", Default_queuedictionary);
-            bridge->setDictionaryReply(boost::make_shared<PublisherDictionaryReply>(upaPublisherBridge, publisher, replyAddr, inbox,  queudictionary));
+            bool queuedictionary = config->getBool("queuedictionary", Default_queuedictionary);
+            bridge->setDictionaryReply(boost::make_shared<PublisherDictionaryReply>(upaPublisherBridge, publisher, replyAddr, inbox,  queuedictionary));
         }
     }
 

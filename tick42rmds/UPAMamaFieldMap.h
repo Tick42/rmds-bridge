@@ -26,6 +26,9 @@
 #ifndef __UPAMAMAFIELDMAP_H__
 #define __UPAMAMAFIELDMAP_H__
 
+#include <vector>
+#include <set>
+
 #include <utils/mama/mamaDictionaryWrapper.h>
 #include <utils/t42log.h>
 
@@ -73,8 +76,8 @@ public:
      * @param shouldPassNonTranslated: says whether non-translated field should be passed on to the client or not.
      * @param [optional]spUPADictionaryHandler: an RMDS dictionary handler. That is the dictionary used in special cases where special conversion is needed between the source RMDS type to an OpenMAMA type.
      */
-    UpaMamaFieldMapHandler_t(std::string fieldMapPath,  mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, std::string mamaDictPath, UPADictionaryWrapper_ptr_t &spUPADictionaryHandler);
-    UpaMamaFieldMapHandler_t(std::string fieldMapPath,  mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, std::string mamaDictPath);
+    UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, const std::string& mamaDictPath, const UPADictionaryWrapper_ptr_t& spUPADictionaryHandler);
+    UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, mama_fid_t nonTranslatedFieldFid_Start, bool shouldPassNonTranslated, const std::string& mamaDictPath);
     /**
      * @brief Constructor
      * This constructor is used when the fid for non-translated fields is not set - which means in turn that the max-fid from the underlaying mama-dictionary will be used
@@ -82,8 +85,8 @@ public:
      * @param shouldPassNonTranslated: says whether non-translated field should be passed on to the client or not.
      * @param [optional]spUPADictionaryHandler: an RMDS dictionary handler. That is the dictionary used in special cases where special conversion is needed between the source RMDS type to an OpenMAMA type.
      */
-    UpaMamaFieldMapHandler_t(std::string fieldMapPath,  bool shouldPassNonTranslated, std::string mamaDictPath, UPADictionaryWrapper_ptr_t &spUPADictionaryHandler);
-    UpaMamaFieldMapHandler_t(std::string fieldMapPath,  bool shouldPassNonTranslated, std::string mamaDictPath);
+    UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, bool shouldPassNonTranslated, const std::string& mamaDictPath, const UPADictionaryWrapper_ptr_t& spUPADictionaryHandler);
+    UpaMamaFieldMapHandler_t(const std::string& fieldMapPath, bool shouldPassNonTranslated, const std::string& mamaDictPath);
     ~UpaMamaFieldMapHandler_t();
 
     /**
@@ -92,7 +95,7 @@ public:
      * @param spUPADictionaryHandler: The RMDS dictionary object.
      * @return: true on success
      */
-    inline bool SetUPADictionaryHandler(UPADictionaryWrapper_ptr_t &spUPADictionaryHandler)
+    inline bool SetUPADictionaryHandler(const UPADictionaryWrapper_ptr_t& spUPADictionaryHandler)
     {
         spUPADictionaryHandler_=spUPADictionaryHandler;
         return spUPADictionaryHandler_ ? true : false;
@@ -180,6 +183,7 @@ public:
                 t42log_error("Mama fid %d has no equivalent in RMDS\n", mamaFid);
             }
         }
+
         return mappedFid;
     }
 
@@ -216,7 +220,7 @@ public:
      */
     utils::mama::mamaDictionaryWrapper GetCombinedMamaDictionary();
 
-    mama_fid_t GetMamaFid(std::string mamaFieldName);
+    mama_fid_t GetMamaFid(const std::string& mamaFieldName);
 
 private:
     /**
@@ -224,20 +228,20 @@ private:
      * @param path: The path to fieldmap.csv
      * @return: true on success
      */
-    bool CreateFieldMap(std::string path);
+    bool CreateFieldMap(const std::string& path);
     /**
      * @brief create mama dictionary from file
      * @param path: The path to mama_dict.txt (could be some other file name)
      * @return: true on success
      */
-    bool CreateMamaDictionary(std::string path);
+    bool CreateMamaDictionary(const std::string& path);
     /**
      * @brief create the fields map and the mama dictionary from the corresponding file paths
      * @param fieldMapPath: The path to fieldmap.csv
      * @param mamaDictPath: The path to mama_dict.txt (could be some other file name)
      * @return: true on success
      */
-    bool CreateAll(std::string fieldMapPath, std::string mamaDictPath);
+    bool CreateAll(const std::string& fieldMapPath, const std::string& mamaDictPath);
     /**
      * @brief the fieldmap.csv parser, responsible on creating the fields map from the file.
      * @param in_dict_file: the handle to the file fieldmap.csv
@@ -278,11 +282,11 @@ private:
     // The combined version of mama dictionary + dictionary from the fieldmap.csv + non translated fields (implicitly)
     utils::mama::mamaDictionaryWrapper mamaDictionaryCombined_;
 
-    bool builtCombinedDictionary_;
     mama_fid_t NonTranslatedFieldFid_CurrentValue_; //should be incremented each time a non translated field is added
     bool ShouldPassNonTranslated_;
     std::string fieldMapPath_;
     std::string mamaDictPath_;
+    bool builtCombinedDictionary_;
 
     /*
      * This one holds all the fields whose names are the same but have different FIDs on both the MAMA dictionary (mamaDictionary_) and and the fields map (map_)

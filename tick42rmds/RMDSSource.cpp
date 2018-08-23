@@ -37,11 +37,11 @@
 
 using namespace utils::thread;
 
-RMDSSource::RMDSSource( const std::string & serviceName, const RsslUInt64 serviceId, UPAConsumer_ptr_t consumer )
-    : serviceName_(serviceName)
-   , serviceId_(serviceId)
-   , consumer_(consumer)
-   , pausedUpdates_(false)
+RMDSSource::RMDSSource(const std::string& serviceName, const RsslUInt64 serviceId, const UPAConsumer_ptr_t& consumer) :
+    serviceName_(serviceName),
+    serviceId_(serviceId),
+    consumer_(consumer),
+    pausedUpdates_(false)
 {
     // sort out the default domain for this service
     std::string configDomain = consumer_->GetOwner()->Config()->getServicePropertyString(serviceName,"domain","any");
@@ -74,8 +74,6 @@ RMDSSource::RMDSSource( const std::string & serviceName, const RsslUInt64 servic
         sourceDomain_ =  UPASubscription::SubscriptionTypeUnknown;
         t42log_info("%s %s", serviceName.c_str(), "(none)");
     }
-
-
 }
 
 RMDSSource::~RMDSSource()
@@ -85,7 +83,7 @@ RMDSSource::~RMDSSource()
 //////////////////////////////////////////////////////////////////////////
 // Default factory function for creating subscription objects
 // Overridden in the T42 enhancement pack
-UPASubscription_ptr_t RMDSSource::CreateSubscription(const std::string &symbol, bool logRmdsValues)
+UPASubscription_ptr_t RMDSSource::CreateSubscription(const std::string& symbol, bool logRmdsValues)
 {
 #ifdef ENABLE_TICK42_ENHANCED
    return UPASubscription_ptr_t(new T42Enh_UPASubscription(ServiceName(), symbol, logRmdsValues));
@@ -96,19 +94,19 @@ UPASubscription_ptr_t RMDSSource::CreateSubscription(const std::string &symbol, 
 
 //////////////////////////////////////////////////////////////////////////
 //
-bool RMDSSource::AddSubscription( UPASubscription_ptr_t sub )
+bool RMDSSource::AddSubscription(const UPASubscription_ptr_t& sub)
 {
     T42Lock lock(&subscriptionMapLock_);
 
-   if (sub != 0)
-   {
-       subscriptions_[sub->Symbol()] = sub;
-      return true;
-   }
-   return false;
+    if (sub != 0)
+    {
+        subscriptions_[sub->Symbol()] = sub;
+        return true;
+    }
+    return false;
 }
 
-bool RMDSSource::FindSubscription(const std::string & symbol, UPASubscription_ptr_t & sub )
+bool RMDSSource::FindSubscription(const std::string& symbol, UPASubscription_ptr_t& sub)
 {
     T42Lock lock(&subscriptionMapLock_);
     SubscriptionMap_t::iterator it = subscriptions_.find(symbol);
@@ -123,25 +121,24 @@ bool RMDSSource::FindSubscription(const std::string & symbol, UPASubscription_pt
     return true;
 }
 
-bool RMDSSource::RemoveSubscription( const std::string & symbol )
+bool RMDSSource::RemoveSubscription(const std::string& symbol)
 {
     // just look up on the symbol name and remove
     T42Lock lock(&subscriptionMapLock_);
 
-    SubscriptionMap_t::iterator it = subscriptions_.find(symbol);
+    SubscriptionMap_t::const_iterator itSubscription = subscriptions_.find(symbol);
 
-    if (it != subscriptions_.end())
+    if (itSubscription != subscriptions_.end())
     {
         //printf("remove RMDSBridgeSubscription from source %s, 0x%x\n", symbol.c_str(), it->second.get());
-        it->second->Close();
-        subscriptions_.erase(it);
+        itSubscription->second->Close();
+        subscriptions_.erase(itSubscription);
 
         return true;
     }
 
     t42log_warn("RMDSSource::RemoveSubscription - subscription for %s:%s not found", serviceName_.c_str(), symbol.c_str())    ;
     return false;
-
 }
 
 bool RMDSSource::SetStale()
@@ -149,13 +146,13 @@ bool RMDSSource::SetStale()
     // set all the subscriptions stale
     T42Lock lock(&subscriptionMapLock_);
 
-    SubscriptionMap_t::iterator it = subscriptions_.begin();
+    SubscriptionMap_t::const_iterator itSubscription = subscriptions_.begin();
 
-    while(it != subscriptions_.end())
+    while(itSubscription != subscriptions_.end())
     {
-        UPASubscription_ptr_t s = it->second;
-        s->SetStale(NULL);
-        ++it;
+        const UPASubscription_ptr_t& subscription = itSubscription->second;
+        subscription->SetStale(NULL);
+        ++itSubscription;
     }
 
     return true;
@@ -166,18 +163,18 @@ bool RMDSSource::SetLive()
     // set all the subscriptions live
     T42Lock lock(&subscriptionMapLock_);
 
-    SubscriptionMap_t::iterator it = subscriptions_.begin();
+    SubscriptionMap_t::const_iterator itSubscription = subscriptions_.begin();
 
-    while(it != subscriptions_.end())
+    while(itSubscription != subscriptions_.end())
     {
-        UPASubscription_ptr_t s = it->second;
-        s->SetLive();
-        ++it;
+        const UPASubscription_ptr_t& subscription = itSubscription->second;
+        subscription->SetLive();
+        ++itSubscription;
     }
     return true;
 }
 
-void RMDSSource::SetState( ServiceState newState )
+void RMDSSource::SetState(ServiceState newState)
 {
     bool oldState = state_.state;
 
@@ -206,13 +203,13 @@ bool RMDSSource::ReSubscribe()
     // set all the subscriptions stale
     T42Lock lock(&subscriptionMapLock_);
 
-    SubscriptionMap_t::iterator it = subscriptions_.begin();
+    SubscriptionMap_t::const_iterator itSubscription = subscriptions_.begin();
 
-    while(it != subscriptions_.end())
+    while(itSubscription != subscriptions_.end())
     {
-        UPASubscription_ptr_t s = it->second;
-        s->ReSubscribe();
-        ++it;
+        const UPASubscription_ptr_t& subscription = itSubscription->second;
+        subscription->ReSubscribe();
+        ++itSubscription;
     }
     return true;
 }

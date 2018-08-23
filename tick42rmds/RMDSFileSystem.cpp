@@ -28,7 +28,7 @@
 #include <utils/filesystem.h>
 #include "RMDSFileSystem.h"
 
-std::string GetActualPath( std::string path )
+std::string GetActualPath( const std::string& path )
 {
     using namespace utils;
     using namespace utils::filesystem;

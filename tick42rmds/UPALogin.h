@@ -64,9 +64,9 @@ public:
     bool QueueLogin(mamaQueue Queue);
     bool QueueLogin(mamaQueue queue, mamaQueueEventCB callback);
 
-    std::string UserName() const { return userName_; }
-    std::string AppName() const { return appName_; }
-    std::string AppID() const { return appID_; }
+    const std::string& UserName() const { return userName_; }
+    const std::string& AppName() const { return appName_; }
+    const std::string& AppID() const { return appID_; }
     bool ProvidePermissionProfile() const { return providePermissionProfile_; }
     void ProvidePermissionProfile(bool val) { providePermissionProfile_ = val; }
     bool ProvidePermissionExpressions() const { return providePermissionExpressions_; }
@@ -75,7 +75,7 @@ public:
     void SingleOpen(bool val) { singleOpen_ = val; }
     bool AllowSuspectData() const { return allowSuspectData_; }
     void AllowSuspectData(bool val) { allowSuspectData_ = val; }
-    std::string InstanceId() const { return instanceId_; }
+    const std::string& InstanceId() const { return instanceId_; }
     void InstanceId(std::string val) { instanceId_ = val; }
     RsslUInt64 Role() const { return role_; }
     void Role(RsslUInt64 val) { role_ = val; }
@@ -94,7 +94,7 @@ public:
 
     RsslRet SendLoginRequestReject(RsslChannel* chnl, RsslInt32 streamId, RsslLoginRejectReason reason);
 
-     //login response information
+    //login response information
 typedef struct
 {
     RsslInt32    StreamId;
@@ -170,7 +170,6 @@ private:
     std::string instanceId_; // InstanceId can be used to differentiate applications running on the same machine.
     bool downloadConnectionConfig_; //  Indicates the user wants to download connection configuration information. 0 (or if absent): Indicates that no connection
     RsslUInt64 role_; // consumer or provider RDM_LOGIN_ROLE_CONS == 0,    RDM_LOGIN_ROLE_PROV == 1. Will always be consumer
-
 
     // encode the request
 

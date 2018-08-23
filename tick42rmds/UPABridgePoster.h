@@ -42,14 +42,14 @@
 class PublisherPostMessageReply
 {
 public:
-    PublisherPostMessageReply( const std::string & replyAddr, mamaInbox inbox)
+    PublisherPostMessageReply(const std::string& replyAddr, mamaInbox inbox)
         : replyAddr_(replyAddr), inbox_(inbox)
-    {}
+    { }
 
     mamaInbox Inbox() const
     {return inbox_;}
 
-    std::string ReplyAddr() const
+    const std::string& ReplyAddr() const
     {return replyAddr_;}
 
 private:
@@ -65,7 +65,7 @@ typedef boost::shared_ptr<PublisherPostMessageReply> PublisherPostMessageReply_p
 class UPABridgePublisher : public boost::enable_shared_from_this<UPABridgePublisher>
 {
 public:
-    UPABridgePublisher(const std::string &root, const std::string &sourceName, const std::string &symbol, mamaTransport transport, mamaPublisher Parent);
+    UPABridgePublisher(const std::string& root, const std::string& sourceName, const std::string& symbol, mamaTransport transport, mamaPublisher Parent);
     virtual ~UPABridgePublisher();
 
     static UPABridgePublisher_ptr_t CreatePublisher(const std::string & root, const std::string& sourceName, const std::string& symbol, mamaTransport transport, mamaPublisher parent);
@@ -114,11 +114,11 @@ public:
         : poster_(poster), msg_(msg), reply_(reply)
     {}
 
-    UPABridgePoster_ptr_t Poster() const {return poster_;}
+    const UPABridgePoster_ptr_t& Poster() const { return poster_; }
 
-    mamaMsg Message() const {return msg_;}
+    mamaMsg Message() const { return msg_; }
 
-    const PublisherPostMessageReply_ptr_t& Reply() const {return reply_;}
+    const PublisherPostMessageReply_ptr_t& Reply() const { return reply_; }
 
 private:
     UPABridgePoster_ptr_t  poster_;
@@ -135,7 +135,7 @@ public:
     {
     }
 
-    UPABridgePublisherItem_ptr_t Publisher() const
+    const UPABridgePublisherItem_ptr_t& Publisher() const
     {
         return publisher_;
     }
@@ -163,12 +163,12 @@ class UPABridgePoster : public UPABridgePublisher
 public:
 
     // static factory
-    static UPABridgePublisher_ptr_t CreatePoster(const std::string &root, const std::string &sourceName,
+    static UPABridgePublisher_ptr_t CreatePoster(const std::string& root, const std::string& sourceName,
         const std::string& symbol, mamaTransport transport, mamaPublisher parent,
         const RMDSSubscriber_ptr_t& subscriber, const TransportConfig_t& config);
 
-    UPABridgePoster(const std::string &root, const std::string &sourceName, const std::string &symbol,
-        mamaTransport transport, mamaPublisher Parent, const RMDSSubscriber_ptr_t& subscriber);
+    UPABridgePoster(const std::string& root, const std::string& sourceName, const std::string& symbol,
+                    mamaTransport transport, mamaPublisher Parent, const RMDSSubscriber_ptr_t& subscriber);
     virtual ~UPABridgePoster();
 
     virtual void Shutdown();
@@ -216,8 +216,7 @@ protected:
    RsslRet SetPostUserInfo(RsslPostUserInfo &postUserInfo);
 
 private:
-
-    virtual bool Initialise(const UPABridgePoster_ptr_t& shared_ptr, const TransportConfig_t& config);
+    virtual bool Initialise(const UPABridgePoster_ptr_t& poster, const TransportConfig_t& config);
     void PrintMsg(RsslBuffer* buffer);
 
     RMDSSubscriber_ptr_t subscriber_;
@@ -286,10 +285,10 @@ public:
         // static factory
     static UPABridgePublisherItem_ptr_t CreatePublisherItem(const std::string &root, const std::string &sourceName,
                                                             const std::string &symbol, mamaTransport transport, mamaPublisher parent,
-                                                            const RMDSPublisherBase_ptr_t& RMDSPublisher, TransportConfig_t config, bool interactive);
+															const RMDSPublisherBase_ptr_t& RMDSPublisher, const TransportConfig_t& config, bool interactive);
 
-    UPABridgePublisherItem(const std::string &root, const std::string &sourceName, const std::string &symbol, mamaTransport transport,
-                           mamaPublisher parent, const RMDSPublisherBase_ptr_t& RMDSPublisher)
+    UPABridgePublisherItem(const std::string& root, const std::string& sourceName, const std::string& symbol, mamaTransport transport,
+	                   mamaPublisher parent, const RMDSPublisherBase_ptr_t& RMDSPublisher)
         : UPABridgePublisher(root, sourceName, symbol, transport, parent), RMDSPublisher_(RMDSPublisher)
     {
     }
@@ -304,7 +303,7 @@ public:
     virtual void Shutdown();
 
 private:
-    virtual bool Initialise(const UPABridgePublisherItem_ptr_t& shared_ptr, const TransportConfig_t& config, bool interactive);
+    virtual bool Initialise(const UPABridgePublisherItem_ptr_t& publisherItem, const TransportConfig_t& config, bool interactive);
 
     UPABridgePublisherItem_ptr_t sharedPtr_;
 

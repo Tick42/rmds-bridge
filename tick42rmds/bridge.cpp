@@ -62,7 +62,7 @@ mama_status tick42rmdsBridge_init(mamaBridge bridgeImpl)
 const char*
 tick42rmdsBridge_getVersion (void)
 {
-   return BRIDGE_VERSION_STRING;
+   return BRIDGE_NAME_STRING " " BRIDGE_VERSION_STRING;
 }
 
 const char*
@@ -204,13 +204,16 @@ mama_status
    {
       // Calling Resume() will call Start(), if the bridge has never been started
       t42log_info("tick42rmdsBridge_start: start dispatch transport #%d", index+1);
-      mama_status result = upaBridge->getTransportBridge(index)->Resume();
-      if ( result != MAMA_STATUS_OK)
+      const RMDSTransportBridge_ptr_t& transportBridgePtr = upaBridge->getTransportBridge(index);
+      if (!transportBridgePtr->Stopped())
       {
-         //can just wait and start on transport create
-         t42log_error ("tick42rmdsBridge_start(): Could not start dispatching on rmds\n");
-         return result;
-
+          mama_status result = transportBridgePtr->Resume();
+          if ( result != MAMA_STATUS_OK)
+          {
+             //can just wait and start on transport create
+             t42log_error ("tick42rmdsBridge_start(): Could not start dispatching on rmds\n");
+             return result;
+          }
       }
    }
 

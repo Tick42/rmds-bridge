@@ -34,10 +34,6 @@ extern "C" {
 
 MAMAExpBridgeDLL
 extern mama_status
-tick42rmdsmsgPayload_destroyImpl       (mamaPayloadBridge mamaPayloadBridge);
-
-MAMAExpBridgeDLL
-extern mama_status
 tick42rmdsmsgPayload_init(mamaPayloadBridge payloadBridge, char* identifier);
 
 MAMAExpBridgeDLL

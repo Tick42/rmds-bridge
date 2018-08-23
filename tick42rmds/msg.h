@@ -49,4 +49,11 @@ typedef enum RMDSBridgeMsgType_t
  mama_status tick42rmdsBridgeMamaMsgImpl_setReplyTo (msgBridge msg, std::string source, std::string symbol);
  mama_status tick42rmdsBridgeMamaMsgImpl_getReplyTo (msgBridge msg, std::string & source, std::string & symbol);
 
+ mama_status tick42rmdsBridgeMamaMsgImpl_increaseReferences(msgBridge msg);
+ mama_status tick42rmdsBridgeMamaMsgImpl_decreaseReferences(msgBridge msg);
+
+ mama_status tick42rmdsBridgeMamaMsgImpl_getReferences(msgBridge msg, size_t& references);
+
+ mama_status tick42rmdsBridgeMamaMsgImpl_isDetached(msgBridge msg, bool& detached);
+
 #endif // __MSG_H__

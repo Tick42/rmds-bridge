@@ -81,7 +81,7 @@ ELSE (WIN32 AND NOT CYGWIN) # This one is ONLY linux see comment below (UPA basi
 #------------------------------------------------------------------------------------------------------------------------------
 
     # Add the definition Linux to support the libraries
-    add_definitions( -DLinux -Dx86_Linux_4X -Dx86_Linux_5X -DLinuxVersion=5 -D_iso_stdcpp_ -D_BSD_SOURCE=1 -D_POSIX_SOURCE=1 -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500  -D_POSIX_PTHREAD_SEMANTICS -D_GNU_SOURCE)
+    add_definitions(-DLinux -Dx86_Linux_4X -Dx86_Linux_5X -DLinuxVersion=5 -D_iso_stdcpp_ -D_POSIX_SOURCE=1 -D_POSIX_C_SOURCE=199506L -D_XOPEN_SOURCE=500  -D_POSIX_PTHREAD_SEMANTICS -D_GNU_SOURCE -D_DEFAULT_SOURCE)
 
     # set -D_SVID_SOURCE=1 #todo: check it out later
     add_definitions( -D_SVID_SOURCE=1)

@@ -20,6 +20,7 @@ endif (NOT MSVC)
 
 include_directories(
 	${INCLUDE_LIBRARIES_LIST}
+    ${PROJECT_ROOT_DIR}/utils
 	)
 
 # mamalistenc
@@ -29,6 +30,7 @@ add_executable (mamalistenc
 	)
 
 set (LINK_LIBRARIES_LIST
+    ${Boost_LIBRARIES}
 	${OPENMAMA_LIBRARIES}
 	${OPENMAMA_COMMON_LIBRARIES}
 	)	

@@ -1,0 +1,5 @@
+Release note, version 2.0.0:
+- implemented asynchronous OM messaging. it means the call of OM process message routines is done in separate async threading queue;
+- added configuration for asynchronous messaging activation; the default value is false (synchronous messaging as it was);
+- fixed function call in order to optimize call-stack usage;
+- midified some of the build scripts - cmake scripts for the Linux builds, and MSBuild scripts for the Windows builds.

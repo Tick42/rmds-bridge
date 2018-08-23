@@ -1825,8 +1825,9 @@ void displayAllFields (mamaMsg msg, mamaSubscription subscription, int
 
             if (MAMA_STATUS_OK!=(status=mamaMsgIterator_associate(iterator, msg)))
             {
-                    fprintf (stderr, "Could not associate iterator "
-                              "with message. [%s]\n", mamaStatus_stringForStatus (status));
+                    fprintf (stderr,
+                             "Could not associate iterator with message. [%s]\n",
+                             mamaStatus_stringForStatus (status));
             }
             else
             {
@@ -1895,11 +1896,17 @@ rateReporterCallback (mamaTimer  timer, void*   closure)
     char          timeStr[20];
     mamaDateTime  now;
 
+    size_t queueSize = 0;
+    mama_status status = mamaQueue_getEventCount(gMamaDefaultQueue, &queueSize);
+    if (status != MAMA_STATUS_OK)
+    {
+        queueSize = 0;
+    }
     mamaDateTime_create (&now);
     mamaDateTime_setToNow (now);
     mamaDateTime_getAsFormattedString (now, timeStr, 20, "%F %T");
     mamaDateTime_destroy (now);
-    printf ("%s, %-10d, %-12ld\n", timeStr, msgInterval, gNumMsg);
+    printf ("RPT: %s, %-10d, %-12ld, %-8ld\n", timeStr, msgInterval, gNumMsg, queueSize);
     gNumMsgLast = gNumMsg;
 }
 

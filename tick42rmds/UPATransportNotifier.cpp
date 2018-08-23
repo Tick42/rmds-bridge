@@ -33,11 +33,6 @@ UPATransportNotifier::UPATransportNotifier( mamaTransport transport )
 }
 
 
-UPATransportNotifier::~UPATransportNotifier(void)
-{
-}
-
-
 // Notify the client that connection failed
 void UPATransportNotifier::onConnectionFailed(const char* extraInfo)
 {

@@ -25,7 +25,6 @@
 #ifndef UPA_FIELD_PAYLOAD_H
 #define UPA_FIELD_PAYLOAD_H
 
-
 #include <string>
 #include "utils/t42log.h"
 #include "utils/time.h"
@@ -156,23 +155,23 @@ template <mamaFieldType Tag> struct TypeFromTag
    typedef void* Type;
 };
 
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I8>        {typedef int8_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U8>        {typedef uint8_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I16>        {typedef int16_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U16>        {typedef uint16_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I32>        {typedef int32_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U32>        {typedef uint32_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_I64>        {typedef int64_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_U64>        {typedef uint64_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_F32>        {typedef float  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_F64>        {typedef double  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_TIME>        {typedef MamaDateTimeWrapper_ptr_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_PRICE>    {typedef MamaPriceWrapper_ptr_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_STRING>    {typedef std::string  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_BOOL>        {typedef bool  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_CHAR>        {typedef char  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_VECTOR_MSG>        {typedef MamaMsgVectorWrapper_ptr_t  Type;};
-template<> struct TypeFromTag<MAMA_FIELD_TYPE_OPAQUE>        {typedef MamaOpaqueWrapper_ptr_t  Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I8>           {typedef int8_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U8>           {typedef uint8_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I16>          {typedef int16_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U16>          {typedef uint16_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I32>          {typedef int32_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U32>          {typedef uint32_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_I64>          {typedef int64_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_U64>          {typedef uint64_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_F32>          {typedef float Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_F64>          {typedef double Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_TIME>         {typedef MamaDateTimeWrapper_ptr_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_PRICE>        {typedef MamaPriceWrapper_ptr_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_STRING>       {typedef std::string Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_BOOL>         {typedef bool Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_CHAR>         {typedef char Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_VECTOR_MSG>   {typedef MamaMsgVectorWrapper_ptr_t Type;};
+template<> struct TypeFromTag<MAMA_FIELD_TYPE_OPAQUE>       {typedef MamaOpaqueWrapper_ptr_t Type;};
 
 struct UpaFieldPayload
 {
@@ -187,10 +186,6 @@ struct UpaFieldPayload
    boost::shared_ptr< std::vector<std::string> > stringVector1_;
    boost::shared_ptr< std::vector<const char *> > stringVector2_;
 //   bool dirty_;
-
-   ~UpaFieldPayload()
-   {
-   }
 
    UpaFieldPayload()
       : fid_(0)
@@ -214,7 +209,7 @@ struct UpaFieldPayload
    //    , type_ (MAMA_FIELD_TYPE_TIME)
    //    , data_ (value)
    //{}
-   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaDateTimeWrapper_ptr_t value)
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaDateTimeWrapper_ptr_t& value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_TIME)
@@ -222,7 +217,7 @@ struct UpaFieldPayload
      // , /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaPriceWrapper_ptr_t value)
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaPriceWrapper_ptr_t& value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_PRICE)
@@ -230,7 +225,7 @@ struct UpaFieldPayload
      // , /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaMsgPayloadWrapper_ptr_t value)
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaMsgPayloadWrapper_ptr_t& value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_MSG)
@@ -238,7 +233,7 @@ struct UpaFieldPayload
       //, /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaOpaqueWrapper_ptr_t value)
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaOpaqueWrapper_ptr_t& value)
        : fid_    (fid)
        , name_ (name)
        , type_ (MAMA_FIELD_TYPE_OPAQUE)
@@ -246,7 +241,7 @@ struct UpaFieldPayload
        //, /*dirty_*/(true)
    {}
 
-   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaMsgVectorWrapper_ptr_t value)
+   UpaFieldPayload(const mama_fid_t fid, const char* name, const MamaMsgVectorWrapper_ptr_t& value)
       : fid_    (fid)
       , name_ (name)
       , type_ (MAMA_FIELD_TYPE_VECTOR_MSG)
@@ -261,16 +256,16 @@ struct UpaFieldPayload
       , data_()
       //, /*dirty_*/(true)
    {
-      std::vector<std::string> *sv1 = new std::vector<std::string>;
-      stringVector1_.reset(sv1);
-      stringVector2_.reset(new std::vector<const char *>);
+      stringVector1_.reset(new std::vector<std::string>());
       stringVector1_->reserve(numElements);
+
+      stringVector2_.reset(new std::vector<const char*>());
       stringVector2_->reserve(numElements);
 
       for (size_t ii = 0; ii < numElements; ++ii)
       {
-         stringVector1_->push_back(value[ii]);
-         stringVector2_->push_back((*sv1)[ii].c_str());
+         stringVector1_->emplace_back(value[ii]);
+         stringVector2_->emplace_back(stringVector1_->back().c_str());
       }
    }
 
@@ -1259,7 +1254,7 @@ struct UpaFieldPayload
 
       if (data_.which() == 12)
       {
-         MamaMsgPayloadWrapper_ptr_t p = boost::get<MamaMsgPayloadWrapper_ptr_t>(data_);
+         const MamaMsgPayloadWrapper_ptr_t& p = boost::get<MamaMsgPayloadWrapper_ptr_t>(data_);
          value = p->getMamaMsgPayload();
          return MAMA_STATUS_OK;
       }
@@ -1272,7 +1267,7 @@ struct UpaFieldPayload
 
        if (data_.which() == 17)
        {
-           MamaOpaqueWrapper_ptr_t p = boost::get<MamaOpaqueWrapper_ptr_t>(data_);
+           const MamaOpaqueWrapper_ptr_t& p = boost::get<MamaOpaqueWrapper_ptr_t>(data_);
            *length = p->Length();
            *data = p->Data();
            return MAMA_STATUS_OK;
@@ -1288,7 +1283,7 @@ struct UpaFieldPayload
       CHECK_UPA_FIELD_PAYLOAD;
 
       // todo - need to change the vector wrapper so that it is a vector of msgPayLoad not the payliad wrppaer class
-      MamaMsgVectorWrapper_ptr_t msgVec = (MamaMsgVectorWrapper_ptr_t)boost::get<MamaMsgVectorWrapper_ptr_t>(data_);
+      const MamaMsgVectorWrapper_ptr_t& msgVec = boost::get<MamaMsgVectorWrapper_ptr_t>(data_);
       *resultLen = msgVec->getVectorLength();
       *value = msgVec->GetVector();
 
@@ -1341,16 +1336,16 @@ struct UpaFieldPayload
       //
 
       *size = stringVector2_->size();
-      *result = const_cast<const char **>(&((*stringVector2_)[0]));
+      *result = &((*stringVector2_)[0]);
       return MAMA_STATUS_OK;
    }
 
 #undef CHECK_UPA_FIELD_PAYLOAD
 
    template <typename T>
-   mama_status set(T value)
+   mama_status set(const T& value)
    {
-      if (MamaFieldType<T>::Value !=  type_ && type_ != MAMA_FIELD_TYPE_UNKNOWN )
+      if (MamaFieldType<T>::Value != type_ && type_ != MAMA_FIELD_TYPE_UNKNOWN )
          return MAMA_STATUS_WRONG_FIELD_TYPE;
       if (type_ == MAMA_FIELD_TYPE_UNKNOWN)
          type_ = MamaFieldType<T>::Value;

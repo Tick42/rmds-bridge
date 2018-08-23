@@ -41,7 +41,6 @@ class UpaPayload
 {
 public:
     friend class UpaPayloadFieldIterator;
-    //typedef std::map<mama_fid_t, UpaFieldPayload> FieldsMap_t;
     typedef utils::collection::unordered_map<mama_fid_t, UpaFieldPayload> FieldsMap_t;
     typedef FieldsMap_t::const_iterator FieldIterator_t;
 
@@ -82,14 +81,12 @@ public:
 
     void set(mama_fid_t fid, const char* name, const std::string& value)
     {
-        fields_[fid] = UpaFieldPayload(fid, name, value);
+        fields_.emplace(fid, UpaFieldPayload(fid, name, value));
     }
 
-    void setPrice(mama_fid_t fid, const char* name, MamaPriceWrapper_ptr_t value)
+    void setPrice(mama_fid_t fid, const char* name, const MamaPriceWrapper_ptr_t& value)
     {
-        //UpaFieldPayload fld = fields_[fid];
-
-        FieldsMap_t::iterator it = fields_.find(fid);
+        FieldsMap_t::iterator it = fields_.empty() ? fields_.end() : fields_.find(fid);
 
         if (it != fields_.end())
         {
@@ -97,24 +94,18 @@ public:
             if (fld.type_ == MAMA_FIELD_TYPE_PRICE)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
-                it->second =  UpaFieldPayload(fid, name, value);
+                it->second =  std::move(UpaFieldPayload(fid, name, value));
             }
         }
         else
         {
-            fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
+            fields_.emplace(fid, UpaFieldPayload(fid, name, value));
         }
     }
 
-    void setMsg(mama_fid_t fid, const char* name, MamaMsgPayloadWrapper_ptr_t value)
+    void setMsg(mama_fid_t fid, const char* name, const MamaMsgPayloadWrapper_ptr_t& value)
     {
-        //       UpaFieldPayload fld = fields_[fid];
-        //
-        //       if (fld.type_ == MAMA_FIELD_TYPE_MSG)
-        //       {
-        //          fields_[fid] = UpaFieldPayload(fid, name, value);
-        //       }
-        FieldsMap_t::iterator it = fields_.find(fid);
+        FieldsMap_t::iterator it = fields_.empty() ? fields_.end() : fields_.find(fid);
 
         if (it != fields_.end())
         {
@@ -122,26 +113,19 @@ public:
             if (fld.type_ == MAMA_FIELD_TYPE_MSG)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
-                it->second =  UpaFieldPayload(fid, name, value);
+                it->second =  std::move(UpaFieldPayload(fid, name, value));
             }
         }
         else
         {
-            fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
+            fields_.emplace(fid, UpaFieldPayload(fid, name, value));
         }
     }
 
 
-    void setVectorMsg(mama_fid_t fid, const char* name, MamaMsgVectorWrapper_ptr_t value)
+    void setVectorMsg(mama_fid_t fid, const char* name, const MamaMsgVectorWrapper_ptr_t& value)
     {
-        //UpaFieldPayload fld = fields_[fid];
-
-        //if (fld.type_ == MAMA_FIELD_TYPE_VECTOR_MSG)
-        //{
-        //   fields_[fid] = UpaFieldPayload(fid, name, value);
-        //}
-
-        FieldsMap_t::iterator it = fields_.find(fid);
+        FieldsMap_t::iterator it = fields_.empty() ? fields_.end() : fields_.find(fid);
 
         if (it != fields_.end())
         {
@@ -149,19 +133,18 @@ public:
             if (fld.type_ == MAMA_FIELD_TYPE_VECTOR_MSG)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
-                it->second =  UpaFieldPayload(fid, name, value);
+                it->second =  std::move(UpaFieldPayload(fid, name, value));
             }
         }
         else
         {
-            fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
+            fields_.emplace(fid, UpaFieldPayload(fid, name, value));
         }
     }
 
-    void setOpaque(mama_fid_t fid, const char* name, MamaOpaqueWrapper_ptr_t value)
+    void setOpaque(mama_fid_t fid, const char* name, const MamaOpaqueWrapper_ptr_t& value)
     {
-
-        FieldsMap_t::iterator it = fields_.find(fid);
+        FieldsMap_t::iterator it = fields_.empty() ? fields_.end() : fields_.find(fid);
 
         if (it != fields_.end())
         {
@@ -169,12 +152,12 @@ public:
             if (fld.type_ == MAMA_FIELD_TYPE_OPAQUE)
             {
                 //fields_[fid] = UpaFieldPayload(fid, name, value);
-                it->second =  UpaFieldPayload(fid, name, value);
+                it->second =  std::move(UpaFieldPayload(fid, name, value));
             }
         }
         else
         {
-            fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
+            fields_.emplace(fid, UpaFieldPayload(fid, name, value));
         }
     }
 
@@ -200,17 +183,15 @@ public:
     template <typename T>
     void set(mama_fid_t fid, const char* name, T value)
     {
-        //fields_[fid] = UpaFieldPayload(fid, name, value);
-
-        FieldsMap_t::iterator it = fields_.find(fid);
+        FieldsMap_t::iterator it = fields_.empty() ? fields_.end() : fields_.find(fid);
         if (it != fields_.end())
         {
             //fields_[fid] = UpaFieldPayload(fid, name, value);
-            it->second =  UpaFieldPayload(fid, name, value);
+            it->second = std::move(UpaFieldPayload(fid, name, value));
         }
         else
         {
-            fields_.insert(FieldsMap_t::value_type(fid, UpaFieldPayload(fid, name, value)));
+            fields_.emplace(fid, UpaFieldPayload(fid, name, value));
         }
     }
 
@@ -227,7 +208,7 @@ public:
     {
         // Prefer the fid, as that is much more efficient.
         FieldsMap_t::iterator itField;
-        if (0 != fid)
+        if (0 != fid && !fields_.empty())
         {
             itField = fields_.find(fid);
             if (itField != fields_.end())
@@ -235,7 +216,7 @@ public:
                 return itField;
             }
         }
-        if (name != 0)
+        if (name != 0 && !fields_.empty())
         {
             // Searching for the field by name requires O(n) time.
             for (itField = fields_.begin(); itField != fields_.end(); ++itField)
@@ -351,7 +332,7 @@ public:
 
 
         // todo - need to change the vector wrapper so that it is a vector of msgPayLoad not the payload wrapper class
-        MamaMsgVectorWrapper_ptr_t msgVec = (MamaMsgVectorWrapper_ptr_t)boost::get<MamaMsgVectorWrapper_ptr_t>(itField->second.data_);
+        const MamaMsgVectorWrapper_ptr_t& msgVec = (MamaMsgVectorWrapper_ptr_t)boost::get<MamaMsgVectorWrapper_ptr_t>(itField->second.data_);
         *value = msgVec->GetVector();
         *resultLen = msgVec->getVectorLength();
 
@@ -527,28 +508,27 @@ public:
               return fields_.size();
     }
 
-    void apply(UpaPayload * src)
+    void apply(const UpaPayload* src)
     {
         // merge src into this
 
-        FieldsMap_t::iterator itSrc = src->fields_.begin();
-        while ( itSrc != src->fields_.end())
+        FieldsMap_t::const_iterator itSrcField = src->fields_.begin();
+        while (itSrcField != src->fields_.end())
         {
-            UpaFieldPayload fieldSrc = itSrc->second;
+            const UpaFieldPayload& srcField = itSrcField->second;
 
-            FieldsMap_t::iterator itDest = fields_.find(fieldSrc.fid_);
-            if (itDest != fields_.end())
+            FieldsMap_t::iterator itDestField = fields_.find(srcField.fid_);
+            if (itDestField != fields_.end())
             {
                 // just copy the field value
-                fields_[fieldSrc.fid_] = fieldSrc;
-
+                itDestField->second = srcField;
             }
             else
             {
-                fields_[fieldSrc.fid_] = UpaFieldPayload(fieldSrc);
+                fields_.emplace(srcField.fid_, UpaFieldPayload(srcField));
             }
 
-            ++itSrc;
+            ++itSrcField;
         }
     }
 
