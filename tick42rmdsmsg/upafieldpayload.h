@@ -1217,6 +1217,10 @@ struct UpaFieldPayload
                  uint32_t year = atoi(&asString[0]);
                  uint32_t month = atoi(&asString[5]) - 1;
                  uint32_t day = atoi(&asString[8]) - 1;
+                 uint32_t hour = atoi(&asString[11]);
+                 uint32_t minute = atoi(&asString[14])
+                 uint32_t second = atoi(&asString[17]);
+                 uint32_t microsecond = atoi(&asString[20]);
                  if (year != 0 && month != 0 && day != 0)
                  {
                      mamaDateTime_setEpochTimeExt(value,
@@ -1224,12 +1228,15 @@ struct UpaFieldPayload
                                                   0);
                      mamaDateTime_setHints(value, MAMA_DATE_TIME_HAS_DATE);
                  }
-                 mamaDateTime_setTime(value
-                     , atoi(&asString[11])
-                     , atoi(&asString[14])
-                     , atoi(&asString[17])
-                     , atoi(&asString[20])
-                     );
+                 if (hour != 0 && minute != 0 && second != 0 && microsecond != 0)
+                 {
+                     mamaDateTime_setTime(value
+                         , hour
+                         , minute
+                         , second
+                         , microsecond
+                         );
+                 }
              }
              return MAMA_STATUS_OK;
          case MAMA_FIELD_TYPE_BOOL:
